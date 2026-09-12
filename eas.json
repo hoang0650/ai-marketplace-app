@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.aimarkets.vn/v1",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "",
+        "EXPO_PUBLIC_GOOGLE_REDIRECT_URI": "https://aimarkets.vn/assets/oauth/google-mobile.html"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "app.phgroup.ai_market_vn",
+        "releaseStatus": "completed"
+      }
+    }
+  }
+}
