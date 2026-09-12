@@ -227,6 +227,10 @@ export interface PaypalConfig {
   enabled: boolean;
   clientId: string;
   sandbox: boolean;
+  merchantName?: string;
+  applePay?: boolean;
+  googlePay?: boolean;
+  applePayDomains?: string[];
 }
 
 export interface PaypalCreateOrderResult {

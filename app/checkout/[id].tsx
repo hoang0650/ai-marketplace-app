@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, ActivityIndicator, Text, View } from 'react-native';
+import { Alert, ActivityIndicator, Platform, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -59,7 +59,13 @@ export default function CheckoutScreen() {
   }, [p, licensed, selected, t]);
 
   const pay = useMutation({
-    mutationFn: () => billingApi.checkout(String(id), 1, licensed ? selected : undefined),
+    mutationFn: () =>
+      billingApi.checkout(
+        String(id),
+        1,
+        licensed ? selected : undefined,
+        Platform.OS === 'ios' ? 'APP_STORE' : Platform.OS === 'android' ? 'GOOGLE_PLAY' : 'WEB',
+      ),
     onSuccess: (res) => {
       const skipCharge = !!(res.alreadyLicensed || res.alreadyPurchased);
       if (!skipCharge) AnalyticsService.track('payment_completed', { orderId: res.orderId || '' });

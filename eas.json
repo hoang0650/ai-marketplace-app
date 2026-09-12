@@ -25,9 +25,11 @@
   "submit": {
     "production": {
       "android": {
-        "track": "app.phgroup.ai_market_vn",
+        "track": "app.phgroup.ai-markets-vn",
         "releaseStatus": "completed"
       }
+
+      
     }
   }
 }

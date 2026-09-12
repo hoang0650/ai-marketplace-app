@@ -70,15 +70,17 @@ export const ordersApi = {
 };
 
 export const billingApi = {
-  checkout: (productId: string, quantity = 1, licenseTerm?: string) =>
-    apiClient.post<CheckoutResult>('/billing/checkout', { productId, quantity, provider: 'wallet', licenseTerm }),
+  checkout: (productId: string, quantity = 1, licenseTerm?: string, salesChannel?: 'WEB' | 'APP_STORE' | 'GOOGLE_PLAY') =>
+    apiClient.post<CheckoutResult>('/billing/checkout', { productId, quantity, provider: 'wallet', licenseTerm, salesChannel }),
 };
 
 export const walletApi = {
   list: () => apiClient.get<WalletTx[]>('/wallet'),
   summary: () => apiClient.get<WalletSummary>('/wallet/summary'),
-  deposit: (amount: number) => apiClient.post<WalletTx>('/wallet/deposit', { amount }),
   withdraw: (amount: number) => apiClient.post<WalletTx>('/wallet/withdraw', { amount }),
+  iapPacks: () => apiClient.get<{ packs: Array<{ sku: string; usd: number; currency: string }> }>('/iap/packs'),
+  iapVerify: (body: { platform: 'ios' | 'android'; productId: string; transactionId: string; purchaseToken?: string }) =>
+    apiClient.post<{ success: boolean; duplicate?: boolean; wallet?: WalletTx }>('/iap/verify', body),
   paypalConfig: () => apiClient.get<PaypalConfig>('/paypal/config'),
   paypalCreateOrder: (amount: number, currency: string, fundingSource?: PaypalFunding) =>
     apiClient.post<PaypalCreateOrderResult>('/paypal/create-order', { amount, currency, fundingSource }),
