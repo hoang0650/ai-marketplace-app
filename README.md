@@ -35,3 +35,27 @@ Trên Google Cloud (cùng project PHGroup AI, **thêm Android/iOS OAuth clients*
 - Android package: `app.phgroup.ai_market_vn`
 
 Web OAuth bridge file lives in `ai-marketplace/public/assets/oauth/google-mobile.html` (redirects to `aimarkets://oauthredirect`).
+
+## IAP (ví trên app)
+
+Expo Go **không** mua được. Cần development / production build có `expo-iap` + `expo-dev-client`.
+
+| | |
+|---|---|
+| iOS bundle | `app.phgroup.ai-market-vn` |
+| Android package | `app.phgroup.ai_market_vn` |
+| SKU (consumable) | `aimarkets.wallet.5` … `aimarkets.wallet.100` |
+
+```bash
+npx expo start --dev-client
+npm run build:dev:android
+npm run build:dev:ios
+```
+
+API production luôn gọi Apple / Google để verify. Đặt trên Dokploy:
+
+- Apple: `APPLE_IAP_ISSUER_ID`, `APPLE_IAP_KEY_ID`, `APPLE_IAP_PRIVATE_KEY` (In-App Purchase key .p8)
+- Google: `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` (service account có quyền Android Publisher)
+
+`IAP_SKIP_VERIFY` bị bỏ qua khi `NODE_ENV=production`.
+

@@ -228,9 +228,6 @@ export interface PaypalConfig {
   clientId: string;
   sandbox: boolean;
   merchantName?: string;
-  applePay?: boolean;
-  googlePay?: boolean;
-  applePayDomains?: string[];
 }
 
 export interface PaypalCreateOrderResult {
@@ -241,7 +238,7 @@ export interface PaypalCreateOrderResult {
   approvalUrl?: string;
 }
 
-export type PaypalFunding = 'applepay' | 'googlepay' | 'paypal';
+export type PaypalFunding = 'paypal';
 
 export interface Review {
   id: string;

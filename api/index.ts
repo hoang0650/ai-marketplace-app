@@ -79,8 +79,14 @@ export const walletApi = {
   summary: () => apiClient.get<WalletSummary>('/wallet/summary'),
   withdraw: (amount: number) => apiClient.post<WalletTx>('/wallet/withdraw', { amount }),
   iapPacks: () => apiClient.get<{ packs: Array<{ sku: string; usd: number; currency: string }> }>('/iap/packs'),
-  iapVerify: (body: { platform: 'ios' | 'android'; productId: string; transactionId: string; purchaseToken?: string }) =>
-    apiClient.post<{ success: boolean; duplicate?: boolean; wallet?: WalletTx }>('/iap/verify', body),
+  iapVerify: (body: {
+    platform: 'ios' | 'android';
+    productId: string;
+    transactionId: string;
+    purchaseToken?: string;
+    signedTransaction?: string;
+    packageName?: string;
+  }) => apiClient.post<{ success: boolean; duplicate?: boolean; wallet?: WalletTx }>('/iap/verify', body),
   paypalConfig: () => apiClient.get<PaypalConfig>('/paypal/config'),
   paypalCreateOrder: (amount: number, currency: string, fundingSource?: PaypalFunding) =>
     apiClient.post<PaypalCreateOrderResult>('/paypal/create-order', { amount, currency, fundingSource }),

@@ -6,15 +6,35 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.aimarkets.vn/v1",
+        "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_WEB_URL": "https://aimarkets.vn",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "",
+        "EXPO_PUBLIC_GOOGLE_REDIRECT_URI": "https://aimarkets.vn/assets/oauth/google-mobile.html"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.aimarkets.vn/v1",
+        "EXPO_PUBLIC_APP_ENV": "preview",
+        "EXPO_PUBLIC_WEB_URL": "https://aimarkets.vn",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "",
+        "EXPO_PUBLIC_GOOGLE_REDIRECT_URI": "https://aimarkets.vn/assets/oauth/google-mobile.html"
+      }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.aimarkets.vn/v1",
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_WEB_URL": "https://aimarkets.vn",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "",
@@ -28,8 +48,6 @@
         "track": "app.phgroup.ai-markets-vn",
         "releaseStatus": "completed"
       }
-
-      
     }
   }
 }
