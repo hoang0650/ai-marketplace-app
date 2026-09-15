@@ -15,11 +15,12 @@ const INJECT = `
 
 type Props = {
   uri: string;
+  terminal?: boolean;
   onLoad?: () => void;
   onError?: (message: string) => void;
 };
 
-export function GpuStreamPlayer({ uri, onLoad, onError }: Props) {
+export function GpuStreamPlayer({ uri, terminal, onLoad, onError }: Props) {
   const source = useMemo(() => ({ uri }), [uri]);
   return (
     <View style={styles.fill}>
@@ -35,16 +36,18 @@ export function GpuStreamPlayer({ uri, onLoad, onError }: Props) {
         allowsInlineMediaPlayback
         allowsFullscreenVideo
         mediaPlaybackRequiresUserAction={false}
+        hideKeyboardAccessoryView={false}
+        keyboardDisplayRequiresUserAction={false}
         mixedContentMode="always"
         androidLayerType="hardware"
         overScrollMode="never"
         nestedScrollEnabled
         bounces={false}
-        scrollEnabled={false}
+        scrollEnabled={!!terminal}
         setSupportMultipleWindows={false}
         setBuiltInZoomControls={false}
         showsHorizontalScrollIndicator={false}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={!!terminal}
         injectedJavaScript={INJECT}
         injectedJavaScriptBeforeContentLoaded={INJECT}
         onLoadEnd={onLoad}

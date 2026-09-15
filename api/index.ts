@@ -4,6 +4,7 @@ import type {
   CheckoutResult,
   Complaint,
   Creator,
+  HomeFeed,
   IssuedLicense,
   LegalDocument,
   NotificationItem,
@@ -38,8 +39,9 @@ function qs(params: Record<string, string | number | boolean | undefined>) {
 }
 
 export const productsApi = {
-  list: (params?: { q?: string; category?: string; featured?: boolean; limit?: number; offset?: number }) =>
+  list: (params?: { q?: string; category?: string; featured?: boolean; limit?: number; offset?: number; sort?: string }) =>
     apiClient.get<Product[]>(`/products${qs(params || {})}`),
+  home: () => apiClient.get<HomeFeed>('/home'),
   listMany: async (categories: string[], limit = 40) => {
     const lists = await Promise.all(categories.map((category) => apiClient.get<Product[]>(`/products${qs({ category, limit })}`)));
     const seen = new Set<string>();

@@ -18,11 +18,22 @@ import { Button } from '@/components/ui/Button';
 import { NativeMediaPlayer } from '@/components/content/NativeMediaPlayer';
 import { EpisodeGrid } from '@/components/content/EpisodeGrid';
 import { ProductWorkspace } from '@/components/product/ProductWorkspace';
+import { DownloadLicensePanel } from '@/components/content/DownloadLicensePanel';
 import { WishButton } from '@/components/content/WishButton';
 import { ContentShield } from '@/components/content/ContentShield';
 import { AnalyticsService } from '@/lib/analytics';
 import { findActiveLicense, findExpiredLicense, findPaidOrder, productCtaKey, productPriceCaptionKey } from '@/lib/access';
-import { isComputeStreamCategory, isContentCategory, isFilmCategory, isLicenseCategory, isPlaygroundCategory, isVoiceCategory, categoryLabel } from '@/constants/categories';
+import {
+  isComputeStreamCategory,
+  isGpuComputeCategory,
+  isContentCategory,
+  isDownloadLicenseCategory,
+  isFilmCategory,
+  isLicenseCategory,
+  isPlaygroundCategory,
+  isVoiceCategory,
+  categoryLabel,
+} from '@/constants/categories';
 import { displayFont } from '@/constants/fonts';
 import { Chip } from '@/components/ui/Chip';
 import type { ContentUnlock, LicenseTerm } from '@/api/types';
@@ -60,6 +71,7 @@ export default function ProductScreen() {
   const [licenseTerm, setLicenseTerm] = useState<LicenseTerm>('month');
   const scrollRef = useRef<ScrollView>(null);
   const playOffset = useRef(0);
+  const downloadOffset = useRef(0);
   const q = useQuery({
     queryKey: ['product', slug],
     queryFn: async () => {
@@ -200,6 +212,10 @@ export default function ProductScreen() {
       }
       return;
     }
+    if (isDownloadLicenseCategory(p.category)) {
+      scrollRef.current?.scrollTo({ y: Math.max(0, downloadOffset.current - 12), animated: true });
+      return;
+    }
     if (licensed) {
       router.push(href('/licenses'));
       return;
@@ -278,17 +294,23 @@ export default function ProductScreen() {
           ) : null}
           <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', marginTop: 12 }}>{hasAccess ? t('product.owned') : priceLabel}</Text>
           {hasAccess ? (
-            <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>{t('product.ownedHint')}</Text>
+            <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>
+              {t(isDownloadLicenseCategory(p.category) ? 'download.ownedHint' : 'product.ownedHint')}
+            </Text>
           ) : licensed ? (
-            <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>{t('checkout.licenseHint')}</Text>
+            <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>
+              {t(isDownloadLicenseCategory(p.category) ? 'download.licenseHint' : 'checkout.licenseHint')}
+            </Text>
           ) : null}
 
           {isComputeStreamCategory(p.category) ? (
             <View style={{ marginTop: 16 }}>
-              <Text style={section(colors.text)}>{t('compute.play.kicker')}</Text>
-              <Text style={{ color: colors.textSecondary, marginBottom: 12, lineHeight: 20 }}>{t('compute.play.hint')}</Text>
+              <Text style={section(colors.text)}>{t(isGpuComputeCategory(p.category) ? 'compute.play.kickerGpu' : 'compute.play.kicker')}</Text>
+              <Text style={{ color: colors.textSecondary, marginBottom: 12, lineHeight: 20 }}>
+                {t(isGpuComputeCategory(p.category) ? 'compute.play.hintGpu' : 'compute.play.hint')}
+              </Text>
               <Button
-                title={t('compute.cta.play')}
+                title={t(isGpuComputeCategory(p.category) ? 'compute.cta.terminal' : 'compute.cta.play')}
                 onPress={() => {
                   if (!isAuthenticated) {
                     router.push('/auth/login');
@@ -392,6 +414,28 @@ export default function ProductScreen() {
                     ) : (
                       <Text style={{ color: colors.textSecondary }}>{t('content.empty')}</Text>
                     )}
+            </View>
+          ) : null}
+
+          {isDownloadLicenseCategory(p.category) ? (
+            <View
+              onLayout={(e) => {
+                downloadOffset.current = styles.cover.height + e.nativeEvent.layout.y;
+              }}
+            >
+              <DownloadLicensePanel
+                product={p}
+                canUnlock={canPlay}
+                license={activeLicense}
+                onBuy={() => {
+                  if (!isAuthenticated) {
+                    router.push('/auth/login');
+                    return;
+                  }
+                  AnalyticsService.track('checkout_started', { id: p.id });
+                  router.push(href(`/checkout/${p.id}?term=${selectedTerm}`));
+                }}
+              />
             </View>
           ) : null}
 

@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { href } from '@/lib/href';
+import { categoriesApi } from '@/api';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
 import { CATEGORY_ICONS, HOME_CATEGORY_IDS, HOME_HUBS, categoryLabel, categoryMeta } from '@/constants/categories';
@@ -11,6 +13,18 @@ export const HubRow = React.memo(function HubRow() {
   const router = useRouter();
   const { colors } = useTheme();
   const { t } = useT();
+  const cats = useQuery({
+    queryKey: ['categories', 'counts'],
+    queryFn: categoriesApi.list,
+    staleTime: 60_000,
+  });
+  const countById = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const c of cats.data || []) {
+      map[c.id] = Number(c.productCount) || 0;
+    }
+    return map;
+  }, [cats.data]);
 
   return (
     <View style={styles.wrap}>
@@ -24,11 +38,12 @@ export const HubRow = React.memo(function HubRow() {
         {HOME_CATEGORY_IDS.map((id) => {
           const Icon = CATEGORY_ICONS[id] || CATEGORY_ICONS['text-to-text'];
           const meta = categoryMeta(id);
+          const count = countById[id] ?? 0;
           return (
             <Pressable
               key={id}
               accessibilityRole="button"
-              accessibilityLabel={categoryLabel(id, t, id, 'label')}
+              accessibilityLabel={`${categoryLabel(id, t, id, 'label')}, ${count}`}
               onPress={() => router.push(href(meta?.hubHref || `/category/${id}`))}
               style={({ pressed }) => [
                 styles.tile,
@@ -38,6 +53,7 @@ export const HubRow = React.memo(function HubRow() {
               <View style={[styles.icon, { backgroundColor: colors.mist }]}>
                 <Icon size={18} color={colors.tint} />
               </View>
+              <Text style={[styles.count, { color: colors.textSecondary }]}>+{count}</Text>
               <Text style={[styles.label, { color: colors.text }]} numberOfLines={2}>
                 {categoryLabel(id, t, id, 'short')}
               </Text>
@@ -82,7 +98,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     paddingHorizontal: 6,
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   icon: {
     width: 40,
@@ -90,6 +106,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  count: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   label: {
     fontSize: 11,

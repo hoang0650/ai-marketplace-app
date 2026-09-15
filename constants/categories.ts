@@ -30,6 +30,7 @@ export const CATEGORY_META: CategoryMeta[] = [
   { id: 'text-to-video', navGroup: 'generate', hubHref: '/category/text-to-video' },
   { id: 'image-to-video', navGroup: 'generate', hubHref: '/category/image-to-video' },
   { id: 'voice-clone', navGroup: 'generate', hubHref: '/category/voice-clone' },
+  { id: 'voice-preset', navGroup: 'generate', hubHref: '/category/voice-preset' },
   { id: 'ai-film-series', navGroup: 'generate', hubHref: '/category/ai-film-series' },
   { id: 'story-book', navGroup: 'generate', hubHref: '/category/story-book' },
   { id: 'skill-pack', navGroup: 'generate', hubHref: '/category/skill-pack' },
@@ -57,6 +58,7 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'image-to-video': Film,
   'ai-film-series': Film,
   'voice-clone': Mic,
+  'voice-preset': Mic,
   'skill-pack': Wrench,
   dataset: Database,
   'hire-agent': Bot,
@@ -116,8 +118,12 @@ export function isComputeStreamCategory(id?: string) {
   return id === 'gpu-compute' || id === 'game-server';
 }
 
+export function isGpuComputeCategory(id?: string) {
+  return id === 'gpu-compute';
+}
+
 export function isLicenseCategory(id?: string) {
-  return id === 'ai-film-series' || id === 'story-book' || id === 'skill-pack' || id === 'dataset';
+  return id === 'ai-film-series' || id === 'story-book' || id === 'skill-pack' || id === 'dataset' || id === 'voice-preset' || id === 'voice-clone';
 }
 
 export function isFilmCategory(id?: string) {
@@ -133,7 +139,15 @@ export function isContentCategory(id?: string) {
 }
 
 export function isVoiceCategory(id?: string) {
+  return id === 'voice-clone' || id === 'voice-preset';
+}
+
+export function isVoiceCloneCategory(id?: string) {
   return id === 'voice-clone';
+}
+
+export function isVoicePresetCategory(id?: string) {
+  return id === 'voice-preset';
 }
 
 export function isSkillCategory(id?: string) {
@@ -144,6 +158,11 @@ export function isDatasetCategory(id?: string) {
   return id === 'dataset';
 }
 
+/** Skill packs + datasets: timed AIM-xxxx unlock (same billing as film/story). */
+export function isDownloadLicenseCategory(id?: string) {
+  return isSkillCategory(id) || isDatasetCategory(id);
+}
+
 export function isPlaygroundCategory(id?: string) {
   return (
     id === 'text-to-text' ||
@@ -152,6 +171,7 @@ export function isPlaygroundCategory(id?: string) {
     id === 'text-to-video' ||
     id === 'image-to-video' ||
     id === 'voice-clone' ||
+    id === 'voice-preset' ||
     id === 'api-endpoint' ||
     id === 'inference' ||
     id === 'fine-tune' ||
@@ -166,7 +186,7 @@ export function playgroundNeedsImage(id?: string) {
 export function playgroundResultKind(id?: string): 'text' | 'image' | 'video' | 'audio' {
   if (id === 'text-to-video' || id === 'image-to-video') return 'video';
   if (id === 'text-to-image' || id === 'image-to-image') return 'image';
-  if (id === 'voice-clone') return 'audio';
+  if (id === 'voice-clone' || id === 'voice-preset') return 'audio';
   return 'text';
 }
 

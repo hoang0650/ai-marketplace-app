@@ -102,6 +102,9 @@ export interface CategoryMeta {
   description?: string;
   navGroup?: string;
   group?: string;
+  hubPath?: string;
+  /** Live published listing count from GET /categories. */
+  productCount?: number;
 }
 
 export interface Creator {
@@ -115,6 +118,14 @@ export interface Creator {
   productCount: number;
   rating: number;
   totalSales: number;
+  revenue?: number;
+}
+
+export interface HomeFeed {
+  shops: Creator[];
+  newArrivals: Product[];
+  promoted: Product[];
+  bestsellers: Product[];
 }
 
 export interface Order {
@@ -396,6 +407,7 @@ export interface GameSessionInfo {
   publicUrl?: string;
   productSlug?: string;
   hosting?: 'external' | 'aimarkets';
+  playerMode?: 'terminal' | 'game';
 }
 
 export type { RunpodModelSchema as PlaygroundSchema } from '@/lib/runpod-schema';

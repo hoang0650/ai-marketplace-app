@@ -15,7 +15,7 @@ import { availableLicenseTerms, formatDate, formatMoney, licenseUnitPrice, produ
 import { getErrorMessage } from '@/lib/errors';
 import { AnalyticsService } from '@/lib/analytics';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
-import { isContentCategory, isLicenseCategory } from '@/constants/categories';
+import { isContentCategory, isDownloadLicenseCategory, isLicenseCategory, isSkillCategory, isDatasetCategory } from '@/constants/categories';
 import { findActiveLicense, findPaidOrder } from '@/lib/access';
 
 export default function CheckoutScreen() {
@@ -107,7 +107,11 @@ export default function CheckoutScreen() {
               <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('license.expires', { date: formatDate(license.expiresAt, language) })}</Text>
             ) : null}
             <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>
-              {isContentCategory(license.category || p?.category) ? t('checkout.licenseHint') : t('license.unlocked')}
+              {isContentCategory(license.category || p?.category)
+                ? t('checkout.licenseHint')
+                : isDownloadLicenseCategory(license.category || p?.category)
+                  ? t('download.licenseHint')
+                  : t('license.unlocked')}
             </Text>
           </View>
         ) : null}
@@ -150,12 +154,22 @@ export default function CheckoutScreen() {
           ) : null}
           <Text style={{ color: colors.text, fontWeight: '800', marginTop: 12 }}>{priceLabel}</Text>
           <Text style={{ color: colors.textSecondary, marginTop: 12, lineHeight: 20 }}>
-            {licensed ? t('checkout.licenseHint') : `${t('product.refund')} · ${t('product.terms')}`}
+            {licensed
+              ? t(isDownloadLicenseCategory(p.category) ? 'download.licenseHint' : 'checkout.licenseHint')
+              : `${t('product.refund')} · ${t('product.terms')}`}
           </Text>
         </View>
       ) : null}
       <Button
-        title={licensed ? t('product.buyLicense') : t('checkout.pay')}
+        title={
+          isSkillCategory(p?.category)
+            ? t('product.cta.buySkill')
+            : isDatasetCategory(p?.category)
+              ? t('product.cta.buyDataset')
+              : licensed
+                ? t('product.buyLicense')
+                : t('checkout.pay')
+        }
         loading={pay.isPending}
         onPress={() => {
           AnalyticsService.track('payment_started');

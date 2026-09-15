@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 type Props = {
   uri: string;
+  terminal?: boolean;
   onLoad?: () => void;
   onError?: (message: string) => void;
 };

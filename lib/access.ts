@@ -2,9 +2,11 @@ import type { IssuedLicense, Order, Product } from '@/api/types';
 import {
   isContentCategory,
   isDatasetCategory,
+  isDownloadLicenseCategory,
   isFilmCategory,
   isGpuCategory,
   isComputeStreamCategory,
+  isGpuComputeCategory,
   isLicenseCategory,
   isPlaygroundCategory,
   isSkillCategory,
@@ -40,6 +42,7 @@ export function findPaidOrder(orders: Order[] | undefined, productId: string) {
 
 export function productCtaKey(p: Product, opts: { hasAccess: boolean; expiredLicense: boolean }) {
   if (isPlaygroundCategory(p.category)) return 'playground.run';
+  if (isGpuComputeCategory(p.category)) return 'compute.cta.terminal';
   if (isComputeStreamCategory(p.category)) return 'compute.cta.play';
   if (opts.hasAccess) {
     if (isFilmCategory(p.category)) return 'product.cta.watchNow';
@@ -51,6 +54,8 @@ export function productCtaKey(p: Product, opts: { hasAccess: boolean; expiredLic
   if (opts.expiredLicense) return 'product.cta.renew';
   if (isFilmCategory(p.category)) return 'product.watch';
   if (isStoryCategory(p.category)) return 'product.read';
+  if (isSkillCategory(p.category)) return 'product.cta.buySkill';
+  if (isDatasetCategory(p.category)) return 'product.cta.buyDataset';
   if (isLicenseCategory(p.category)) return 'product.buyLicense';
   if (isGpuCategory(p.category)) return 'common.rentGpu';
   if (isUsagePricing(p.pricing?.model)) return 'product.cta.payPerUse';
@@ -60,6 +65,7 @@ export function productCtaKey(p: Product, opts: { hasAccess: boolean; expiredLic
 export function productPriceCaptionKey(p: Product, hasAccess: boolean) {
   if (isPlaygroundCategory(p.category)) return 'playground.billed';
   if (hasAccess) return 'product.owned';
+  if (isDownloadLicenseCategory(p.category)) return 'product.buyLicense';
   if (isLicenseCategory(p.category)) return 'product.buyLicense';
   if (isContentCategory(p.category)) return 'product.buy';
   if (isUsagePricing(p.pricing?.model)) return 'product.cta.payPerUse';

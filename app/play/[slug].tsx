@@ -42,6 +42,7 @@ export default function GpuPlayScreen() {
   const { t, language } = useT();
   const [uri, setUri] = useState('');
   const [ready, setReady] = useState(false);
+  const [terminal, setTerminal] = useState(false);
   const [error, setError] = useState('');
   const [errorCode, setErrorCode] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -59,11 +60,13 @@ export default function GpuPlayScreen() {
   }, []);
 
   useEffect(() => {
-    void lockLandscape();
+    if (!uri) return;
+    if (terminal) void lockPortrait();
+    else void lockLandscape();
     return () => {
       void lockPortrait();
     };
-  }, []);
+  }, [uri, terminal]);
 
   useEffect(() => {
     if (!isInitialized || !isAuthenticated) return;
@@ -77,6 +80,7 @@ export default function GpuPlayScreen() {
     setErrorCode('');
     setReady(false);
     setUri('');
+    setTerminal(false);
     void (async () => {
       try {
         const sess = await gameSessionsApi.start(productSlug);
@@ -85,6 +89,8 @@ export default function GpuPlayScreen() {
           return;
         }
         sessionRef.current = sess.sessionId;
+        const isTerm = sess.playerMode === 'terminal' || sess.streamKind === 'terminal';
+        setTerminal(isTerm);
         const token = useAuthStore.getState().token || '';
         setUri(gamePlayerUrl(sess, token));
       } catch (e) {
@@ -130,7 +136,7 @@ export default function GpuPlayScreen() {
     <View style={styles.bg}>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: true, animation: 'fade' }} />
       <StatusBar hidden />
-      {uri ? <GpuStreamPlayer uri={uri} onLoad={() => setReady(true)} onError={(m) => setError(m)} /> : null}
+      {uri ? <GpuStreamPlayer uri={uri} terminal={terminal} onLoad={() => setReady(true)} onError={(m) => setError(m)} /> : null}
       {(!ready || error) && (
         <View style={[styles.overlay, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 12) }]} pointerEvents={error ? 'auto' : 'box-none'}>
           <Pressable onPress={leave} hitSlop={12} style={[styles.back, { left: Math.max(insets.left, 12) }]}>
@@ -152,7 +158,7 @@ export default function GpuPlayScreen() {
           ) : (
             <View style={styles.loading}>
               <ActivityIndicator color="#3dffb0" size="large" />
-              <Text style={styles.hint}>{t('compute.play.connecting')}</Text>
+              <Text style={styles.hint}>{t(terminal ? 'compute.play.connectingGpu' : 'compute.play.connecting')}</Text>
             </View>
           )}
         </View>

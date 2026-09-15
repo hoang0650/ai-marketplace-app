@@ -444,6 +444,7 @@ const KIND_BY_MODALITY: Record<string, NonNullable<RunpodModelSchema['kind']>> =
   'text-to-video': 'video',
   'image-to-video': 'video',
   'voice-clone': 'audio',
+  'voice-preset': 'audio',
 };
 
 const OUTPUT_BY_KIND: Record<string, NonNullable<RunpodModelSchema['output']>> = {
@@ -483,6 +484,7 @@ export function seedSamplePrompt(category: string): string {
       'A kitten chases a bouncing rubber ball across a polished wooden floor, sliding slightly and bumping into a potted plant.',
     'image-to-video': 'The character slowly turns and smiles at the camera',
     'voice-clone': 'Hello, this is a cloned voice sample.',
+    'voice-preset': 'Xin chào, đây là giọng sàn AI Markets.',
   };
   return samples[category] ?? '';
 }
