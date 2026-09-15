@@ -71,6 +71,7 @@ function ThemedStack() {
         <Stack.Screen name="register" options={{ headerShown: false }} />
         <Stack.Screen name="oauthredirect" options={{ headerShown: false }} />
         <Stack.Screen name="product/[slug]" options={{ title: '' }} />
+        <Stack.Screen name="play/[slug]" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="seller/[slug]" options={{ title: '' }} />
         <Stack.Screen name="legal/index" options={{ title: 'Trung tâm pháp lý' }} />
         <Stack.Screen name="legal/[type]" options={{ title: 'Pháp lý' }} />
@@ -98,6 +99,9 @@ export default function RootLayout() {
   useEffect(() => {
     void Promise.all([hydrateAuth(), hydrateSettings(), hydrateRecent()]);
     AnalyticsService.track('app_open');
+    void import('expo-screen-orientation')
+      .then((SO) => SO.lockAsync(SO.OrientationLock.PORTRAIT_UP))
+      .catch(() => {});
   }, [hydrateAuth, hydrateSettings, hydrateRecent]);
 
   useEffect(() => {

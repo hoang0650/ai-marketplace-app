@@ -111,6 +111,11 @@ export function isGpuCategory(id?: string) {
   return id === 'gpu-compute' || id === 'game-server' || id === 'inference';
 }
 
+/** Live GPU / game stream (not inference playground). */
+export function isComputeStreamCategory(id?: string) {
+  return id === 'gpu-compute' || id === 'game-server';
+}
+
 export function isLicenseCategory(id?: string) {
   return id === 'ai-film-series' || id === 'story-book' || id === 'skill-pack' || id === 'dataset';
 }

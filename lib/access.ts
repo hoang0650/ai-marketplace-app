@@ -4,6 +4,7 @@ import {
   isDatasetCategory,
   isFilmCategory,
   isGpuCategory,
+  isComputeStreamCategory,
   isLicenseCategory,
   isPlaygroundCategory,
   isSkillCategory,
@@ -39,6 +40,7 @@ export function findPaidOrder(orders: Order[] | undefined, productId: string) {
 
 export function productCtaKey(p: Product, opts: { hasAccess: boolean; expiredLicense: boolean }) {
   if (isPlaygroundCategory(p.category)) return 'playground.run';
+  if (isComputeStreamCategory(p.category)) return 'compute.cta.play';
   if (opts.hasAccess) {
     if (isFilmCategory(p.category)) return 'product.cta.watchNow';
     if (isStoryCategory(p.category)) return 'product.cta.readNow';

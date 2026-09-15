@@ -3,7 +3,7 @@
     "name": "AI Markets",
     "slug": "ai-markets",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "aimarkets",
     "userInterfaceStyle": "automatic",
@@ -21,6 +21,11 @@
       ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ],
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
@@ -75,7 +80,13 @@
       "expo-local-authentication",
       "expo-video",
       "expo-audio",
-      "expo-iap"
+      "expo-iap",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false

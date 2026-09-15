@@ -23,6 +23,7 @@ import type {
   PaypalCreateOrderResult,
   PaypalFunding,
   PlaygroundRunResult,
+  GameSessionInfo,
 } from './types';
 import type { RunpodModelSchema } from '@/lib/runpod-schema';
 
@@ -155,6 +156,13 @@ export const playgroundApi = {
   }) => apiClient.post<PlaygroundRunResult>('/playground/run', body, 180000),
   schema: (slug: string) =>
     apiClient.get<RunpodModelSchema>(`/runpod/public-endpoints/${encodeURIComponent(slug)}/schema`),
+};
+
+export const gameSessionsApi = {
+  start: (productSlug: string) =>
+    apiClient.post<GameSessionInfo>('/game-sessions', { productSlug }, 120000),
+  one: (sessionId: string) => apiClient.get<GameSessionInfo>(`/game-sessions/${sessionId}`),
+  stop: (sessionId: string) => apiClient.delete<{ ok: boolean; billedCost?: number }>(`/game-sessions/${sessionId}`),
 };
 
 export const contentApi = {

@@ -385,4 +385,17 @@ export interface PlaygroundRunResult {
   currency?: string;
 }
 
+export interface GameSessionInfo {
+  sessionId: string;
+  projectId?: string;
+  serverId?: string;
+  provider?: string;
+  status: string;
+  streamKind?: string;
+  playerUrl: string;
+  publicUrl?: string;
+  productSlug?: string;
+  hosting?: 'external' | 'aimarkets';
+}
+
 export type { RunpodModelSchema as PlaygroundSchema } from '@/lib/runpod-schema';

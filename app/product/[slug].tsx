@@ -22,7 +22,7 @@ import { WishButton } from '@/components/content/WishButton';
 import { ContentShield } from '@/components/content/ContentShield';
 import { AnalyticsService } from '@/lib/analytics';
 import { findActiveLicense, findExpiredLicense, findPaidOrder, productCtaKey, productPriceCaptionKey } from '@/lib/access';
-import { isContentCategory, isFilmCategory, isLicenseCategory, isPlaygroundCategory, isVoiceCategory, categoryLabel } from '@/constants/categories';
+import { isComputeStreamCategory, isContentCategory, isFilmCategory, isLicenseCategory, isPlaygroundCategory, isVoiceCategory, categoryLabel } from '@/constants/categories';
 import { displayFont } from '@/constants/fonts';
 import { Chip } from '@/components/ui/Chip';
 import type { ContentUnlock, LicenseTerm } from '@/api/types';
@@ -188,6 +188,10 @@ export default function ProductScreen() {
   }
 
   const openOwned = () => {
+    if (isComputeStreamCategory(p.category)) {
+      router.push(href(`/play/${p.slug}`));
+      return;
+    }
     if (isContentCategory(p.category)) {
       scrollRef.current?.scrollTo({ y: Math.max(0, playOffset.current - 12), animated: true });
       if (canPlay && firstEpisode && !playUrl) {
@@ -210,6 +214,10 @@ export default function ProductScreen() {
   const onPrimaryCta = () => {
     if (!isAuthenticated) {
       router.push('/auth/login');
+      return;
+    }
+    if (isComputeStreamCategory(p.category)) {
+      router.push(href(`/play/${p.slug}`));
       return;
     }
     if (hasAccess) {
@@ -273,6 +281,23 @@ export default function ProductScreen() {
             <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>{t('product.ownedHint')}</Text>
           ) : licensed ? (
             <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>{t('checkout.licenseHint')}</Text>
+          ) : null}
+
+          {isComputeStreamCategory(p.category) ? (
+            <View style={{ marginTop: 16 }}>
+              <Text style={section(colors.text)}>{t('compute.play.kicker')}</Text>
+              <Text style={{ color: colors.textSecondary, marginBottom: 12, lineHeight: 20 }}>{t('compute.play.hint')}</Text>
+              <Button
+                title={t('compute.cta.play')}
+                onPress={() => {
+                  if (!isAuthenticated) {
+                    router.push('/auth/login');
+                    return;
+                  }
+                  router.push(href(`/play/${p.slug}`));
+                }}
+              />
+            </View>
           ) : null}
 
           {isContentCategory(p.category) ? (
