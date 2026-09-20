@@ -42,7 +42,7 @@ export const LEGAL_POLICIES: LegalPolicyMeta[] = [
     slug: 'chinh-sach-nguoi-ban',
     file: '03-chinh-sach-nguoi-ban.md',
     title: 'Chính sách người bán',
-    summary: 'Điều kiện đăng bán, phí sàn 20%, phí CHPlay/App Store và entitlement.',
+    summary: 'Điều kiện đăng bán, phí sàn 20%, thuế 10% trên 80% doanh thu seller, phí CHPlay/App Store.',
     group: 'commerce',
   },
   {
@@ -77,7 +77,7 @@ export const LEGAL_POLICIES: LegalPolicyMeta[] = [
     slug: 'chinh-sach-thue',
     file: '18-chinh-sach-thue.md',
     title: 'Chính sách thuế',
-    summary: 'Phí sàn 20% không phải thuế; khấu trừ theo Tax Engine.',
+    summary: 'Phí sàn 20% + thuế 10% trên 80% doanh thu seller (8% đơn).',
     group: 'commerce',
   },
   {

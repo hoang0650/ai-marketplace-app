@@ -1,16 +1,19 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { MessageSquare, Play, ShoppingCart } from 'lucide-react-native';
 import { href } from '@/lib/href';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { productsApi, reviewsApi, contentApi, licensesApi, ordersApi } from '@/api';
+import { productsApi, reviewsApi, contentApi, licensesApi, ordersApi, chatApi } from '@/api';
 import { API_CONFIG } from '@/api/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
+import { useOpenClawLaunch } from '@/hooks/useOpenClawLaunch';
 import { useRecentStore } from '@/stores/recentStore';
+import { useCartStore } from '@/stores/cartStore';
 import { productPrice, availableLicenseTerms, licenseUnitPrice, formatMoney } from '@/utils/format';
 import { Badge } from '@/components/ui/Badge';
 import { Rating } from '@/components/ui/Rating';
@@ -29,6 +32,7 @@ import {
   isContentCategory,
   isDownloadLicenseCategory,
   isFilmCategory,
+  isHireAgentCategory,
   isLicenseCategory,
   isPlaygroundCategory,
   isVoiceCategory,
@@ -67,7 +71,9 @@ export default function ProductScreen() {
   const { isAuthenticated, user, isAdmin } = useAuth();
   const { colors } = useTheme();
   const { t, language } = useT();
+  const { opening: openingOpenClaw, launch: launchOpenClaw } = useOpenClawLaunch();
   const addViewed = useRecentStore((s) => s.addViewed);
+  const addToCart = useCartStore((s) => s.add);
   const [licenseTerm, setLicenseTerm] = useState<LicenseTerm>('month');
   const scrollRef = useRef<ScrollView>(null);
   const playOffset = useRef(0);
@@ -81,6 +87,9 @@ export default function ProductScreen() {
     },
     enabled: !!slug,
   });
+  const inCart = useCartStore((s) =>
+    s.lines.some((l) => l.product.id === q.data?.id || l.product.slug === String(slug)),
+  );
   const reviews = useQuery({ queryKey: ['reviews', q.data?.id], queryFn: () => reviewsApi.list(q.data!.id), enabled: !!q.data?.id });
   const episodeList = useQuery({
     queryKey: ['content-episodes', slug],
@@ -104,6 +113,7 @@ export default function ProductScreen() {
   const [pageIndex, setPageIndex] = useState(0);
   const [playError, setPlayError] = useState('');
   const [selectedEpisodeId, setSelectedEpisodeId] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
   const unlock = useMutation({
     mutationFn: ({ episodeId, licenseKey }: { episodeId: string; licenseKey?: string }) => contentApi.unlock(episodeId, licenseKey),
     onSuccess: (res: ContentUnlock, vars) => {
@@ -159,6 +169,25 @@ export default function ProductScreen() {
   const cta = t(productCtaKey(p, { hasAccess, expiredLicense }));
   const priceCaption = t(productPriceCaptionKey(p, hasAccess));
   const firstEpisode = (episodeList.data || [])[0];
+  const streamProduct = isComputeStreamCategory(p.category);
+  const showCart = !playground && !isOwner && !hasAccess;
+
+  const startSellerChat = async () => {
+    if (!isAuthenticated) {
+      router.push('/auth/login');
+      return;
+    }
+    if (isOwner) return;
+    setChatBusy(true);
+    try {
+      const c = await chatApi.start({ productId: p.id });
+      router.push(href(`/chat/${c.id}`));
+    } catch (err) {
+      Alert.alert('', getErrorMessage(err, language));
+    } finally {
+      setChatBusy(false);
+    }
+  };
 
   if (playground) {
     return (
@@ -183,6 +212,17 @@ export default function ProductScreen() {
               <Text style={{ color: '#c0392b', fontWeight: '800', marginTop: 4 }}>{priceLabel}</Text>
             </View>
             <WishButton productId={p.id} variant="inline" />
+            {!isOwner ? (
+              <Pressable
+                onPress={startSellerChat}
+                disabled={chatBusy}
+                accessibilityRole="button"
+                accessibilityLabel={t('chat.withSeller')}
+                style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+              >
+                {chatBusy ? <ActivityIndicator color={colors.tint} /> : <MessageSquare size={22} color={colors.text} />}
+              </Pressable>
+            ) : null}
           </View>
           <ProductWorkspace
             key={p.id}
@@ -232,6 +272,10 @@ export default function ProductScreen() {
       router.push('/auth/login');
       return;
     }
+    if (isHireAgentCategory(p.category, p.slug)) {
+      void launchOpenClaw();
+      return;
+    }
     if (isComputeStreamCategory(p.category)) {
       router.push(href(`/play/${p.slug}`));
       return;
@@ -248,14 +292,28 @@ export default function ProductScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ title: p.name }} />
       <ContentShield enabled={isContentCategory(p.category) && !!playUrl} />
-      <ScrollView ref={scrollRef} contentContainerStyle={{ paddingBottom: 120 + insets.bottom }}>
-        {p.coverUrl ? (
-          <Image source={{ uri: p.coverUrl }} style={styles.cover} contentFit="cover" />
-        ) : (
-          <View style={[styles.cover, { backgroundColor: colors.luxDark, alignItems: 'center', justifyContent: 'center' }]}>
-            <Image source={require('@/assets/images/mark.png')} style={{ width: 88, height: 88, borderRadius: 18 }} />
-          </View>
-        )}
+      <ScrollView ref={scrollRef} contentContainerStyle={{ paddingBottom: 148 + insets.bottom }}>
+        <Pressable
+          onPress={streamProduct ? onPrimaryCta : undefined}
+          disabled={!streamProduct}
+          accessibilityRole={streamProduct ? 'button' : undefined}
+          accessibilityLabel={streamProduct ? cta : undefined}
+        >
+          {p.coverUrl ? (
+            <Image source={{ uri: p.coverUrl }} style={styles.cover} contentFit="cover" />
+          ) : (
+            <View style={[styles.cover, { backgroundColor: colors.luxDark, alignItems: 'center', justifyContent: 'center' }]}>
+              <Image source={require('@/assets/images/mark.png')} style={{ width: 88, height: 88, borderRadius: 18 }} />
+            </View>
+          )}
+          {streamProduct ? (
+            <View style={styles.playOverlay} pointerEvents="none">
+              <View style={styles.playBtn}>
+                <Play size={28} color="#111111" fill="#111111" />
+              </View>
+            </View>
+          ) : null}
+        </Pressable>
         <View style={{ padding: 16 }}>
           <Text style={{ color: colors.tint, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', fontSize: 11 }}>
             {categoryLabel(p.category, t, p.category)}
@@ -306,19 +364,9 @@ export default function ProductScreen() {
           {isComputeStreamCategory(p.category) ? (
             <View style={{ marginTop: 16 }}>
               <Text style={section(colors.text)}>{t(isGpuComputeCategory(p.category) ? 'compute.play.kickerGpu' : 'compute.play.kicker')}</Text>
-              <Text style={{ color: colors.textSecondary, marginBottom: 12, lineHeight: 20 }}>
+              <Text style={{ color: colors.textSecondary, lineHeight: 20 }}>
                 {t(isGpuComputeCategory(p.category) ? 'compute.play.hintGpu' : 'compute.play.hint')}
               </Text>
-              <Button
-                title={t(isGpuComputeCategory(p.category) ? 'compute.cta.terminal' : 'compute.cta.play')}
-                onPress={() => {
-                  if (!isAuthenticated) {
-                    router.push('/auth/login');
-                    return;
-                  }
-                  router.push(href(`/play/${p.slug}`));
-                }}
-              />
             </View>
           ) : null}
 
@@ -487,16 +535,47 @@ export default function ProductScreen() {
         </View>
       </ScrollView>
       <View style={[styles.bar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <View>
-          <Text style={{ color: colors.textSecondary, fontSize: 11, textTransform: 'uppercase' }}>
-            {priceCaption}
-          </Text>
-          <Text style={{ color: colors.text, fontWeight: '800', fontSize: 18 }}>{hasAccess ? t('product.owned') : priceLabel}</Text>
+        <View style={styles.barTop}>
+          <View style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 11, textTransform: 'uppercase' }} numberOfLines={1}>
+              {priceCaption}
+            </Text>
+            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 18 }} numberOfLines={1}>
+              {hasAccess ? t('product.owned') : priceLabel}
+            </Text>
+          </View>
+          <View style={styles.barIcons}>
+            {!isOwner ? (
+              <Pressable
+                onPress={startSellerChat}
+                disabled={chatBusy}
+                accessibilityRole="button"
+                accessibilityLabel={t('chat.withSeller')}
+                style={styles.iconBtn}
+              >
+                {chatBusy ? <ActivityIndicator color={colors.tint} /> : <MessageSquare size={22} color={colors.text} />}
+              </Pressable>
+            ) : null}
+            <WishButton productId={p.id} variant="inline" />
+            {showCart ? (
+              <Pressable
+                onPress={() => {
+                  if (inCart) {
+                    router.push(href('/cart'));
+                    return;
+                  }
+                  addToCart(p);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={inCart ? t('cart.view') : t('cart.add')}
+                style={styles.iconBtn}
+              >
+                <ShoppingCart size={22} color={inCart ? colors.tint : colors.text} />
+              </Pressable>
+            ) : null}
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <WishButton productId={p.id} variant="inline" />
-          <Button title={cta} loading={accessLoading} onPress={onPrimaryCta} />
-        </View>
+        <Button title={cta} loading={accessLoading || openingOpenClaw} onPress={onPrimaryCta} style={styles.barCta} />
       </View>
     </View>
   );
@@ -509,5 +588,32 @@ function section(color: string) {
 const styles = StyleSheet.create({
   cover: { width: '100%', height: 280 },
   thumb: { width: 72, height: 72, borderRadius: 10 },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, gap: 12 },
+  playOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(17,17,17,0.28)',
+  },
+  playBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#c9a961',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    gap: 10,
+  },
+  barTop: { flexDirection: 'row', alignItems: 'center' },
+  barIcons: { flexDirection: 'row', alignItems: 'center' },
+  iconBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  barCta: { alignSelf: 'stretch' },
 });

@@ -97,6 +97,10 @@ export const VIDEO_AI_CATEGORIES = ['ai-film-series'] as const;
 export const STORIES_CATEGORIES = ['story-book'] as const;
 export const AGENT_CATEGORIES = ['hire-agent', 'agent-runtime'] as const;
 
+export function isHireAgentCategory(id?: string, slug?: string) {
+  return id === 'hire-agent' || slug === 'openclaw-ops-agent';
+}
+
 export const HOME_HUBS = [
   { id: 'work', href: '/work', icon: Briefcase, titleKey: 'hub.work', shortKey: 'hub.work', descKey: 'hub.workDesc' },
 ] as const;

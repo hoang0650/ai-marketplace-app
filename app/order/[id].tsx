@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ordersApi } from '@/api';
@@ -14,16 +14,23 @@ import { getErrorMessage } from '@/lib/errors';
 import { Input } from '@/components/ui/Input';
 import { AnalyticsService } from '@/lib/analytics';
 
+function routeId(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return String(value[0] || '').trim();
+  return String(value || '').trim();
+}
+
 export default function OrderDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const id = routeId(params.id);
   const router = useRouter();
   const { colors } = useTheme();
   const { t, language } = useT();
   const [reason, setReason] = useState('');
   const list = useQuery({ queryKey: ['orders'], queryFn: ordersApi.list });
   const order = (list.data || []).find((o) => o.id === id);
+  const titleId = order?.id || id;
   const dispute = useMutation({
-    mutationFn: () => ordersApi.openDispute(String(id), reason || 'Buyer dispute'),
+    mutationFn: () => ordersApi.openDispute(id, reason || 'Buyer dispute'),
     onSuccess: () => {
       Alert.alert('AI Markets', 'OK');
       list.refetch();
@@ -34,6 +41,7 @@ export default function OrderDetailScreen() {
   if (!order) {
     return (
       <Screen>
+        <Stack.Screen options={{ title: titleId || t('nav.orders') }} />
         <Text style={{ color: colors.textSecondary, marginTop: 24 }}>{t('common.empty')}</Text>
       </Screen>
     );
@@ -43,8 +51,12 @@ export default function OrderDetailScreen() {
 
   return (
     <Screen>
+      <Stack.Screen options={{ title: titleId }} />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700' }}>{order.productName}</Text>
+        <Text style={{ color: colors.textSecondary, marginTop: 6 }} selectable>
+          {order.id}
+        </Text>
         <View style={{ marginTop: 8 }}><StatusBadge status={order.status} /></View>
         <Text style={{ color: colors.text, fontWeight: '800', fontSize: 20, marginTop: 16 }}>{formatMoney(order.amount, order.currency)}</Text>
         <Text style={{ color: colors.textSecondary, marginTop: 6 }}>{formatDate(order.createdAt)}</Text>

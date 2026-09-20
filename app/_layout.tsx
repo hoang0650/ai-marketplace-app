@@ -71,6 +71,9 @@ function ThemedStack() {
         <Stack.Screen name="register" options={{ headerShown: false }} />
         <Stack.Screen name="oauthredirect" options={{ headerShown: false }} />
         <Stack.Screen name="product/[slug]" options={{ title: '' }} />
+        <Stack.Screen name="chat/[id]" options={{ title: '' }} />
+        <Stack.Screen name="order/[id]" options={{ title: '' }} />
+        <Stack.Screen name="cart/index" options={{ title: '' }} />
         <Stack.Screen name="play/[slug]" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="seller/[slug]" options={{ title: '' }} />
         <Stack.Screen name="legal/index" options={{ title: 'Trung tâm pháp lý' }} />

@@ -1,16 +1,17 @@
-import React, { useMemo, useState } from 'react';
-import { Alert, ActivityIndicator, Platform, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, ActivityIndicator, Platform, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { IssuedLicense, LicenseTerm } from '@/api/types';
-import { billingApi, licensesApi, ordersApi, productsApi } from '@/api';
+import type { CouponPreview, IssuedLicense, LicenseTerm } from '@/api/types';
+import { billingApi, couponsApi, licensesApi, ordersApi, productsApi } from '@/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
+import { Input } from '@/components/ui/Input';
 import { availableLicenseTerms, formatDate, formatMoney, licenseUnitPrice, productPrice } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
 import { AnalyticsService } from '@/lib/analytics';
@@ -45,6 +46,8 @@ export default function CheckoutScreen() {
   const terms = p && licensed ? availableLicenseTerms(p) : [];
   const initialTerm = (termParam === 'day' || termParam === 'month' || termParam === 'year' ? termParam : terms[0]) as LicenseTerm | undefined;
   const [term, setTerm] = useState<LicenseTerm | undefined>(undefined);
+  const [couponCode, setCouponCode] = useState('');
+  const [preview, setPreview] = useState<CouponPreview | null>(null);
   const selected = term || initialTerm || 'month';
   const activeLicense = p ? findActiveLicense(licenses.data, p.id) : undefined;
   const paidOrder = p ? findPaidOrder(orders.data, p.id) : undefined;
@@ -58,6 +61,28 @@ export default function CheckoutScreen() {
     return productPrice(p);
   }, [p, licensed, selected, t]);
 
+  useEffect(() => {
+    setPreview(null);
+  }, [selected, id]);
+
+  const applyCoupon = useMutation({
+    mutationFn: () =>
+      couponsApi.preview({
+        productId: String(id),
+        code: couponCode,
+        quantity: 1,
+        licenseTerm: licensed ? selected : undefined,
+      }),
+    onSuccess: (row) => {
+      setPreview(row);
+      setCouponCode(row.code);
+    },
+    onError: (e: Error) => {
+      setPreview(null);
+      Alert.alert('AI Markets', getErrorMessage(e, language));
+    },
+  });
+
   const pay = useMutation({
     mutationFn: () =>
       billingApi.checkout(
@@ -65,6 +90,7 @@ export default function CheckoutScreen() {
         1,
         licensed ? selected : undefined,
         Platform.OS === 'ios' ? 'APP_STORE' : Platform.OS === 'android' ? 'GOOGLE_PLAY' : 'WEB',
+        couponCode.trim() || undefined,
       ),
     onSuccess: (res) => {
       const skipCharge = !!(res.alreadyLicensed || res.alreadyPurchased);
@@ -135,6 +161,7 @@ export default function CheckoutScreen() {
 
   return (
     <Screen>
+      <ScrollView>
       <Text style={{ color: colors.text, fontSize: 24, fontWeight: '700', marginTop: 8 }}>{t('checkout.title')}</Text>
       {p ? (
         <View style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardBackground, borderRadius: 12, padding: 16, marginTop: 16 }}>
@@ -153,6 +180,28 @@ export default function CheckoutScreen() {
             </View>
           ) : null}
           <Text style={{ color: colors.text, fontWeight: '800', marginTop: 12 }}>{priceLabel}</Text>
+          <Input
+            label={t('checkout.coupon')}
+            value={couponCode}
+            onChangeText={(v) => {
+              setCouponCode(v);
+              if (preview && preview.code !== v.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')) setPreview(null);
+            }}
+            placeholder={t('checkout.couponPh')}
+            autoCapitalize="characters"
+            style={{ marginTop: 8 }}
+          />
+          <Button title={t('checkout.couponApply')} variant="outline" loading={applyCoupon.isPending} onPress={() => applyCoupon.mutate()} />
+          {preview ? (
+            <View style={{ marginTop: 10 }}>
+              <Text style={{ color: colors.textSecondary }}>
+                {t('checkout.discount')} ({preview.code}): −{formatMoney(preview.discount, preview.currency || p.pricing?.currency || 'USD')}
+              </Text>
+              <Text style={{ color: colors.text, fontWeight: '800', marginTop: 4 }}>
+                {t('checkout.total')}: {formatMoney(preview.total, preview.currency || p.pricing?.currency || 'USD')}
+              </Text>
+            </View>
+          ) : null}
           <Text style={{ color: colors.textSecondary, marginTop: 12, lineHeight: 20 }}>
             {licensed
               ? t(isDownloadLicenseCategory(p.category) ? 'download.licenseHint' : 'checkout.licenseHint')
@@ -177,6 +226,7 @@ export default function CheckoutScreen() {
         }}
         style={{ marginTop: 24 }}
       />
+      </ScrollView>
     </Screen>
   );
 }

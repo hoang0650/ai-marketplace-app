@@ -9,6 +9,7 @@ import {
   isGpuComputeCategory,
   isLicenseCategory,
   isPlaygroundCategory,
+  isHireAgentCategory,
   isSkillCategory,
   isStoryCategory,
   isUsagePricing,
@@ -41,6 +42,7 @@ export function findPaidOrder(orders: Order[] | undefined, productId: string) {
 }
 
 export function productCtaKey(p: Product, opts: { hasAccess: boolean; expiredLicense: boolean }) {
+  if (isHireAgentCategory(p.category, p.slug)) return 'openclaw.open';
   if (isPlaygroundCategory(p.category)) return 'playground.run';
   if (isGpuComputeCategory(p.category)) return 'compute.cta.terminal';
   if (isComputeStreamCategory(p.category)) return 'compute.cta.play';

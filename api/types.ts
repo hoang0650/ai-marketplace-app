@@ -24,6 +24,7 @@ export interface ProductPricing {
   interval?: string;
   unit?: string;
   usageUnit?: string;
+  compareAtPrice?: number;
 }
 
 export interface ChangelogEntry {
@@ -119,6 +120,8 @@ export interface Creator {
   rating: number;
   totalSales: number;
   revenue?: number;
+  reviewCount?: number;
+  joinedAt?: string;
 }
 
 export interface HomeFeed {
@@ -171,6 +174,37 @@ export interface CheckoutResult {
   license?: IssuedLicense | null;
   alreadyLicensed?: boolean;
   alreadyPurchased?: boolean;
+  couponCode?: string;
+  couponDiscount?: number;
+}
+
+export interface Coupon {
+  id: string;
+  sellerId?: string;
+  code: string;
+  type: 'percent' | 'amount';
+  value: number;
+  productIds: string[];
+  minSubtotal: number;
+  maxDiscount: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  maxUses: number;
+  maxUsesPerBuyer: number;
+  usedCount: number;
+  active: boolean;
+  createdAt?: string | null;
+}
+
+export interface CouponPreview {
+  ok: boolean;
+  code: string;
+  type: 'percent' | 'amount';
+  value: number;
+  subtotal: number;
+  discount: number;
+  total: number;
+  currency: string;
 }
 
 export interface IssuedLicense {
@@ -254,6 +288,8 @@ export type PaypalFunding = 'paypal';
 export interface Review {
   id: string;
   productId: string;
+  productName?: string;
+  productSlug?: string;
   userId: string;
   userName: string;
   rating: number;
@@ -411,3 +447,39 @@ export interface GameSessionInfo {
 }
 
 export type { RunpodModelSchema as PlaygroundSchema } from '@/lib/runpod-schema';
+
+export interface ChatConversation {
+  id: string;
+  productId: string;
+  productName: string;
+  productSlug: string;
+  productCover: string;
+  role: 'buyer' | 'seller';
+  otherId: string;
+  otherName: string;
+  lastMessage: string;
+  lastKind: 'text' | 'image';
+  lastMessageAt: string | null;
+  unread: number;
+  createdAt: string | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  kind: 'text' | 'image';
+  body: string;
+  imageUrl: string;
+  createdAt: string;
+}
+
+export interface OpenClawLaunchResult {
+  success: boolean;
+  url?: string;
+  message?: string;
+  audience?: string;
+  userId?: string;
+  gatewayUrl?: string;
+  token?: string;
+}

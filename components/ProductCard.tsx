@@ -6,7 +6,7 @@ import { href } from '@/lib/href';
 import type { Product } from '@/api/types';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
-import { productPrice } from '@/utils/format';
+import { productPrice, productSale } from '@/utils/format';
 import { Rating } from '@/components/ui/Rating';
 import { Badge } from '@/components/ui/Badge';
 import { AnalyticsService } from '@/lib/analytics';
@@ -20,6 +20,7 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
   const content = isContentCategory(product.category);
   const episodes = Number(product.contentMeta?.episodeCount) || 0;
   const priceLabel = content ? t('license.from', { price: productPrice(product) }) : productPrice(product);
+  const sale = productSale(product);
   const seller = product.sellerName || product.creatorName || product.category;
   const verified = product.ownershipType === 'PLATFORM_DIRECT';
 
@@ -64,7 +65,12 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
         </Text>
         {verified ? <Badge label={t('common.verified')} /> : null}
         <Rating value={product.rating} count={product.reviewCount} />
-        <Text style={[styles.price, { color: colors.text }]}>{priceLabel}</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+          {sale.onSale ? (
+            <Text style={[styles.price, { color: colors.textSecondary, textDecorationLine: 'line-through', fontWeight: '600' }]}>{sale.was}</Text>
+          ) : null}
+          <Text style={[styles.price, { color: colors.text }]}>{priceLabel}</Text>
+        </View>
       </View>
     </Pressable>
   );

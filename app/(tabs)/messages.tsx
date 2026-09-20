@@ -1,61 +1,107 @@
 import React from 'react';
-import { Text, FlatList, Pressable } from 'react-native';
+import { Text, FlatList, Pressable, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { href } from '@/lib/href';
-import { complaintsApi, notificationsApi } from '@/api';
+import { chatApi, complaintsApi } from '@/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { getErrorMessage } from '@/lib/errors';
+import { formatDate } from '@/utils/format';
 
 export default function MessagesScreen() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const { colors } = useTheme();
-  const { t } = useT();
-  const complaints = useQuery({ queryKey: ['complaints', 'mine'], queryFn: () => complaintsApi.list('mine'), enabled: isAuthenticated });
-  const notes = useQuery({ queryKey: ['notifications'], queryFn: notificationsApi.list, enabled: isAuthenticated });
+  const { t, language } = useT();
+  const chats = useQuery({
+    queryKey: ['chat', 'conversations'],
+    queryFn: chatApi.conversations,
+    enabled: isAuthenticated,
+    refetchInterval: 8000,
+    retry: 2,
+  });
+  const complaints = useQuery({
+    queryKey: ['complaints', 'mine'],
+    queryFn: () => complaintsApi.list('mine'),
+    enabled: isAuthenticated,
+  });
 
   if (!isAuthenticated) return <LoginPrompt />;
 
-  const threads = [
-    { id: 'support', title: t('messages.support'), subtitle: t('help.contact'), onPress: () => router.push(href('/help')) },
-    ...(complaints.data || []).map((c) => ({
-      id: c.id,
-      title: c.caseRef,
-      subtitle: c.body.slice(0, 80),
-      status: c.status,
-      onPress: () => router.push(href(`/complaint/${c.id}`)),
-    })),
-  ];
+  const conversations = chats.data || [];
 
   return (
     <Screen>
-      <Text style={{ color: colors.text, fontSize: 24, fontWeight: '700', marginTop: 8, marginBottom: 12 }}>{t('nav.messages')}</Text>
+      <Text style={{ color: colors.text, fontSize: 24, fontWeight: '700', marginTop: 8, marginBottom: 4 }}>{t('nav.messages')}</Text>
+      <Text style={{ color: colors.textSecondary, marginBottom: 12, lineHeight: 20 }}>{t('chat.lede')}</Text>
       <FlatList
-        data={threads}
+        data={conversations}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <Pressable
-            onPress={item.onPress}
-            style={{ borderBottomWidth: 1, borderColor: colors.border, paddingVertical: 14 }}
+            onPress={() => router.push(href(`/chat/${item.id}`))}
+            style={{
+              flexDirection: 'row',
+              gap: 12,
+              alignItems: 'center',
+              borderBottomWidth: 1,
+              borderColor: colors.border,
+              paddingVertical: 14,
+            }}
           >
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{item.title}</Text>
-            <Text style={{ color: colors.textSecondary, marginTop: 4 }}>{item.subtitle}</Text>
-            {'status' in item && item.status ? <StatusBadge status={String(item.status)} /> : null}
+            {item.productCover ? (
+              <Image source={{ uri: item.productCover }} style={{ width: 48, height: 48, borderRadius: 10 }} contentFit="cover" />
+            ) : (
+              <View style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: colors.luxDark }} />
+            )}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ color: colors.text, fontWeight: '700' }} numberOfLines={1}>
+                {item.productName || t('chat.product')}
+              </Text>
+              <Text style={{ color: colors.textSecondary, marginTop: 4 }} numberOfLines={2}>
+                {item.otherName}
+                {item.lastKind === 'image' ? ` · ${t('chat.image')}` : ''}
+                {item.lastMessage ? ` · ${item.lastMessage}` : ''}
+              </Text>
+              {item.lastMessageAt ? (
+                <Text style={{ color: colors.textSecondary, marginTop: 2, fontSize: 11 }}>{formatDate(item.lastMessageAt, language)}</Text>
+              ) : null}
+            </View>
+            {item.unread > 0 ? (
+              <View style={{ minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 }}>
+                <Text style={{ color: colors.tintText, fontSize: 11, fontWeight: '800' }}>{item.unread}</Text>
+              </View>
+            ) : null}
           </Pressable>
         )}
-        ListEmptyComponent={<EmptyState title={t('messages.empty')} />}
+        ListEmptyComponent={
+          chats.isError ? (
+            <ErrorState message={getErrorMessage(chats.error, language)} onRetry={() => chats.refetch()} />
+          ) : (
+            <EmptyState title={t('chat.empty')} hint={t('chat.lede')} />
+          )
+        }
         ListFooterComponent={
-          notes.data?.length ? (
-            <Pressable onPress={() => router.push(href('/notifications'))} style={{ paddingVertical: 16 }}>
-              <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('settings.notifications')} ({notes.data.length})</Text>
+          <View style={{ paddingVertical: 16 }}>
+            <Pressable onPress={() => router.push(href('/help'))} style={{ paddingVertical: 12 }}>
+              <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('messages.support')}</Text>
             </Pressable>
-          ) : null
+            {(complaints.data || []).slice(0, 5).map((c) => (
+              <Pressable key={c.id} onPress={() => router.push(href(`/complaint/${c.id}`))} style={{ paddingVertical: 12 }}>
+                <Text style={{ color: colors.text, fontWeight: '600' }}>{c.caseRef}</Text>
+                <Text style={{ color: colors.textSecondary, marginTop: 4 }} numberOfLines={1}>
+                  {c.body}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         }
       />
     </Screen>

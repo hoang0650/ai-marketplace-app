@@ -29,12 +29,18 @@ export function Button({ title, onPress, disabled, loading, variant = 'primary',
         style,
       ]}
     >
-      {loading ? <ActivityIndicator color={fg} /> : <Text style={[styles.text, { color: fg }]}>{title}</Text>}
+      {loading ? (
+        <ActivityIndicator color={fg} />
+      ) : (
+        <Text style={[styles.text, { color: fg }]} numberOfLines={1}>
+          {title}
+        </Text>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  btn: { paddingHorizontal: 20, paddingVertical: 14, borderRadius: 8, alignItems: 'center', borderWidth: 1 },
-  text: { fontWeight: '800', letterSpacing: 0.4, fontSize: 13, textTransform: 'uppercase' },
+  btn: { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  text: { fontWeight: '800', letterSpacing: 0.3, fontSize: 13, textTransform: 'uppercase' },
 });

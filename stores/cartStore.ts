@@ -6,6 +6,7 @@ export type CartLine = { product: Product; qty: number };
 type CartState = {
   lines: CartLine[];
   add: (product: Product, qty?: number) => void;
+  setQty: (productId: string, qty: number) => void;
   remove: (productId: string) => void;
   clear: () => void;
 };
@@ -21,6 +22,16 @@ export const useCartStore = create<CartState>((set, get) => ({
       return;
     }
     set({ lines: [...get().lines, { product, qty }] });
+  },
+  setQty: (productId, qty) => {
+    const next = Math.floor(Number(qty) || 0);
+    if (next <= 0) {
+      set({ lines: get().lines.filter((l) => l.product.id !== productId) });
+      return;
+    }
+    set({
+      lines: get().lines.map((l) => (l.product.id === productId ? { ...l, qty: Math.min(99, next) } : l)),
+    });
   },
   remove: (productId) => set({ lines: get().lines.filter((l) => l.product.id !== productId) }),
   clear: () => set({ lines: [] }),

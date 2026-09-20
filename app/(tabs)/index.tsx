@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { Bell } from 'lucide-react-native';
+import { Bell, ShoppingCart } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { href } from '@/lib/href';
@@ -21,6 +21,7 @@ import { IconHit } from '@/components/ui/LoginPrompt';
 import { HubRow } from '@/components/catalog/HubRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { formatMoney, greetingHour } from '@/utils/format';
+import { useCartStore } from '@/stores/cartStore';
 
 function homeFromCatalog(items: Product[]): HomeFeed {
   const byNew = [...items].sort(
@@ -110,6 +111,7 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const { t, language } = useT();
   const user = useAuthStore((s) => s.user);
+  const cartCount = useCartStore((s) => s.lines.reduce((n, l) => n + l.qty, 0));
 
   const q = useQuery({
     queryKey: ['home', 'feed'],
@@ -140,9 +142,23 @@ export default function HomeScreen() {
           </Text>
           <Text style={{ color: colors.textSecondary, marginTop: 2 }}>{t('home.prompt')}</Text>
         </View>
-        <IconHit label="notifications" onPress={() => router.push(href('/notifications'))}>
-          <Bell size={22} color={colors.text} />
-        </IconHit>
+        <View style={styles.headerActions}>
+          <IconHit label={t('nav.cart')} onPress={() => router.push(href('/cart'))}>
+            <View>
+              <ShoppingCart size={22} color={colors.text} />
+              {cartCount > 0 ? (
+                <View style={[styles.cartBadge, { backgroundColor: colors.tint }]}>
+                  <Text style={[styles.cartBadgeText, { color: colors.tintText }]}>
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </IconHit>
+          <IconHit label="notifications" onPress={() => router.push(href('/notifications'))}>
+            <Bell size={22} color={colors.text} />
+          </IconHit>
+        </View>
       </View>
       <SearchBar placeholder={t('home.searchPh')} editable={false} onPress={() => router.push('/(tabs)/explore')} />
 
@@ -209,6 +225,19 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 4, marginBottom: 10 },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  cartBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: { fontSize: 10, fontWeight: '800' },
   hi: { fontSize: 22, fontWeight: '700', marginTop: 6 },
   heroWrap: { marginTop: 4, marginBottom: 4 },
   hero: { borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14 },

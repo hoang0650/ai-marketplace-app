@@ -25,6 +25,11 @@ import type {
   PaypalFunding,
   PlaygroundRunResult,
   GameSessionInfo,
+  Coupon,
+  CouponPreview,
+  ChatConversation,
+  ChatMessage,
+  OpenClawLaunchResult,
 } from './types';
 import type { RunpodModelSchema } from '@/lib/runpod-schema';
 
@@ -39,8 +44,15 @@ function qs(params: Record<string, string | number | boolean | undefined>) {
 }
 
 export const productsApi = {
-  list: (params?: { q?: string; category?: string; featured?: boolean; limit?: number; offset?: number; sort?: string }) =>
-    apiClient.get<Product[]>(`/products${qs(params || {})}`),
+  list: (params?: {
+    q?: string;
+    category?: string;
+    creatorSlug?: string;
+    featured?: boolean;
+    limit?: number;
+    offset?: number;
+    sort?: string;
+  }) => apiClient.get<Product[]>(`/products${qs(params || {})}`),
   home: () => apiClient.get<HomeFeed>('/home'),
   listMany: async (categories: string[], limit = 40) => {
     const lists = await Promise.all(categories.map((category) => apiClient.get<Product[]>(`/products${qs({ category, limit })}`)));
@@ -73,8 +85,31 @@ export const ordersApi = {
 };
 
 export const billingApi = {
-  checkout: (productId: string, quantity = 1, licenseTerm?: string, salesChannel?: 'WEB' | 'APP_STORE' | 'GOOGLE_PLAY') =>
-    apiClient.post<CheckoutResult>('/billing/checkout', { productId, quantity, provider: 'wallet', licenseTerm, salesChannel }),
+  checkout: (
+    productId: string,
+    quantity = 1,
+    licenseTerm?: string,
+    salesChannel?: 'WEB' | 'APP_STORE' | 'GOOGLE_PLAY',
+    couponCode?: string,
+  ) =>
+    apiClient.post<CheckoutResult>('/billing/checkout', {
+      productId,
+      quantity,
+      provider: 'wallet',
+      licenseTerm,
+      salesChannel,
+      couponCode,
+    }),
+};
+
+export const couponsApi = {
+  list: () => apiClient.get<Coupon[]>('/coupons'),
+  create: (body: Partial<Coupon> & { code: string; type: 'percent' | 'amount'; value: number }) =>
+    apiClient.post<Coupon>('/coupons', body),
+  update: (id: string, body: Partial<Coupon>) => apiClient.patch<Coupon>(`/coupons/${id}`, body),
+  deactivate: (id: string) => apiClient.delete<Coupon>(`/coupons/${id}`),
+  preview: (input: { productId: string; code: string; quantity?: number; licenseTerm?: string }) =>
+    apiClient.post<CouponPreview>('/coupons/preview', input),
 };
 
 export const walletApi = {
@@ -99,6 +134,7 @@ export const walletApi = {
 
 export const reviewsApi = {
   list: (productId: string) => apiClient.get<Review[]>(`/reviews${qs({ productId })}`),
+  byShop: (creatorSlug: string) => apiClient.get<Review[]>(`/reviews${qs({ creatorSlug })}`),
   create: (data: { productId: string; rating: number; title?: string; body?: string }) =>
     apiClient.post<Review>('/reviews', data),
 };
@@ -171,6 +207,30 @@ export const contentApi = {
   episodes: (slug: string) => apiClient.get<ContentEpisode[]>(`/content/products/${slug}/episodes`),
   unlock: (episodeId: string, licenseKey?: string) =>
     apiClient.post<ContentUnlock>('/content/unlock', { episodeId, licenseKey }),
+};
+
+export const chatApi = {
+  conversations: () => apiClient.get<ChatConversation[]>('/chat/conversations'),
+  conversation: (id: string) => apiClient.get<ChatConversation>(`/chat/conversations/${id}`),
+  start: (body: { productId: string; body?: string; imageUrl?: string }) =>
+    apiClient.post<ChatConversation>('/chat/conversations', body),
+  messages: (id: string) => apiClient.get<ChatMessage[]>(`/chat/conversations/${id}/messages`),
+  send: (id: string, body: { body?: string; imageUrl?: string }) =>
+    apiClient.post<ChatMessage>(`/chat/conversations/${id}/messages`, body),
+  uploadImage: (form: FormData) =>
+    apiClient.uploadForm<{ ok: boolean; url: string }>('/uploads/image', form),
+};
+
+export const openclawApi = {
+  launch: () =>
+    apiClient.post<OpenClawLaunchResult>('/openclaw/launch', { audience: 'aimarkets' }),
+  approvePairing: (requestId?: string | null) =>
+    apiClient.post<{ success: boolean; message?: string }>('/openclaw/device-pairings/approve', {
+      request_id: requestId || null,
+      requestId: requestId || null,
+      role: 'operator',
+      scopes: ['operator.read', 'operator.write', 'operator.admin', 'operator.pairing'],
+    }),
 };
 
 export const workApi = {

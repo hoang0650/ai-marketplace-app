@@ -21,6 +21,23 @@
       ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "NSLocalNetworkUsageDescription": "AI Markets kết nối OpenClaw gateway trên mạng nội bộ hoặc LAN khi bạn mở agent.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoadsInWebContent": true,
+          "NSAllowsLocalNetworking": true,
+          "NSExceptionDomains": {
+            "aimarkets.vn": {
+              "NSIncludesSubdomains": true,
+              "NSExceptionRequiresForwardSecrecy": false,
+              "NSTemporaryExceptionMinimumTLSVersion": "TLSv1.2"
+            },
+            "openclaw.aimarkets.vn": {
+              "NSIncludesSubdomains": true,
+              "NSExceptionRequiresForwardSecrecy": false,
+              "NSTemporaryExceptionMinimumTLSVersion": "TLSv1.2"
+            }
+          }
+        },
         "UISupportedInterfaceOrientations": [
           "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationLandscapeLeft",
@@ -81,6 +98,12 @@
       "expo-video",
       "expo-audio",
       "expo-iap",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "AI Markets dùng ảnh để bạn gửi hình khi hỏi người bán về sản phẩm."
+        }
+      ],
       [
         "expo-screen-orientation",
         {

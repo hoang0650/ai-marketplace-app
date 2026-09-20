@@ -63,6 +63,7 @@ class ApiClient {
     allowRefresh = true,
   ): Promise<T> {
     const { method = 'GET', body, timeoutMs = API_CONFIG.TIMEOUT } = options;
+    const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
     const token = await tokenStorage.getAccessToken();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -70,11 +71,11 @@ class ApiClient {
       const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
         method,
         headers: {
-          'Content-Type': 'application/json',
           Accept: 'application/json',
+          ...(isForm ? {} : { 'Content-Type': 'application/json' }),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: body == null ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -128,6 +129,10 @@ class ApiClient {
   }
   delete<T>(endpoint: string) {
     return this.request<T>(endpoint, { method: 'DELETE' });
+  }
+
+  uploadForm<T>(endpoint: string, form: FormData, timeoutMs = 60000) {
+    return this.request<T>(endpoint, { method: 'POST', body: form, timeoutMs });
   }
 }
 

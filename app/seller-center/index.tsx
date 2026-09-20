@@ -24,6 +24,8 @@ export default function SellerCenterScreen() {
 
   const rows = [
     { label: t('seller.products'), href: '/seller-center/products' },
+    { label: t('nav.messages'), href: '/(tabs)/messages' },
+    { label: t('seller.coupons'), href: '/seller-center/coupons' },
     { label: t('seller.revenue'), href: '/seller-center/revenue' },
     { label: t('seller.payout'), href: '/seller-center/payout' },
     { label: t('seller.tax'), href: '/seller-center/tax' },

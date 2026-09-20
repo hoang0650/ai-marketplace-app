@@ -18,10 +18,12 @@ export function ProductHub({
   title,
   subtitle,
   categories,
+  headerExtra,
 }: {
   title: string;
   subtitle: string;
   categories: string[];
+  headerExtra?: React.ReactNode;
 }) {
   const { colors } = useTheme();
   const { t, language } = useT();
@@ -55,6 +57,7 @@ export function ProductHub({
             <View style={{ marginBottom: 16 }}>
               <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
               {subtitle ? <Text style={[styles.sub, { color: colors.textSecondary }]}>{subtitle}</Text> : null}
+              {headerExtra}
             </View>
           }
           ListEmptyComponent={<EmptyState title={t('common.empty')} hint={t('home.emptyHint')} />}

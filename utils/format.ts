@@ -72,6 +72,19 @@ export function productPrice(p: Pick<Product, 'pricing' | 'category' | 'contentM
   return `${formatMoney(amount, cur)}${unit ? ` ${unit}` : ''}`;
 }
 
+export function productSale(p: Pick<Product, 'pricing' | 'category' | 'contentMeta'>) {
+  const compare = Number(p.pricing?.compareAtPrice) || 0;
+  const now = isLicenseCategory(p.category)
+    ? cheapestLicensePrice(p)
+    : p.pricing?.model === 'usage'
+      ? Number(p.pricing?.usageRate) || 0
+      : Number(p.pricing?.price) || 0;
+  return {
+    onSale: compare > now && (p.pricing?.model || '') !== 'free',
+    was: formatMoney(compare, p.pricing?.currency || 'USD'),
+  };
+}
+
 export function formatDate(iso?: string | null, locale: 'vi' | 'en' = 'vi') {
   if (!iso) return '';
   const d = new Date(iso);
