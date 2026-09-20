@@ -83,6 +83,7 @@ function ThemedStack() {
         <Stack.Screen name="video-ai" options={{ title: 'Watch AI films' }} />
         <Stack.Screen name="stories" options={{ title: 'Stories & books' }} />
         <Stack.Screen name="licenses/index" options={{ title: 'License' }} />
+        <Stack.Screen name="usage/index" options={{ title: 'Usage' }} />
         <Stack.Screen name="reviews/create" options={{ title: 'Viết đánh giá' }} />
         <Stack.Screen name="category/[id]" options={{ title: '' }} />
         <Stack.Screen name="+not-found" />

@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
 import { useOpenClawLaunch } from '@/hooks/useOpenClawLaunch';
+import { useHermesLaunch } from '@/hooks/useHermesLaunch';
 import { useRecentStore } from '@/stores/recentStore';
 import { useCartStore } from '@/stores/cartStore';
 import { productPrice, availableLicenseTerms, licenseUnitPrice, formatMoney } from '@/utils/format';
@@ -33,6 +34,8 @@ import {
   isDownloadLicenseCategory,
   isFilmCategory,
   isHireAgentCategory,
+  isHermesOpsProduct,
+  isOpenClawOpsProduct,
   isLicenseCategory,
   isPlaygroundCategory,
   isVoiceCategory,
@@ -72,6 +75,7 @@ export default function ProductScreen() {
   const { colors } = useTheme();
   const { t, language } = useT();
   const { opening: openingOpenClaw, launch: launchOpenClaw } = useOpenClawLaunch();
+  const { opening: openingHermes, launch: launchHermes } = useHermesLaunch();
   const addViewed = useRecentStore((s) => s.addViewed);
   const addToCart = useCartStore((s) => s.add);
   const [licenseTerm, setLicenseTerm] = useState<LicenseTerm>('month');
@@ -272,7 +276,11 @@ export default function ProductScreen() {
       router.push('/auth/login');
       return;
     }
-    if (isHireAgentCategory(p.category, p.slug)) {
+    if (isHermesOpsProduct(p.slug)) {
+      void launchHermes();
+      return;
+    }
+    if (isOpenClawOpsProduct(p.slug) || isHireAgentCategory(p.category, p.slug)) {
       void launchOpenClaw();
       return;
     }
@@ -575,7 +583,12 @@ export default function ProductScreen() {
             ) : null}
           </View>
         </View>
-        <Button title={cta} loading={accessLoading || openingOpenClaw} onPress={onPrimaryCta} style={styles.barCta} />
+        <Button
+          title={cta}
+          loading={accessLoading || openingOpenClaw || openingHermes}
+          onPress={onPrimaryCta}
+          style={styles.barCta}
+        />
       </View>
     </View>
   );

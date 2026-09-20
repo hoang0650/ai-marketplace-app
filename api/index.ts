@@ -14,6 +14,7 @@ import type {
   SellerEarnings,
   SellerPayout,
   SellerProfile,
+  BuyerUsageFeed,
   WalletSummary,
   WalletTx,
   WorkJob,
@@ -177,6 +178,7 @@ export const dashboardApi = {
 
 export const usageApi = {
   list: () => apiClient.get<unknown[]>('/usage'),
+  me: (limit = 100) => apiClient.get<BuyerUsageFeed>(`/usage/me?limit=${limit}`),
 };
 
 export const licensesApi = {
@@ -231,6 +233,19 @@ export const openclawApi = {
       role: 'operator',
       scopes: ['operator.read', 'operator.write', 'operator.admin', 'operator.pairing'],
     }),
+};
+
+export const hermesApi = {
+  launch: () =>
+    apiClient.post<OpenClawLaunchResult>('/hermes/launch', { audience: 'aimarkets' }),
+  approvePairing: (requestId?: string | null) =>
+    apiClient.post<{ success: boolean; message?: string; skipped?: boolean }>(
+      '/hermes/device-pairings/approve',
+      {
+        request_id: requestId || null,
+        requestId: requestId || null,
+      },
+    ),
 };
 
 export const workApi = {

@@ -98,7 +98,15 @@ export const STORIES_CATEGORIES = ['story-book'] as const;
 export const AGENT_CATEGORIES = ['hire-agent', 'agent-runtime'] as const;
 
 export function isHireAgentCategory(id?: string, slug?: string) {
-  return id === 'hire-agent' || slug === 'openclaw-ops-agent';
+  return id === 'hire-agent' || slug === 'openclaw-ops-agent' || slug === 'hermes-ops-agent';
+}
+
+export function isOpenClawOpsProduct(slug?: string) {
+  return slug === 'openclaw-ops-agent';
+}
+
+export function isHermesOpsProduct(slug?: string) {
+  return slug === 'hermes-ops-agent';
 }
 
 export const HOME_HUBS = [

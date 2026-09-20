@@ -261,6 +261,36 @@ export interface WalletTx {
   createdAt: string;
 }
 
+export interface BuyerUsageItem {
+  id: string;
+  createdAt: string;
+  source: string;
+  channel: string;
+  model: string;
+  productId?: string | null;
+  productName?: string;
+  productSlug?: string;
+  inputTokens: number;
+  outputTokens: number;
+  tokens: number;
+  amount: number;
+  currency: string;
+  note: string;
+  markup?: number | null;
+}
+
+export interface BuyerUsageFeed {
+  currency: string;
+  summary: {
+    requests: number;
+    totalCharged: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalTokens: number;
+  };
+  items: BuyerUsageItem[];
+}
+
 export interface WalletSummary {
   currency: string;
   balance: number;

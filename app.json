@@ -35,6 +35,11 @@
               "NSIncludesSubdomains": true,
               "NSExceptionRequiresForwardSecrecy": false,
               "NSTemporaryExceptionMinimumTLSVersion": "TLSv1.2"
+            },
+            "hermes.aimarkets.vn": {
+              "NSIncludesSubdomains": true,
+              "NSExceptionRequiresForwardSecrecy": false,
+              "NSTemporaryExceptionMinimumTLSVersion": "TLSv1.2"
             }
           }
         },

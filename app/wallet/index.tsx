@@ -1,7 +1,8 @@
 import React from 'react';
-import { Alert, Platform, ScrollView, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { walletApi } from '@/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useT';
@@ -17,6 +18,7 @@ import { getErrorMessage } from '@/lib/errors';
 
 export default function WalletScreen() {
   const qc = useQueryClient();
+  const router = useRouter();
   const { isAuthenticated, isCreator } = useAuth();
   const { colors } = useTheme();
   const { t, language } = useT();
@@ -72,6 +74,9 @@ export default function WalletScreen() {
         ) : null}
 
         <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 28, marginBottom: 4 }}>{t('wallet.history')}</Text>
+        <Pressable onPress={() => router.push('/usage')} style={{ marginBottom: 8 }}>
+          <Text style={{ color: '#c9a961', fontWeight: '700' }}>{t('wallet.link.usage')}</Text>
+        </Pressable>
         {(txs.data || []).length === 0 ? (
           <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>{t('wallet.history.empty')}</Text>
         ) : (

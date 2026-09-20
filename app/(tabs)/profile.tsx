@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
+  Activity,
   CreditCard,
   Heart,
   HelpCircle,
@@ -62,6 +63,7 @@ export default function ProfileScreen() {
           <MenuRow icon={Heart} label={t('profile.favorites')} onPress={() => router.push(href('/favorites'))} />
           <MenuRow icon={KeyRound} label={t('license.mine')} onPress={() => router.push(href('/licenses'))} />
           <MenuRow icon={Wallet} label={t('wallet.title')} onPress={() => router.push('/wallet')} />
+          <MenuRow icon={Activity} label={t('usage.title')} onPress={() => router.push('/usage')} />
           <MenuRow icon={CreditCard} label={t('profile.billing')} onPress={() => router.push('/wallet')} />
           <MenuRow icon={Receipt} label={t('profile.complaints')} onPress={() => router.push(href('/protection'))} last />
         </MenuGroup>
