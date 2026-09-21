@@ -512,4 +512,8 @@ export interface OpenClawLaunchResult {
   userId?: string;
   gatewayUrl?: string;
   token?: string;
+  gatewayToken?: string;
+  username?: string;
+  password?: string;
+  autoLogin?: boolean;
 }
