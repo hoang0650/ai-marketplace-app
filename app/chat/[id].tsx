@@ -115,11 +115,16 @@ export default function ChatThreadScreen() {
 
   return (
     <Screen padded={false}>
-      <Stack.Screen options={{ title: convo.data?.productName || t('nav.messages'), headerShown: true }} />
+      <Stack.Screen options={{ title: convo.data?.title || convo.data?.jobTitle || convo.data?.productName || t('nav.messages'), headerShown: true }} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={88}>
         {convo.data ? (
           <Pressable
-            onPress={() => router.push(href(`/product/${convo.data!.productSlug}`))}
+            onPress={() => {
+              const c = convo.data!;
+              if (c.contextType === 'job' && c.jobSlug) router.push(href(`/work/job/${c.jobSlug}`));
+              else if (c.contextType === 'talent' && c.talentSlug) router.push(href(`/work/talent/${c.talentSlug}`));
+              else if (c.productSlug) router.push(href(`/product/${c.productSlug}`));
+            }}
             style={{ flexDirection: 'row', gap: 10, alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderColor: colors.border }}
           >
             {convo.data.productCover ? (
@@ -127,10 +132,13 @@ export default function ChatThreadScreen() {
             ) : null}
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.text, fontWeight: '700' }} numberOfLines={1}>
-                {convo.data.productName}
+                {convo.data.title || convo.data.jobTitle || convo.data.productName || t('nav.messages')}
               </Text>
               <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                {convo.data.otherName} · {t(convo.data.role === 'seller' ? 'chat.role.buyer' : 'chat.role.seller')}
+                {convo.data.otherName} ·{' '}
+                {convo.data.contextType === 'job'
+                  ? t(convo.data.role === 'seller' ? 'work.candidate' : 'work.employer')
+                  : t(convo.data.role === 'seller' ? 'chat.role.buyer' : 'chat.role.seller')}
               </Text>
             </View>
           </Pressable>

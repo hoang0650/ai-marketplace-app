@@ -3,10 +3,14 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useRouter } from 'expo-router';
 import {
   Activity,
+  Briefcase,
   CreditCard,
+  FileText,
   Heart,
   HelpCircle,
+  IdCard,
   KeyRound,
+  LayoutDashboard,
   LogOut,
   Package,
   Receipt,
@@ -14,6 +18,7 @@ import {
   Settings,
   Shield,
   Store,
+  Users,
   Wallet,
 } from 'lucide-react-native';
 import { href } from '@/lib/href';
@@ -27,7 +32,7 @@ import { displayFont } from '@/constants/fonts';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, isAuthenticated, isCreator, logout } = useAuth();
+  const { user, isAuthenticated, isCreator, isSeller, isTalent, isFreelancer, isEmployer, logout } = useAuth();
   const { colors } = useTheme();
   const { t } = useT();
   const avatar = user?.avatarUrl;
@@ -60,9 +65,11 @@ export default function ProfileScreen() {
         <Text style={[styles.section, { color: colors.textSecondary }]}>{t('profile.section.account')}</Text>
         <MenuGroup>
           <MenuRow icon={Package} label={t('profile.orders')} onPress={() => router.push('/(tabs)/orders')} />
+          <MenuRow icon={Briefcase} label={t('hub.work')} onPress={() => router.push(href('/work'))} />
           <MenuRow icon={Heart} label={t('profile.favorites')} onPress={() => router.push(href('/favorites'))} />
           <MenuRow icon={KeyRound} label={t('license.mine')} onPress={() => router.push(href('/licenses'))} />
           <MenuRow icon={Wallet} label={t('wallet.title')} onPress={() => router.push('/wallet')} />
+          <MenuRow icon={IdCard} label={t('kyc.title')} onPress={() => router.push(href('/kyc'))} />
           <MenuRow icon={Activity} label={t('usage.title')} onPress={() => router.push('/usage')} />
           <MenuRow icon={CreditCard} label={t('profile.billing')} onPress={() => router.push('/wallet')} />
           <MenuRow icon={Receipt} label={t('profile.complaints')} onPress={() => router.push(href('/protection'))} last />
@@ -72,7 +79,18 @@ export default function ProfileScreen() {
           <>
             <Text style={[styles.section, { color: colors.textSecondary }]}>{t('profile.section.seller')}</Text>
             <MenuGroup>
-              <MenuRow icon={Store} label={t('profile.seller')} onPress={() => router.push(href('/seller-center'))} last />
+              {isSeller ? (
+                <MenuRow icon={Store} label={t('profile.seller')} onPress={() => router.push(href('/seller-center'))} />
+              ) : null}
+              {isTalent ? (
+                <MenuRow icon={Users} label={t('signup.role.talent')} onPress={() => router.push(href('/work/talents'))} />
+              ) : null}
+              {isFreelancer ? (
+                <MenuRow icon={FileText} label={t('work.contracts')} onPress={() => router.push(href('/work/contracts'))} />
+              ) : null}
+              {isEmployer ? (
+                <MenuRow icon={LayoutDashboard} label={t('work.nav.dashboard')} onPress={() => router.push(href('/work/manage'))} />
+              ) : null}
             </MenuGroup>
           </>
         ) : null}

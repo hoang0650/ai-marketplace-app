@@ -1,18 +1,16 @@
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { Bell, ShoppingCart } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { href } from '@/lib/href';
-import { productsApi } from '@/api';
-import type { Creator, HomeFeed, Product } from '@/api/types';
+import { bannersApi, productsApi, workApi } from '@/api';
+import type { Banner, Creator, HomeFeed, Product, WorkJob } from '@/api/types';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
 import { useAuthStore } from '@/stores/authStore';
 import { BrandMark } from '@/components/BrandMark';
-import { ProductCard } from '@/components/ProductCard';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProductSkeleton } from '@/components/ui/Skeleton';
@@ -20,6 +18,10 @@ import { Screen } from '@/components/ui/Screen';
 import { IconHit } from '@/components/ui/LoginPrompt';
 import { HubRow } from '@/components/catalog/HubRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { BannerCarousel } from '@/components/home/BannerCarousel';
+import { ProductRail } from '@/components/home/ProductRail';
+import { WorkRail } from '@/components/home/WorkRail';
+import { FALLBACK_HOME_BANNERS } from '@/constants/homeBanners';
 import { formatMoney, greetingHour } from '@/utils/format';
 import { useCartStore } from '@/stores/cartStore';
 
@@ -55,18 +57,6 @@ function homeFromCatalog(items: Product[]): HomeFeed {
     promoted: items.filter((p) => p.featured).slice(0, 8),
     bestsellers: bySales.slice(0, 8),
   };
-}
-
-function ProductGrid({ items }: { items: Product[] }) {
-  return (
-    <View style={styles.grid}>
-      {items.map((item) => (
-        <View key={item.id} style={styles.gridItem}>
-          <ProductCard product={item} />
-        </View>
-      ))}
-    </View>
-  );
 }
 
 function ShopRail({ shops, t }: { shops: Creator[]; t: (k: string, vars?: Record<string, string | number>) => string }) {
@@ -106,6 +96,10 @@ function ShopRail({ shops, t }: { shops: Creator[]; t: (k: string, vars?: Record
   );
 }
 
+function bySlot(all: Banner[] | undefined, slot: string): Banner[] {
+  return (all || []).filter((b) => b.slot === slot);
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -113,7 +107,7 @@ export default function HomeScreen() {
   const user = useAuthStore((s) => s.user);
   const cartCount = useCartStore((s) => s.lines.reduce((n, l) => n + l.qty, 0));
 
-  const q = useQuery({
+  const feedQ = useQuery({
     queryKey: ['home', 'feed'],
     queryFn: async () => {
       try {
@@ -125,12 +119,50 @@ export default function HomeScreen() {
     },
   });
 
-  const feed = q.data;
+  const bannersQ = useQuery({
+    queryKey: ['home', 'banners'],
+    queryFn: async () => {
+      try {
+        const rows = await bannersApi.list();
+        return rows?.length ? rows : FALLBACK_HOME_BANNERS;
+      } catch {
+        return FALLBACK_HOME_BANNERS;
+      }
+    },
+    staleTime: 60_000,
+  });
+
+  const workQ = useQuery({
+    queryKey: ['home', 'work', 'jobs'],
+    queryFn: () => workApi.jobs(),
+    staleTime: 60_000,
+  });
+
+  const feed = feedQ.data;
+  const allBanners = bannersQ.data?.length ? bannersQ.data : FALLBACK_HOME_BANNERS;
+  const heroBanners = bySlot(allBanners, 'home_hero');
+  const offerBanners = bySlot(allBanners, 'offers');
+  const partnerBanners = bySlot(allBanners, 'partners');
+  const workJobs = ((workQ.data as WorkJob[]) || []).slice(0, 8);
   const greeting = `${greetingHour(language)}${user?.name ? `, ${user.name}` : ''}`;
   const empty = useMemo(() => {
-    if (!feed) return true;
-    return !(feed.shops.length || feed.newArrivals.length || feed.promoted.length || feed.bestsellers.length);
-  }, [feed]);
+    if (!feed && !allBanners.length) return true;
+    if (!feed) return !allBanners.length;
+    return !(
+      feed.shops.length ||
+      feed.newArrivals.length ||
+      feed.promoted.length ||
+      feed.bestsellers.length ||
+      allBanners.length
+    );
+  }, [feed, allBanners]);
+
+  const refreshing = feedQ.isRefetching || bannersQ.isRefetching || workQ.isRefetching;
+  const onRefresh = () => {
+    void feedQ.refetch();
+    void bannersQ.refetch();
+    void workQ.refetch();
+  };
 
   return (
     <Screen>
@@ -165,25 +197,13 @@ export default function HomeScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl
-            refreshing={q.isRefetching}
-            onRefresh={() => {
-              void q.refetch();
-            }}
-            tintColor={colors.tint}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
       >
         <HubRow />
-        <Pressable onPress={() => router.push('/(tabs)/explore')} style={styles.heroWrap}>
-          <LinearGradient colors={['#111111', '#2a2520']} style={styles.hero}>
-            <Text style={styles.heroTitle}>{t('home.heroTitle')}</Text>
-            <Text style={styles.heroBody}>{t('home.heroBody')}</Text>
-          </LinearGradient>
-        </Pressable>
 
-        {q.isLoading ? (
+        {heroBanners.length ? <BannerCarousel banners={heroBanners} variant="hero" /> : null}
+
+        {feedQ.isLoading && bannersQ.isLoading ? (
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
             <ProductSkeleton />
             <ProductSkeleton />
@@ -192,28 +212,56 @@ export default function HomeScreen() {
           <EmptyState title={t('common.empty')} hint={t('home.emptyHint')} />
         ) : (
           <>
+            {feed?.newArrivals.length ? (
+              <View style={styles.section}>
+                <SectionHeader title={t('home.suggest')} action={t('common.seeAll')} onPress={() => router.push('/(tabs)/explore')} />
+                <ProductRail items={feed.newArrivals} />
+              </View>
+            ) : null}
+
+            {(feed?.promoted.length || feed?.bestsellers.length) ? (
+              <View style={styles.section}>
+                <SectionHeader
+                  title={t('home.featuredPacks')}
+                  action={t('common.seeAll')}
+                  onPress={() => router.push('/(tabs)/explore')}
+                />
+                <ProductRail items={(feed.promoted.length ? feed.promoted : feed.bestsellers) || []} />
+              </View>
+            ) : null}
+
+            {offerBanners.length ? (
+              <View style={styles.section}>
+                <SectionHeader title={t('home.offers')} />
+                <BannerCarousel banners={offerBanners} variant="square" />
+              </View>
+            ) : null}
+
+            {partnerBanners.length ? (
+              <View style={styles.section}>
+                <SectionHeader title={t('home.partners')} />
+                <BannerCarousel banners={partnerBanners} variant="square" />
+              </View>
+            ) : null}
+
             {feed?.shops.length ? (
               <View style={styles.section}>
                 <SectionHeader title={t('home.shops')} action={t('common.seeAll')} onPress={() => router.push('/(tabs)/explore')} />
                 <ShopRail shops={feed.shops} t={t} />
               </View>
             ) : null}
-            {feed?.newArrivals.length ? (
-              <View style={styles.section}>
-                <SectionHeader title={t('home.new')} action={t('common.seeAll')} onPress={() => router.push('/(tabs)/explore')} />
-                <ProductGrid items={feed.newArrivals} />
-              </View>
-            ) : null}
-            {feed?.promoted.length ? (
-              <View style={styles.section}>
-                <SectionHeader title={t('home.promoted')} action={t('common.seeAll')} onPress={() => router.push('/(tabs)/explore')} />
-                <ProductGrid items={feed.promoted} />
-              </View>
-            ) : null}
-            {feed?.bestsellers.length ? (
+
+            {feed?.bestsellers.length && feed.promoted.length ? (
               <View style={styles.section}>
                 <SectionHeader title={t('home.bestsellers')} action={t('common.seeAll')} onPress={() => router.push('/(tabs)/explore')} />
-                <ProductGrid items={feed.bestsellers} />
+                <ProductRail items={feed.bestsellers} />
+              </View>
+            ) : null}
+
+            {workJobs.length ? (
+              <View style={styles.section}>
+                <SectionHeader title={t('home.work')} action={t('common.seeAll')} onPress={() => router.push(href('/work'))} />
+                <WorkRail items={workJobs} />
               </View>
             ) : null}
           </>
@@ -239,14 +287,8 @@ const styles = StyleSheet.create({
   },
   cartBadgeText: { fontSize: 10, fontWeight: '800' },
   hi: { fontSize: 22, fontWeight: '700', marginTop: 6 },
-  heroWrap: { marginTop: 4, marginBottom: 4 },
-  hero: { borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14 },
-  heroTitle: { color: '#f2efe8', fontSize: 17, fontWeight: '700' },
-  heroBody: { color: 'rgba(245,240,232,0.72)', marginTop: 4, fontSize: 13, lineHeight: 18 },
   list: { paddingBottom: 24, paddingTop: 8 },
   section: { marginTop: 14 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  gridItem: { width: '48%', flexGrow: 1 },
   shopRail: { gap: 10, paddingRight: 8 },
   shop: { width: 168, borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
   shopCover: { width: '100%', height: 72 },

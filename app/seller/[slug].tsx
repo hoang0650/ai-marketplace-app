@@ -52,7 +52,7 @@ export default function SellerScreen() {
   const [sort, setSort] = useState<SortId>('newest');
   const [chatBusy, setChatBusy] = useState(false);
 
-  const seller = useQuery({ queryKey: ['creator', slug], queryFn: () => creatorsApi.one(String(slug)), enabled: !!slug });
+  const seller = useQuery({ queryKey: ['seller', slug], queryFn: () => creatorsApi.one(String(slug)), enabled: !!slug });
   const products = useQuery({
     queryKey: ['products', 'seller', slug],
     queryFn: () => productsApi.list({ creatorSlug: String(slug), limit: 80 }),

@@ -39,7 +39,14 @@ export default function LoginScreen() {
     try {
       setFormError('');
       const g = await signInWithGoogle();
-      await loginWithGoogle({ idToken: g.idToken, code: g.code, redirectUri: g.redirectUri, clientId: g.clientId });
+      await loginWithGoogle({
+        token: g.token,
+        refreshToken: g.refreshToken,
+        idToken: g.idToken,
+        code: g.code,
+        redirectUri: g.redirectUri,
+        clientId: g.clientId,
+      });
       router.replace('/(tabs)');
     } catch (e) {
       const msg = e instanceof Error ? e.message : '';

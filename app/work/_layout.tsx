@@ -15,7 +15,11 @@ export default function WorkLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen name="jobs" />
+      <Stack.Screen name="talents" />
       <Stack.Screen name="post" />
+      <Stack.Screen name="manage" />
+      <Stack.Screen name="contracts" />
       <Stack.Screen name="job/[slug]" />
       <Stack.Screen name="talent/[slug]" />
     </Stack>

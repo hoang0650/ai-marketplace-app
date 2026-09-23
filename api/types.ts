@@ -1,4 +1,15 @@
-export type UserRole = 'buyer' | 'creator' | 'admin';
+export type UserRole = 'buyer' | 'seller' | 'talent' | 'freelancer' | 'employer' | 'admin';
+
+/** Roles a user may pick at signup (admin is never self-assignable). */
+export type SignupRole = Exclude<UserRole, 'admin'>;
+
+export interface GooglePrefill {
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  googleSignupToken: string;
+  hasAccount: boolean;
+}
 
 export interface User {
   id: string;
@@ -8,6 +19,28 @@ export interface User {
   avatarUrl?: string;
   creatorSlug?: string;
   bio?: string;
+  kycStatus?: string;
+}
+
+export type KycStatus = 'none' | 'draft' | 'pending' | 'verified' | 'rejected';
+export type KycIdType = 'cccd' | 'cmnd' | 'passport' | 'other';
+export type KycSide = 'front' | 'back' | 'selfie';
+
+export interface KycProfile {
+  status: KycStatus;
+  fullName: string;
+  idType: KycIdType;
+  idNumber?: string;
+  idNumberMasked: string;
+  hasFront: boolean;
+  hasBack: boolean;
+  hasSelfie: boolean;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  rejectReason: string;
+  canSubmit: boolean;
+  canEdit: boolean;
+  withdrawAllowed: boolean;
 }
 
 export interface AuthResponse {
@@ -129,6 +162,20 @@ export interface HomeFeed {
   newArrivals: Product[];
   promoted: Product[];
   bestsellers: Product[];
+}
+
+export type BannerLinkType = 'product' | 'category' | 'seller' | 'url' | 'agents' | 'explore';
+export type BannerSlot = 'home_hero' | 'offers' | 'partners';
+
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  linkType: BannerLinkType;
+  linkValue?: string;
+  slot: BannerSlot;
+  sortOrder?: number;
 }
 
 export interface Order {
@@ -296,6 +343,51 @@ export interface WalletSummary {
   balance: number;
   held: number;
   available: number;
+  holdHours?: number;
+  persona?: PayoutPersona;
+  personas?: PayoutPersona[];
+  policy?: PayoutPolicy;
+  holds?: Array<{
+    orderId: string;
+    productName: string;
+    amount: number;
+    currency: string;
+    kind: 'protection_window' | 'dispute';
+    holdUntil: string;
+    disputeStatus: string;
+    disputeReason: string;
+  }>;
+}
+
+export type PayoutPersona = 'buyer' | 'seller' | 'talent' | 'freelancer' | 'employer' | 'admin';
+
+export interface PayoutPolicy {
+  persona: PayoutPersona;
+  canWithdraw: boolean;
+  platformFeeRate: number;
+  taxRate: number;
+  totalFeeRate: number;
+  chargeAtWithdraw: boolean;
+  minAmount: number;
+  minAmountCurrency: string;
+  minAmountVnd: number;
+  holdHours: number;
+  requiresNoDispute: boolean;
+}
+
+export interface PayoutQuote {
+  gross: number;
+  platformFee: number;
+  tax: number;
+  net: number;
+  totalFee: number;
+}
+
+export interface PayoutPolicyResponse {
+  persona: PayoutPersona;
+  personas: PayoutPersona[];
+  policy: PayoutPolicy;
+  quote: PayoutQuote | null;
 }
 
 export interface PaypalConfig {
@@ -334,6 +426,10 @@ export interface Complaint {
   kind: string;
   orderId?: string | null;
   productName?: string;
+  jobApplicationId?: string | null;
+  jobId?: string | null;
+  jobTitle?: string;
+  jobSlug?: string;
   body: string;
   status: string;
   evidenceUrls?: string[];
@@ -410,6 +506,7 @@ export interface WorkJob {
   description: string;
   location?: string;
   remote?: boolean;
+  fieldIds?: string[];
   skills?: string[];
   employmentType?: string;
   salaryMin?: number;
@@ -417,17 +514,21 @@ export interface WorkJob {
   salaryCurrency?: string;
   salaryPeriod?: string;
   salaryNegotiable?: boolean;
+  postedBy?: string;
   postedByName?: string;
+  applicationsCount?: number;
   createdAt?: string;
 }
 
 export interface WorkTalent {
   id: string;
   slug: string;
+  userId?: string;
   name: string;
   title: string;
   avatarUrl?: string;
   bio?: string;
+  fieldIds?: string[];
   skills?: string[];
   experienceYears?: number;
   hoursPerWeek?: number;
@@ -438,6 +539,38 @@ export interface WorkTalent {
   contractsCount?: number;
   rating?: number;
   reviewsCount?: number;
+}
+
+export interface WorkField {
+  id: string;
+  label: string;
+  children?: WorkField[];
+}
+
+export interface WorkJobBid {
+  id: string;
+  jobId?: string;
+  jobSlug?: string;
+  jobTitle?: string;
+  applicantId?: string;
+  applicantName: string;
+  applicantAvatar?: string;
+  proposedAmount: number;
+  proposedCurrency: string;
+  proposedPeriod: string;
+  coverLetter?: string;
+  status: string;
+  workStatus?: string;
+  deliveryNote?: string;
+  deliveryUrls?: string[];
+  deliveredAt?: string | null;
+  revisionNote?: string;
+  revisionCount?: number;
+  completedAt?: string | null;
+  disputedAt?: string | null;
+  conversationId?: string;
+  createdAt?: string;
+  mine?: boolean;
 }
 
 export interface PlaygroundRunResult {
@@ -480,10 +613,16 @@ export type { RunpodModelSchema as PlaygroundSchema } from '@/lib/runpod-schema'
 
 export interface ChatConversation {
   id: string;
+  contextType?: 'product' | 'job' | 'talent';
   productId: string;
   productName: string;
   productSlug: string;
   productCover: string;
+  jobId?: string;
+  jobTitle?: string;
+  jobSlug?: string;
+  talentSlug?: string;
+  title?: string;
   role: 'buyer' | 'seller';
   otherId: string;
   otherName: string;

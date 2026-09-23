@@ -176,7 +176,7 @@ export function usePlayground(product: Product, isAuthenticated = false) {
 
   const wallet = useQuery({
     queryKey: ['wallet-summary'],
-    queryFn: walletApi.summary,
+    queryFn: () => walletApi.summary(),
     enabled: isAuthenticated,
   });
 

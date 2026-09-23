@@ -5,6 +5,8 @@ import type {
   Complaint,
   Creator,
   HomeFeed,
+  Banner,
+  BannerSlot,
   IssuedLicense,
   LegalDocument,
   NotificationItem,
@@ -19,6 +21,8 @@ import type {
   WalletTx,
   WorkJob,
   WorkTalent,
+  WorkField,
+  WorkJobBid,
   ContentEpisode,
   ContentUnlock,
   PaypalConfig,
@@ -31,6 +35,12 @@ import type {
   ChatConversation,
   ChatMessage,
   OpenClawLaunchResult,
+  KycProfile,
+  KycSide,
+  KycIdType,
+  PayoutPolicy,
+  PayoutPolicyResponse,
+  PayoutQuote,
 } from './types';
 import type { RunpodModelSchema } from '@/lib/runpod-schema';
 
@@ -68,6 +78,11 @@ export const productsApi = {
   create: (body: Record<string, unknown>) => apiClient.post<Product>('/products', body),
   update: (id: string, body: Record<string, unknown>) => apiClient.put<Product>(`/products/${id}`, body),
   remove: (id: string) => apiClient.request(`/products/${id}`, { method: 'DELETE' }),
+};
+
+export const bannersApi = {
+  list: (params?: { slot?: BannerSlot | string }) =>
+    apiClient.get<Banner[]>(`/banners${qs({ slot: params?.slot })}`),
 };
 
 export const categoriesApi = {
@@ -115,8 +130,12 @@ export const couponsApi = {
 
 export const walletApi = {
   list: () => apiClient.get<WalletTx[]>('/wallet'),
-  summary: () => apiClient.get<WalletSummary>('/wallet/summary'),
-  withdraw: (amount: number) => apiClient.post<WalletTx>('/wallet/withdraw', { amount }),
+  summary: (persona?: string) =>
+    apiClient.get<WalletSummary>(`/wallet/summary${qs({ persona })}`),
+  payoutPolicy: (persona?: string, amount?: number) =>
+    apiClient.get<PayoutPolicyResponse>(`/wallet/payout-policy${qs({ persona, amount })}`),
+  withdraw: (amount: number, persona?: string) =>
+    apiClient.post<WalletTx>('/wallet/withdraw', { amount, persona }),
   iapPacks: () => apiClient.get<{ packs: Array<{ sku: string; usd: number; currency: string }> }>('/iap/packs'),
   iapVerify: (body: {
     platform: 'ios' | 'android';
@@ -131,6 +150,19 @@ export const walletApi = {
     apiClient.post<PaypalCreateOrderResult>('/paypal/create-order', { amount, currency, fundingSource }),
   paypalCaptureOrder: (orderId: string) =>
     apiClient.post<{ success: boolean; status: string; wallet?: WalletTx }>('/paypal/capture-order', { orderId }),
+};
+
+export const kycApi = {
+  me: () => apiClient.get<KycProfile>('/kyc/me'),
+  uploadDocument: (side: KycSide, form: FormData) =>
+    apiClient.uploadForm<{ ok: boolean; side: string; previewUrl?: string; kyc: KycProfile }>(
+      `/kyc/documents/${side}`,
+      form,
+    ),
+  documentUrl: (side: KycSide) =>
+    apiClient.get<{ side: string; url: string; expiresIn: number }>(`/kyc/documents/${side}`),
+  submit: (body: { fullName: string; idType: KycIdType; idNumber: string }) =>
+    apiClient.post<{ ok: boolean; kyc: KycProfile }>('/kyc/submit', body),
 };
 
 export const reviewsApi = {
@@ -151,10 +183,16 @@ export const notificationsApi = {
 };
 
 export const complaintsApi = {
-  list: (as?: 'mine' | 'seller') => apiClient.get<Complaint[]>(`/complaints${qs({ as })}`),
+  list: (as?: 'mine' | 'seller' | 'work') => apiClient.get<Complaint[]>(`/complaints${qs({ as })}`),
   one: (id: string) => apiClient.get<Complaint>(`/complaints/${id}`),
-  create: (data: { kind: string; body: string; orderId?: string; evidenceUrls?: string[]; requestedAction?: string }) =>
-    apiClient.post<Complaint>('/complaints', data),
+  create: (data: {
+    kind: string;
+    body: string;
+    orderId?: string;
+    jobApplicationId?: string;
+    evidenceUrls?: string[];
+    requestedAction?: string;
+  }) => apiClient.post<Complaint>('/complaints', data),
   sellerRespond: (id: string, body: string) => apiClient.post<Complaint>(`/complaints/${id}/seller-response`, { body }),
   appeal: (id: string, reason: string) => apiClient.post<Complaint>(`/complaints/${id}/appeal`, { reason }),
 };
@@ -214,8 +252,16 @@ export const contentApi = {
 export const chatApi = {
   conversations: () => apiClient.get<ChatConversation[]>('/chat/conversations'),
   conversation: (id: string) => apiClient.get<ChatConversation>(`/chat/conversations/${id}`),
-  start: (body: { productId: string; body?: string; imageUrl?: string }) =>
-    apiClient.post<ChatConversation>('/chat/conversations', body),
+  start: (body: {
+    productId?: string;
+    jobId?: string;
+    jobSlug?: string;
+    applicantId?: string;
+    applicationId?: string;
+    talentSlug?: string;
+    body?: string;
+    imageUrl?: string;
+  }) => apiClient.post<ChatConversation>('/chat/conversations', body),
   messages: (id: string) => apiClient.get<ChatMessage[]>(`/chat/conversations/${id}/messages`),
   send: (id: string, body: { body?: string; imageUrl?: string }) =>
     apiClient.post<ChatMessage>(`/chat/conversations/${id}/messages`, body),
@@ -249,9 +295,33 @@ export const hermesApi = {
 };
 
 export const workApi = {
-  jobs: (q?: string) => apiClient.get<WorkJob[]>(`/work/jobs${qs({ q })}`),
+  fields: () => apiClient.get<WorkField[]>('/work/fields'),
+  jobs: (params?: { q?: string; field?: string }) =>
+    apiClient.get<WorkJob[]>(`/work/jobs${qs({ q: params?.q, field: params?.field })}`),
   job: (slug: string) => apiClient.get<WorkJob>(`/work/jobs/${slug}`),
-  talents: (q?: string) => apiClient.get<WorkTalent[]>(`/work/talents${qs({ q })}`),
+  bids: (slug: string) => apiClient.get<WorkJobBid[]>(`/work/jobs/${slug}/bids`),
+  applications: (slug: string) => apiClient.get<WorkJobBid[]>(`/work/jobs/${slug}/applications`),
+  apply: (
+    slug: string,
+    data: {
+      proposedAmount: number;
+      proposedCurrency?: string;
+      proposedPeriod?: string;
+      coverLetter?: string;
+    },
+  ) => apiClient.post<WorkJobBid>(`/work/jobs/${slug}/applications`, data),
+  updateApplication: (id: string, data: { status: 'accepted' | 'rejected' | 'withdrawn' }) =>
+    apiClient.request<WorkJobBid>(`/work/applications/${id}`, { method: 'PATCH', body: data }),
+  startWork: (id: string) => apiClient.post<WorkJobBid>(`/work/applications/${id}/start`, {}),
+  deliver: (id: string, data: { note: string; urls?: string[] }) =>
+    apiClient.post<WorkJobBid>(`/work/applications/${id}/deliver`, data),
+  complete: (id: string) => apiClient.post<WorkJobBid>(`/work/applications/${id}/complete`, {}),
+  revision: (id: string, note: string) =>
+    apiClient.post<WorkJobBid>(`/work/applications/${id}/revision`, { note }),
+  contracts: (as?: 'employer' | 'freelancer' | 'all') =>
+    apiClient.get<WorkJobBid[]>(`/work/contracts/mine${qs({ as: as || 'all' })}`),
+  talents: (params?: { q?: string; field?: string }) =>
+    apiClient.get<WorkTalent[]>(`/work/talents${qs({ q: params?.q, field: params?.field })}`),
   talent: (slug: string) => apiClient.get<WorkTalent>(`/work/talents/${slug}`),
   postJob: (data: {
     title: string;
@@ -259,6 +329,13 @@ export const workApi = {
     description: string;
     location?: string;
     remote?: boolean;
+    skills?: string[];
+    employmentType?: string;
+    salaryMin?: number;
+    salaryMax?: number;
+    salaryCurrency?: string;
+    salaryPeriod?: string;
+    salaryNegotiable?: boolean;
   }) => apiClient.post<WorkJob>('/work/jobs', data),
 };
 

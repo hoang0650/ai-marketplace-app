@@ -1,7 +1,7 @@
 import { apiClient } from './client';
 import { API_ENDPOINTS, GOOGLE_AUTH_CONFIG } from './config';
 
-export type UserRole = 'buyer' | 'creator' | 'admin';
+export type UserRole = 'buyer' | 'seller' | 'talent' | 'freelancer' | 'employer' | 'admin';
 
 export interface User {
   id: string;

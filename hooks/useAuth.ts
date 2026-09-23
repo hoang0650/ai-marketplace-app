@@ -48,6 +48,9 @@ export function useAuth() {
     mutationFn: authApi.register,
     onSuccess: (res) => setSession(res.token, res.user, res.refreshToken),
   });
+  const googlePrefillMutation = useMutation({
+    mutationFn: authApi.googlePrefill,
+  });
 
   return {
     user,
@@ -56,13 +59,25 @@ export function useAuth() {
     isInitialized: hydrated,
     isLoading: !hydrated,
     isAdmin: user?.role === 'admin',
-    isCreator: user?.role === 'creator' || user?.role === 'admin',
+    /** Seller-like: can open the seller dashboard / wallet payouts. */
+    isCreator:
+      user?.role === 'seller' ||
+      user?.role === 'talent' ||
+      user?.role === 'freelancer' ||
+      user?.role === 'employer' ||
+      user?.role === 'admin',
+    isSeller: user?.role === 'seller' || user?.role === 'admin',
+    isTalent: user?.role === 'talent' || user?.role === 'admin',
+    isFreelancer: user?.role === 'freelancer' || user?.role === 'admin',
+    isEmployer: user?.role === 'employer' || user?.role === 'admin',
     login: loginMutation.mutateAsync,
     loginLoading: loginMutation.isPending,
     loginWithGoogle: googleMutation.mutateAsync,
     googleLoginLoading: googleMutation.isPending,
     register: registerMutation.mutateAsync,
     registerLoading: registerMutation.isPending,
+    googlePrefill: googlePrefillMutation.mutateAsync,
+    googlePrefillLoading: googlePrefillMutation.isPending,
     logout: async () => {
       const refreshToken = await tokenStorage.getRefreshToken();
       try {

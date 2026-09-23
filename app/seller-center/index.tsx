@@ -13,12 +13,12 @@ import { Badge } from '@/components/ui/Badge';
 
 export default function SellerCenterScreen() {
   const router = useRouter();
-  const { isAuthenticated, isCreator } = useAuth();
+  const { isAuthenticated, isSeller } = useAuth();
   const { colors } = useTheme();
   const { t } = useT();
   const me = useQuery({ queryKey: ['seller-me'], queryFn: sellersApi.me, enabled: isAuthenticated });
-  const dash = useQuery({ queryKey: ['seller-dash'], queryFn: dashboardApi.summary, enabled: isAuthenticated && isCreator });
-  const earnings = useQuery({ queryKey: ['seller-earnings'], queryFn: sellersApi.earnings, enabled: isAuthenticated && isCreator });
+  const dash = useQuery({ queryKey: ['seller-dash'], queryFn: dashboardApi.summary, enabled: isAuthenticated && isSeller });
+  const earnings = useQuery({ queryKey: ['seller-earnings'], queryFn: sellersApi.earnings, enabled: isAuthenticated && isSeller });
 
   if (!isAuthenticated) return <LoginPrompt />;
 
