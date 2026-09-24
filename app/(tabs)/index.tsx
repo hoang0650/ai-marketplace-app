@@ -20,6 +20,7 @@ import { HubRow } from '@/components/catalog/HubRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { BannerCarousel } from '@/components/home/BannerCarousel';
 import { ProductRail } from '@/components/home/ProductRail';
+import { AgentRail } from '@/components/home/AgentRail';
 import { WorkRail } from '@/components/home/WorkRail';
 import { FALLBACK_HOME_BANNERS } from '@/constants/homeBanners';
 import { formatMoney, greetingHour } from '@/utils/format';
@@ -208,16 +209,22 @@ export default function HomeScreen() {
             <ProductSkeleton />
             <ProductSkeleton />
           </View>
-        ) : empty ? (
-          <EmptyState title={t('common.empty')} hint={t('home.emptyHint')} />
         ) : (
           <>
+            {empty ? <EmptyState title={t('common.empty')} hint={t('home.emptyHint')} /> : null}
+
             {feed?.newArrivals.length ? (
               <View style={styles.section}>
                 <SectionHeader title={t('home.suggest')} action={t('common.seeAll')} onPress={() => router.push('/(tabs)/explore')} />
                 <ProductRail items={feed.newArrivals} />
               </View>
             ) : null}
+
+            {/* Agents are not shop categories — own rail, below "Suggested for you". */}
+            <View style={styles.section}>
+              <SectionHeader title={t('home.agents')} action={t('common.seeAll')} onPress={() => router.push(href('/agents'))} />
+              <AgentRail />
+            </View>
 
             {(feed?.promoted.length || feed?.bestsellers.length) ? (
               <View style={styles.section}>

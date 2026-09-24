@@ -34,6 +34,14 @@ Trên Google Cloud (cùng project PHGroup AI, **thêm Android/iOS OAuth clients*
 - iOS URL scheme: `com.googleusercontent.apps.{ios-client-prefix}`
 - Android package: `app.phgroup.ai_market_vn`
 
+**Luồng Google trên app (native)** — giống PHHotel PMS:
+
+1. App mở consent screen của Google bằng client ID **theo nền tảng** (Android client trên Android, iOS client trên iOS) qua `expo-auth-session`; không dùng Web client.
+2. iOS trả code về reverse-scheme `com.googleusercontent.apps.{prefix}:/oauthredirect`.
+   `app.config.js` tự thêm scheme này vào `CFBundleURLTypes` khi có `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`.
+3. Android trả code về HTTPS bridge `assets/oauth/google-mobile.html`, trang này forward sang `aimarkets://oauthredirect`.
+4. App đổi `code` lấy phiên qua `POST /v1/auth/google/login` (login) hoặc `POST /v1/auth/google/prefill` (đăng ký).
+
 Web OAuth bridge file lives in `ai-marketplace/public/assets/oauth/google-mobile.html` (redirects to `aimarkets://oauthredirect`).
 
 ## IAP (ví trên app)

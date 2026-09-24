@@ -1,17 +1,50 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ProductHub } from '@/components/catalog/ProductHub';
 import { Button } from '@/components/ui/Button';
-import { useOpenClawLaunch } from '@/hooks/useOpenClawLaunch';
-import { useHermesLaunch } from '@/hooks/useHermesLaunch';
-import { useTheme } from '@/hooks/useT';
-import { useT } from '@/hooks/useT';
+import { href } from '@/lib/href';
+import { agentGatewayKey, agentNeedsPairing, listMarketplaceAgents, isLaunchableAgent } from '@/constants/agents';
+import type { MarketplaceAgent } from '@/api/types';
+import { useAgentLaunch } from '@/hooks/useAgentGateway';
+import { useTheme, useT } from '@/hooks/useT';
+
+/** Compact launch panel for one catalog agent (OpenClaw / Hermes / NanoClaw / SpaceBot). */
+function AgentPanel({ agent, onDetails }: { agent: MarketplaceAgent; onDetails: () => void }) {
+  const { colors } = useTheme();
+  const { t } = useT();
+  const base = agentGatewayKey(agent);
+  const needsPairing = agentNeedsPairing(agent);
+  const launch = useAgentLaunch(agent);
+
+  return (
+    <View style={[styles.panel, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
+      <Text style={[styles.panelTitle, { color: colors.text }]}>{t(`${base}.title`)}</Text>
+      <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19 }}>{t(`${base}.desc`)}</Text>
+      <Button
+        title={launch.opening ? t(`${base}.openingShort`) : t(`${base}.open`)}
+        loading={launch.opening}
+        onPress={() => void launch.launch()}
+      />
+      {needsPairing ? (
+        <Button
+          title={launch.approving ? t(`${base}.approving`) : t(`${base}.retryApprove`)}
+          variant="outline"
+          loading={launch.approving}
+          onPress={launch.retryApprove}
+        />
+      ) : null}
+      <Pressable onPress={onDetails} style={{ minHeight: 32, justifyContent: 'center' }}>
+        <Text style={{ color: colors.tint, fontWeight: '700', fontSize: 13 }}>{t('agents.details')} →</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 export default function AgentsScreen() {
   const { t } = useT();
-  const { colors } = useTheme();
-  const openclaw = useOpenClawLaunch();
-  const hermes = useHermesLaunch();
+  const router = useRouter();
+  const launchable = listMarketplaceAgents('public').filter((a) => isLaunchableAgent(a));
 
   return (
     <ProductHub
@@ -20,35 +53,19 @@ export default function AgentsScreen() {
       categories={['hire-agent']}
       headerExtra={
         <View style={{ gap: 12, marginTop: 16 }}>
-          <View style={[styles.panel, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
-            <Text style={[styles.panelTitle, { color: colors.text }]}>{t('openclaw.title')}</Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19 }}>{t('openclaw.desc')}</Text>
-            <Button
-              title={openclaw.opening ? t('openclaw.openingShort') : t('openclaw.open')}
-              loading={openclaw.opening}
-              onPress={() => void openclaw.launch()}
+          {launchable.map((agent) => (
+            <AgentPanel
+              key={agent.id}
+              agent={agent}
+              onDetails={() => router.push(href(`/hire-agent/${agent.id}`))}
             />
+          ))}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Button title={t('agents.title')} variant="outline" onPress={() => router.push(href('/hire-agent'))} />
             <Button
-              title={openclaw.approving ? t('openclaw.approving') : t('openclaw.retryApprove')}
+              title={t('agents.marketplace')}
               variant="outline"
-              loading={openclaw.approving}
-              onPress={openclaw.retryApprove}
-            />
-          </View>
-
-          <View style={[styles.panel, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
-            <Text style={[styles.panelTitle, { color: colors.text }]}>{t('hermes.title')}</Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19 }}>{t('hermes.desc')}</Text>
-            <Button
-              title={hermes.opening ? t('hermes.openingShort') : t('hermes.open')}
-              loading={hermes.opening}
-              onPress={() => void hermes.launch()}
-            />
-            <Button
-              title={hermes.approving ? t('hermes.approving') : t('hermes.retryApprove')}
-              variant="outline"
-              loading={hermes.approving}
-              onPress={hermes.retryApprove}
+              onPress={() => router.push(href('/hire-agent/marketplace'))}
             />
           </View>
         </View>

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,10 +9,9 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { productsApi, reviewsApi, contentApi, licensesApi, ordersApi, chatApi } from '@/api';
 import { API_CONFIG } from '@/api/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useT';
-import { useT } from '@/hooks/useT';
-import { useOpenClawLaunch } from '@/hooks/useOpenClawLaunch';
-import { useHermesLaunch } from '@/hooks/useHermesLaunch';
+import { useTheme, useT } from '@/hooks/useT';
+import { agentForHireSlug, agentGatewayKey } from '@/constants/agents';
+import { useAgentLaunch } from '@/hooks/useAgentGateway';
 import { useRecentStore } from '@/stores/recentStore';
 import { useCartStore } from '@/stores/cartStore';
 import { productPrice, availableLicenseTerms, licenseUnitPrice, formatMoney } from '@/utils/format';
@@ -34,8 +33,6 @@ import {
   isDownloadLicenseCategory,
   isFilmCategory,
   isHireAgentCategory,
-  isHermesOpsProduct,
-  isOpenClawOpsProduct,
   isLicenseCategory,
   isPlaygroundCategory,
   isVoiceCategory,
@@ -74,8 +71,9 @@ export default function ProductScreen() {
   const { isAuthenticated, user, isAdmin } = useAuth();
   const { colors } = useTheme();
   const { t, language } = useT();
-  const { opening: openingOpenClaw, launch: launchOpenClaw } = useOpenClawLaunch();
-  const { opening: openingHermes, launch: launchHermes } = useHermesLaunch();
+  /** Resolve the hired agent from the product slug so NanoClaw/SpaceBot launch their own gateway. */
+  const hireAgent = useMemo(() => agentForHireSlug(slug), [slug]);
+  const { opening: openingAgent, launch: launchAgent } = useAgentLaunch(hireAgent);
   const addViewed = useRecentStore((s) => s.addViewed);
   const addToCart = useCartStore((s) => s.add);
   const [licenseTerm, setLicenseTerm] = useState<LicenseTerm>('month');
@@ -170,7 +168,11 @@ export default function ProductScreen() {
   const hasAccess = playground ? false : licensed ? !!activeLicense || isOwner : !!paidOrder || isOwner;
   const canPlay = !!activeLicense || isOwner;
   const accessLoading = isAuthenticated && (myLicenses.isLoading || myOrders.isLoading);
-  const cta = t(productCtaKey(p, { hasAccess, expiredLicense }));
+  const cta = hireAgent
+    ? t(`${agentGatewayKey(hireAgent)}.open`)
+    : isHireAgentCategory(p.category, p.slug)
+      ? t('agents.browse')
+      : t(productCtaKey(p, { hasAccess, expiredLicense }));
   const priceCaption = t(productPriceCaptionKey(p, hasAccess));
   const firstEpisode = (episodeList.data || [])[0];
   const streamProduct = isComputeStreamCategory(p.category);
@@ -276,12 +278,13 @@ export default function ProductScreen() {
       router.push('/auth/login');
       return;
     }
-    if (isHermesOpsProduct(p.slug)) {
-      void launchHermes();
+    if (hireAgent) {
+      void launchAgent();
       return;
     }
-    if (isOpenClawOpsProduct(p.slug) || isHireAgentCategory(p.category, p.slug)) {
-      void launchOpenClaw();
+    // Generic hire-agent listing without a launchable catalog entry (kept as before).
+    if (isHireAgentCategory(p.category, p.slug)) {
+      router.push(href('/agents'));
       return;
     }
     if (isComputeStreamCategory(p.category)) {
@@ -585,7 +588,7 @@ export default function ProductScreen() {
         </View>
         <Button
           title={cta}
-          loading={accessLoading || openingOpenClaw || openingHermes}
+          loading={accessLoading || openingAgent}
           onPress={onPrimaryCta}
           style={styles.barCta}
         />

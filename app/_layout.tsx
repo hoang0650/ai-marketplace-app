@@ -80,6 +80,7 @@ function ThemedStack() {
         <Stack.Screen name="legal/[type]" options={{ title: 'Pháp lý' }} />
         <Stack.Screen name="work" options={{ headerShown: false }} />
         <Stack.Screen name="agents" options={{ title: 'Agents' }} />
+        <Stack.Screen name="hire-agent" options={{ headerShown: false }} />
         <Stack.Screen name="video-ai" options={{ title: 'Watch AI films' }} />
         <Stack.Screen name="stories" options={{ title: 'Stories & books' }} />
         <Stack.Screen name="licenses/index" options={{ title: 'License' }} />

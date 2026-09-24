@@ -35,6 +35,10 @@ import type {
   ChatConversation,
   ChatMessage,
   OpenClawLaunchResult,
+  AgentSshAccess,
+  AgentGatewayApi,
+  HiredAgent,
+  AgentStatus,
   KycProfile,
   KycSide,
   KycIdType,
@@ -269,29 +273,55 @@ export const chatApi = {
     apiClient.uploadForm<{ ok: boolean; url: string }>('/uploads/image', form),
 };
 
-export const openclawApi = {
-  launch: () =>
-    apiClient.post<OpenClawLaunchResult>('/openclaw/launch', { audience: 'aimarkets' }),
-  approvePairing: (requestId?: string | null) =>
-    apiClient.post<{ success: boolean; message?: string }>('/openclaw/device-pairings/approve', {
-      request_id: requestId || null,
-      requestId: requestId || null,
-      role: 'operator',
-      scopes: ['operator.read', 'operator.write', 'operator.admin', 'operator.pairing'],
-    }),
-};
+/** OpenClaw / Hermes / NanoClaw / SpaceBot share launch + pairing + ssh; only the mount differs. */
+function agentGatewayApi(base: 'openclaw' | 'hermes' | 'nanoclaw' | 'spacebot'): AgentGatewayApi {
+  return {
+    launch: () => apiClient.post<OpenClawLaunchResult>(`/${base}/launch`, { audience: 'aimarkets' }),
+    approvePairing: (requestId?: string | null) =>
+      apiClient.post<{ success: boolean; message?: string; skipped?: boolean }>(
+        `/${base}/device-pairings/approve`,
+        {
+          request_id: requestId || null,
+          requestId: requestId || null,
+          ...(base === 'openclaw'
+            ? {
+                role: 'operator',
+                scopes: ['operator.read', 'operator.write', 'operator.admin', 'operator.pairing'],
+              }
+            : {}),
+        },
+      ),
+    generateSsh: (body) => apiClient.post<AgentSshAccess>(`/${base}/ssh/generate`, body),
+    activeSsh: (agentId: string) =>
+      apiClient.get<AgentSshAccess>(`/${base}/ssh/active${qs({ agentId })}`),
+    revokeSsh: (agentId: string) =>
+      apiClient.post<{ success: boolean }>(`/${base}/ssh/revoke`, { agentId }),
+  };
+}
 
-export const hermesApi = {
-  launch: () =>
-    apiClient.post<OpenClawLaunchResult>('/hermes/launch', { audience: 'aimarkets' }),
-  approvePairing: (requestId?: string | null) =>
-    apiClient.post<{ success: boolean; message?: string; skipped?: boolean }>(
-      '/hermes/device-pairings/approve',
-      {
-        request_id: requestId || null,
-        requestId: requestId || null,
-      },
-    ),
+export const openclawApi = agentGatewayApi('openclaw');
+export const hermesApi = agentGatewayApi('hermes');
+export const nanoclawApi = agentGatewayApi('nanoclaw');
+export const spacebotApi = agentGatewayApi('spacebot');
+
+/** Server-side "My Agents" list so web and app stay in sync. */
+export const hiredAgentsApi = {
+  list: () => apiClient.get<HiredAgent[]>('/agents/hired'),
+  upsert: (data: {
+    agentId: string;
+    slug: string;
+    name: string;
+    status?: AgentStatus;
+    version?: string;
+    model?: string;
+  }) => apiClient.post<HiredAgent>('/agents/hired', data),
+  update: (agentId: string, data: { status?: AgentStatus; name?: string; version?: string; model?: string }) =>
+    apiClient.request<HiredAgent>(`/agents/hired/${encodeURIComponent(agentId)}`, {
+      method: 'PATCH',
+      body: data,
+    }),
+  remove: (agentId: string) =>
+    apiClient.delete<{ success: boolean }>(`/agents/hired/${encodeURIComponent(agentId)}`),
 };
 
 export const workApi = {

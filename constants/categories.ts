@@ -41,7 +41,7 @@ export const CATEGORY_META: CategoryMeta[] = [
   { id: 'game-server', navGroup: 'platform', hubHref: '/category/game-server' },
   { id: 'training-service', navGroup: 'platform', hubHref: '/category/training-service' },
   { id: 'agent-runtime', navGroup: 'platform', hubHref: '/category/agent-runtime' },
-  { id: 'hire-agent', navGroup: 'platform', hubHref: '/category/hire-agent' },
+  { id: 'hire-agent', navGroup: 'platform', hubHref: '/hire-agent' },
   { id: 'hire-marketing', navGroup: 'talent', hubHref: '/category/hire-marketing' },
   { id: 'hire-seo', navGroup: 'talent', hubHref: '/category/hire-seo' },
   { id: 'hire-creator', navGroup: 'talent', hubHref: '/category/hire-creator' },
@@ -85,12 +85,15 @@ export const NAV_GROUP_TITLE: Record<NavGroup, string> = {
   talent: 'group.talent',
 };
 
-/** Home tiles match web landing: Generate + Inference / Sell API / Agents. */
+/**
+ * Home tiles match web landing: Generate + Inference / Sell API.
+ * Agents are intentionally excluded — they live in their own rail below
+ * "Suggested for you" and are not shop categories.
+ */
 export const HOME_CATEGORY_IDS = [
   ...CATEGORY_META.filter((c) => c.navGroup === 'generate').map((c) => c.id),
   'inference',
   'api-endpoint',
-  'hire-agent',
 ] as const;
 
 export const VIDEO_AI_CATEGORIES = ['ai-film-series'] as const;
@@ -98,7 +101,13 @@ export const STORIES_CATEGORIES = ['story-book'] as const;
 export const AGENT_CATEGORIES = ['hire-agent', 'agent-runtime'] as const;
 
 export function isHireAgentCategory(id?: string, slug?: string) {
-  return id === 'hire-agent' || slug === 'openclaw-ops-agent' || slug === 'hermes-ops-agent';
+  return (
+    id === 'hire-agent' ||
+    slug === 'openclaw-ops-agent' ||
+    slug === 'hermes-ops-agent' ||
+    slug === 'nanoclaw-ops-agent' ||
+    slug === 'spacebot-ops-agent'
+  );
 }
 
 export function isOpenClawOpsProduct(slug?: string) {
@@ -107,6 +116,14 @@ export function isOpenClawOpsProduct(slug?: string) {
 
 export function isHermesOpsProduct(slug?: string) {
   return slug === 'hermes-ops-agent';
+}
+
+export function isNanoclawOpsProduct(slug?: string) {
+  return slug === 'nanoclaw-ops-agent';
+}
+
+export function isSpacebotOpsProduct(slug?: string) {
+  return slug === 'spacebot-ops-agent';
 }
 
 export const HOME_HUBS = [
