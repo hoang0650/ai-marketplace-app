@@ -22,27 +22,24 @@ npx expo start
 
 ```
 EXPO_PUBLIC_API_URL=https://api.aimarkets.vn/v1
-EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
-EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
-EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=
-EXPO_PUBLIC_GOOGLE_REDIRECT_URI=https://aimarkets.vn/assets/oauth/google-mobile.html
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=   # = GOOGLE_IOS_CLIENT_ID của API, đọc lúc build
 ```
 
-Trên Google Cloud (cùng project PHGroup AI, **thêm Android/iOS OAuth clients** nếu dùng native):
+**Google trên iOS** (khi build có `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` và API có cùng `GOOGLE_IOS_CLIENT_ID`):
 
-- Authorized redirect: `https://aimarkets.vn/assets/oauth/google-mobile.html`
-- iOS URL scheme: `com.googleusercontent.apps.{ios-client-prefix}`
-- Android package: `app.phgroup.ai_market_vn`
+1. App mở consent Google bằng iOS client, redirect `com.googleusercontent.apps.{prefix}:/oauthredirect` (scheme do `app.config.js` đăng ký), PKCE.
+2. App gửi `code` + `codeVerifier` + `redirectUri` lên `POST /v1/auth/google/login` (hoặc `/prefill` khi đăng ký); API đổi code bằng iOS client (không secret).
 
-**Luồng Google trên app (native)** — giống PHHotel PMS:
+**Google trên Android** (và iOS chưa cấu hình iOS client) — do API host:
 
-1. App mở consent screen của Google bằng client ID **theo nền tảng** (Android client trên Android, iOS client trên iOS) qua `expo-auth-session`; không dùng Web client.
-2. iOS trả code về reverse-scheme `com.googleusercontent.apps.{prefix}:/oauthredirect`.
-   `app.config.js` tự thêm scheme này vào `CFBundleURLTypes` khi có `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`.
-3. Android trả code về HTTPS bridge `assets/oauth/google-mobile.html`, trang này forward sang `aimarkets://oauthredirect`.
-4. App đổi `code` lấy phiên qua `POST /v1/auth/google/login` (login) hoặc `POST /v1/auth/google/prefill` (đăng ký).
+Google không còn cho custom URI scheme trên Android, và Android client không có redirect URI, nên `GOOGLE_ANDROID_CLIENT_ID` chỉ dùng để API chấp nhận ID token (`azp`) từ SDK Google native (Credential Manager). Không có SDK đó, app dùng luồng sau:
 
-Web OAuth bridge file lives in `ai-marketplace/public/assets/oauth/google-mobile.html` (redirects to `aimarkets://oauthredirect`).
+1. App mở `GET /v1/auth/google/start?mobile=1&scheme=aimarkets[&mode=signup]` bằng `WebBrowser.openAuthSessionAsync` (ASWebAuthenticationSession trên iOS, Custom Tabs trên Android).
+2. API chuyển sang Google bằng Web client (`GOOGLE_CLIENT_ID`); Google trả code về `https://api.aimarkets.vn/v1/auth/google/callback` — redirect URI duy nhất cần khai báo trên Google Cloud (web cũng dùng chung).
+3. API đổi code lấy phiên rồi redirect về `aimarkets://oauthredirect?token=…&refreshToken=…` (login) hoặc `?google=prefill&…` (đăng ký), hoặc `?google=error&message=…`.
+4. `services/googleAuth.ts` đọc deep link đó; `app/oauthredirect.tsx` chỉ là màn hứng khi Android đẩy deep link qua router.
+
+Cần chạy bằng development/production build (scheme `aimarkets`), không dùng Expo Go.
 
 ## IAP (ví trên app)
 

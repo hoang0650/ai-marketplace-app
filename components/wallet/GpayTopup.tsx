@@ -62,7 +62,11 @@ export function GpayTopup({ config }: { config: GpayConfig }) {
       <Text style={[styles.title, { color: colors.text }]}>{t('wallet.gpay.name')}</Text>
       <Text style={[styles.hint, { color: colors.textSecondary }]}>{t('wallet.gpay.hint')}</Text>
 
-      {accountQ.isLoading ? (
+      {!config.enabled ? (
+        <View style={[styles.box, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+          <Text style={{ color: colors.textSecondary, lineHeight: 20, fontSize: 13 }}>{t('wallet.gpay.offline')}</Text>
+        </View>
+      ) : accountQ.isLoading ? (
         <Text style={[styles.hint, { color: colors.textSecondary }]}>{t('wallet.gpay.creating')}</Text>
       ) : !account ? (
         <View style={{ marginTop: 12, gap: 8 }}>
@@ -138,7 +142,7 @@ export function GpayTopup({ config }: { config: GpayConfig }) {
           </View>
           <Text style={[styles.hint, { color: colors.textSecondary }]}>{t('wallet.gpay.estimate', { usd })}</Text>
 
-          {config.sandbox ? (
+          {config.canSimulate ? (
             <View style={{ marginTop: 12, gap: 6 }}>
               <Button
                 title={t('wallet.gpay.sandboxSim')}

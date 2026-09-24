@@ -408,8 +408,10 @@ export interface PaypalCreateOrderResult {
 export type PaypalFunding = 'paypal';
 
 export interface GpayConfig {
+  available?: boolean;
   enabled: boolean;
   sandbox: boolean;
+  canSimulate?: boolean;
   bankCode: string;
   accountType: string;
   minTopupVnd: number;

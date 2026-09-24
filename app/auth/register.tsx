@@ -56,6 +56,7 @@ export default function RegisterScreen() {
         (g.code || g.idToken
           ? await googlePrefill({
               code: g.code,
+              codeVerifier: g.codeVerifier,
               idToken: g.idToken,
               redirectUri: g.redirectUri,
               clientId: g.clientId,

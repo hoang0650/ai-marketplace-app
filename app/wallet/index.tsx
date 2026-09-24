@@ -31,12 +31,14 @@ export default function WalletScreen() {
   const [topupMethod, setTopupMethod] = React.useState<'iap' | 'gpay'>('iap');
 
   const gpayConfigQ = useQuery({
-    queryKey: ['gpay-config'],
+    // canSimulate depends on the signed-in user's role.
+    queryKey: ['gpay-config', user?.id],
     queryFn: () => walletApi.gpayConfig(),
     enabled: isAuthenticated,
     staleTime: 5 * 60_000,
   });
   const gpayConfig = gpayConfigQ.data;
+  const gpayAvailable = !!(gpayConfig && (gpayConfig.available ?? gpayConfig.enabled));
 
   const summary = useQuery({ queryKey: ['wallet-summary'], queryFn: () => walletApi.summary(), enabled: isAuthenticated });
   const txs = useQuery({ queryKey: ['wallet-txs'], queryFn: walletApi.list, enabled: isAuthenticated });
@@ -81,7 +83,7 @@ export default function WalletScreen() {
           </Text>
         </LinearGradient>
 
-        {gpayConfig?.enabled ? (
+        {gpayAvailable ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 20 }}>
             <Chip
               label={Platform.OS === 'ios' ? t('wallet.method.iapIos') : t('wallet.method.iapAndroid')}
@@ -92,7 +94,7 @@ export default function WalletScreen() {
           </View>
         ) : null}
 
-        {gpayConfig?.enabled && topupMethod === 'gpay' ? <GpayTopup config={gpayConfig} /> : <IapTopup />}
+        {gpayConfig && gpayAvailable && topupMethod === 'gpay' ? <GpayTopup config={gpayConfig} /> : <IapTopup />}
 
         {isCreator ? (
           <View style={{ marginTop: 28 }}>

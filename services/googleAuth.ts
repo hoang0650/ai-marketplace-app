@@ -9,11 +9,13 @@ import type { GooglePrefill } from '@/api/types';
 WebBrowser.maybeCompleteAuthSession();
 
 export type GoogleSignInResult = {
-  /** Session already created (API-hosted fallback callback only). */
+  /** Session created by the API after it exchanged the Google code. */
   token?: string;
   refreshToken?: string;
   idToken?: string;
+  /** iOS native flow: code + PKCE verifier, exchanged by the API with GOOGLE_IOS_CLIENT_ID. */
   code?: string;
+  codeVerifier?: string;
   redirectUri?: string;
   clientId?: string;
   /** Signup mode: Google profile for prefill only (no session). */
@@ -22,18 +24,9 @@ export type GoogleSignInResult = {
 
 export type GoogleSignInMode = 'login' | 'signup';
 
-/** Deep link the app catches after Google redirects back (see app.json scheme). */
+/** Must match `scheme` in app.json — the API redirects to `{scheme}://oauthredirect`. */
 const APP_SCHEME = 'aimarkets';
-
-/**
- * HTTPS bridge page — Google requires an http/https redirect for Web clients.
- * The page forwards its query to the app deep link.
- */
-export const GOOGLE_HTTPS_REDIRECT_URI =
-  process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI?.trim() ||
-  'https://aimarkets.vn/assets/oauth/google-mobile.html';
-
-type ClientIds = { webClientId: string; iosClientId: string; androidClientId: string };
+export const GOOGLE_APP_RETURN_URL = `${APP_SCHEME}://oauthredirect`;
 
 type PendingOAuth = {
   resolve: (result: GoogleSignInResult) => void;
@@ -43,69 +36,19 @@ type PendingOAuth = {
 let pendingOAuth: PendingOAuth | null = null;
 let linkingSubscribed = false;
 
-function resolveClientIds(server?: {
-  clientId?: string;
-  iosClientId?: string;
-  androidClientId?: string;
-}): ClientIds {
-  const webClientId = GOOGLE_AUTH_CONFIG.webClientId || server?.clientId || '';
-  return {
-    webClientId,
-    iosClientId: GOOGLE_AUTH_CONFIG.iosClientId || server?.iosClientId || '',
-    androidClientId: GOOGLE_AUTH_CONFIG.androidClientId || server?.androidClientId || '',
-  };
-}
-
-/** iOS native OAuth scheme: com.googleusercontent.apps.{clientIdPrefix} */
-export function getIosUrlScheme(iosClientId: string): string {
-  return `com.googleusercontent.apps.${iosClientId.replace('.apps.googleusercontent.com', '')}`;
-}
-
-/**
- * iOS uses its own reverse-scheme client so the consent screen returns straight
- * to the app. Android/Web fall back to the HTTPS bridge.
- */
-function shouldUseNativeIosFlow(clients: ClientIds): boolean {
-  return Platform.OS === 'ios' && clients.iosClientId.includes('.apps.googleusercontent.com');
-}
-
-export function getGoogleRedirectUri(clients: ClientIds): string {
-  if (Platform.OS === 'web') {
-    return AuthSession.makeRedirectUri({ scheme: APP_SCHEME, path: 'oauthredirect' });
-  }
-  if (shouldUseNativeIosFlow(clients)) {
-    return `${getIosUrlScheme(clients.iosClientId)}:/oauthredirect`;
-  }
-  return GOOGLE_HTTPS_REDIRECT_URI;
-}
-
-/**
- * App-native flow: send Google the client ID that matches the running platform
- * (Android client on Android, iOS client on iOS) so the consent screen belongs
- * to the app — never the shared Web client.
- */
-function resolveOAuthClientId(clients: ClientIds): string {
-  if (Platform.OS === 'ios') return clients.iosClientId || clients.webClientId;
-  if (Platform.OS === 'android') return clients.androidClientId || clients.webClientId;
-  return clients.webClientId;
+function apiOrigin(): string {
+  return API_CONFIG.BASE_URL.replace(/\/+$/, '').replace(/\/v1$/, '');
 }
 
 function readParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-/** Parse code / id_token / prefill from the deep link Google sent us back. */
-function parseCallback(url: string): GoogleSignInResult | null {
-  if (!url) return null;
-  const isCallback =
-    url.includes('oauthredirect') ||
-    url.includes('google-mobile.html') ||
-    url.includes('com.googleusercontent.apps.');
-  if (!isCallback) return null;
+/** Parse the `aimarkets://oauthredirect?...` deep link the API redirected to. */
+export function parseGoogleCallback(url: string): GoogleSignInResult | null {
+  if (!url || !url.includes('oauthredirect')) return null;
 
-  const parsed = Linking.parse(url);
-  const q = parsed.queryParams || {};
-
+  const q = Linking.parse(url).queryParams || {};
   const googleStatus = readParam(q.google as string | string[] | undefined);
   if (googleStatus === 'error') {
     throw new Error(readParam(q.message as string | string[] | undefined) || 'Đăng nhập Google thất bại');
@@ -124,51 +67,38 @@ function parseCallback(url: string): GoogleSignInResult | null {
 
   const token = readParam(q.token as string | string[] | undefined);
   if (token) {
-    return { token, refreshToken: readParam(q.refreshToken as string | string[] | undefined) };
+    return { token, refreshToken: readParam(q.refreshToken as string | string[] | undefined) || undefined };
   }
-
-  const code = readParam(q.code as string | string[] | undefined);
-  const idToken =
-    readParam(q.id_token as string | string[] | undefined) ||
-    url.match(/[#&]id_token=([^&]+)/)?.[1];
-
-  const redirectUri = url.includes('com.googleusercontent.apps.')
-    ? url.split('?')[0].split('#')[0]
-    : GOOGLE_HTTPS_REDIRECT_URI;
-
-  if (code || idToken) return { code, idToken, redirectUri };
   return null;
 }
 
-function tryCompletePending(url: string): boolean {
-  const parsed = parseCallback(url);
-  if (!parsed || !pendingOAuth) return false;
-  pendingOAuth.resolve(parsed);
+function settlePending(url: string): boolean {
+  if (!pendingOAuth) return false;
+  try {
+    const parsed = parseGoogleCallback(url);
+    if (!parsed) return false;
+    pendingOAuth.resolve(parsed);
+  } catch (e) {
+    pendingOAuth.reject(e instanceof Error ? e : new Error('Đăng nhập Google thất bại'));
+  }
   pendingOAuth = null;
   void WebBrowser.dismissBrowser();
   return true;
 }
 
+/**
+ * Android may deliver the redirect as an app intent (closing the Custom Tab
+ * before `openAuthSessionAsync` resolves), so also listen at the app level.
+ */
 function ensureLinkListener() {
   if (linkingSubscribed || Platform.OS === 'web') return;
   linkingSubscribed = true;
   Linking.addEventListener('url', ({ url }) => {
-    try {
-      tryCompletePending(url);
-    } catch (e) {
-      if (pendingOAuth) {
-        pendingOAuth.reject(e instanceof Error ? e : new Error('Đăng nhập Google thất bại'));
-        pendingOAuth = null;
-        void WebBrowser.dismissBrowser();
-      }
-    }
-  });
-  void Linking.getInitialURL().then((url) => {
-    if (url) tryCompletePending(url);
+    settlePending(url);
   });
 }
 
-function waitDeepLink(timeoutMs = 120_000): Promise<GoogleSignInResult> {
+function waitDeepLink(timeoutMs: number): Promise<GoogleSignInResult> {
   return new Promise<GoogleSignInResult>((resolve, reject) => {
     pendingOAuth = { resolve, reject };
     setTimeout(() => {
@@ -179,121 +109,107 @@ function waitDeepLink(timeoutMs = 120_000): Promise<GoogleSignInResult> {
   });
 }
 
-function resultFromAuthSession(
-  result: AuthSession.AuthSessionResult,
-  redirectUri: string,
-  clientId: string,
-): GoogleSignInResult | null {
-  if (result.type !== 'success') return null;
-  if (result.url) {
-    const fromUrl = parseCallback(result.url);
-    if (fromUrl) return fromUrl;
+/**
+ * Consent runs on the API's Google Web client (`/v1/auth/google/callback` is the
+ * only redirect URI Google needs), so no iOS/Android OAuth clients are required.
+ */
+function googleStartUrl(mode: GoogleSignInMode, native: boolean): string {
+  const params = new URLSearchParams();
+  if (native) {
+    params.set('mobile', '1');
+    params.set('scheme', APP_SCHEME);
+  } else {
+    const returnTo = typeof window !== 'undefined' ? window.location.href.split('?')[0] : '/';
+    params.set('returnTo', returnTo);
   }
-  const params = (result.params || {}) as { code?: string | string[]; id_token?: string | string[] };
-  const code = readParam(params.code);
-  const idToken =
-    readParam(params.id_token) ||
-    (result as { authentication?: { idToken?: string } }).authentication?.idToken;
-  if (code) return { code, redirectUri, clientId };
-  if (idToken) return { idToken, redirectUri, clientId };
-  return null;
+  if (mode === 'signup') params.set('mode', 'signup');
+  return `${apiOrigin()}/v1/auth/google/start?${params.toString()}`;
 }
 
-const DISCOVERY = {
+const GOOGLE_DISCOVERY = {
   authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
   tokenEndpoint: 'https://oauth2.googleapis.com/token',
-  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
 };
 
-/**
- * Web build only: full-page redirect to the API-hosted consent screen. The API
- * redirects back to the current page with `?token=` (login) or `?google=prefill`
- * (signup). Native builds never take this path.
- */
-function webGoogleStartUrl(mode: GoogleSignInMode): string {
-  const base = API_CONFIG.BASE_URL.replace(/\/v1$/, '');
-  const returnTo = typeof window !== 'undefined' ? window.location.href.split('?')[0] : '/';
-  const params = new URLSearchParams({ returnTo });
-  if (mode === 'signup') params.set('mode', 'signup');
-  return `${base}/v1/auth/google/start?${params.toString()}`;
+/** `com.googleusercontent.apps.{prefix}` — registered in Info.plist by app.config.js. */
+function iosReverseScheme(iosClientId: string): string {
+  return `com.googleusercontent.apps.${iosClientId.replace('.apps.googleusercontent.com', '')}`;
 }
 
 /**
- * Google sign-in for the app (native consent + deep link back).
+ * The iOS client is usable only when this build registered its reverse scheme
+ * (EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID at build time) and the API trusts the same
+ * id (GOOGLE_IOS_CLIENT_ID).
+ */
+async function resolveNativeIosClientId(): Promise<string> {
+  if (Platform.OS !== 'ios') return '';
+  const built = GOOGLE_AUTH_CONFIG.iosClientId.trim();
+  if (!built.endsWith('.apps.googleusercontent.com')) return '';
+  try {
+    const server = await authApi.getGoogleConfig();
+    return server.iosClientId === built ? built : '';
+  } catch {
+    return '';
+  }
+}
+
+async function signInWithIosClient(iosClientId: string): Promise<GoogleSignInResult> {
+  const redirectUri = `${iosReverseScheme(iosClientId)}:/oauthredirect`;
+  const request = new AuthSession.AuthRequest({
+    clientId: iosClientId,
+    redirectUri,
+    responseType: AuthSession.ResponseType.Code,
+    scopes: ['openid', 'profile', 'email'],
+    usePKCE: true,
+    extraParams: { prompt: 'select_account' },
+  });
+  const result = await request.promptAsync(GOOGLE_DISCOVERY);
+  if (result.type === 'cancel' || result.type === 'dismiss') throw new Error('CANCELLED');
+  if (result.type !== 'success') throw new Error('Đăng nhập Google thất bại');
+  const code = typeof result.params.code === 'string' ? result.params.code : '';
+  if (!code) throw new Error('Không nhận được mã Google');
+  return { code, codeVerifier: request.codeVerifier, redirectUri, clientId: iosClientId };
+}
+
+/**
+ * Google sign-in for the app.
+ * - iOS with GOOGLE_IOS_CLIENT_ID: native consent, code + PKCE sent to the API.
+ * - Otherwise (Android, or iOS without an iOS client): API-hosted consent.
  * @param mode `signup` only prefills the register form; it never creates a session.
  */
 export async function signInWithGoogle(mode: GoogleSignInMode = 'login'): Promise<GoogleSignInResult> {
-  ensureLinkListener();
-
   if (Platform.OS === 'web') {
-    window.location.assign(webGoogleStartUrl(mode));
+    window.location.assign(googleStartUrl(mode, false));
     // Navigation leaves the page; resolve the promise contract with a sentinel.
     throw new Error('CANCELLED');
   }
 
-  const remote = await authApi.getGoogleConfig();
-  const clients = resolveClientIds(remote);
-  const clientId = resolveOAuthClientId(clients);
+  const iosClientId = await resolveNativeIosClientId();
+  if (iosClientId) return signInWithIosClient(iosClientId);
 
-  if (!clientId) {
-    throw new Error('Google Sign-In chưa được cấu hình (thiếu GOOGLE client ID)');
-  }
+  ensureLinkListener();
+  const deepLink = waitDeepLink(180_000);
 
-  const redirectUri = getGoogleRedirectUri(clients);
-  const useAuthCodeFlow = Platform.OS === 'ios' || Platform.OS === 'android';
-  const useHttpsBridge = redirectUri.startsWith('https://');
+  const cancelPending = (error: Error) => {
+    if (!pendingOAuth) return;
+    pendingOAuth.reject(error);
+    pendingOAuth = null;
+  };
 
-  const request = new AuthSession.AuthRequest({
-    clientId,
-    redirectUri,
-    responseType: useAuthCodeFlow ? AuthSession.ResponseType.Code : AuthSession.ResponseType.IdToken,
-    scopes: ['openid', 'profile', 'email'],
-    usePKCE: false,
-    ...(useAuthCodeFlow
-      ? {}
-      : { extraParams: { nonce: Math.random().toString(36).slice(2) } }),
-  });
-
-  // Android/HTTPS bridge: the browser tab may close before the deep link lands,
-  // so race the prompt against the app-level link listener.
-  const deepLinkWait = useHttpsBridge && useAuthCodeFlow ? waitDeepLink() : null;
+  WebBrowser.openAuthSessionAsync(googleStartUrl(mode, true), GOOGLE_APP_RETURN_URL, {
+    showInRecents: true,
+    ...(Platform.OS === 'android' ? { createTask: false } : {}),
+  })
+    .then((result) => {
+      if (result.type === 'success' && result.url && settlePending(result.url)) return;
+      // Custom Tab closed: give a late Android intent a moment to arrive.
+      setTimeout(() => cancelPending(new Error('CANCELLED')), result.type === 'success' ? 0 : 1500);
+    })
+    .catch((e: unknown) => cancelPending(e instanceof Error ? e : new Error('Đăng nhập Google thất bại')));
 
   try {
-    const promptPromise = request.promptAsync(DISCOVERY, {
-      showInRecents: true,
-      ...(Platform.OS === 'android' ? { createTask: false } : {}),
-    });
-
-    const raced = deepLinkWait
-      ? await Promise.race([
-          promptPromise.then((result) => ({ source: 'prompt' as const, result })),
-          deepLinkWait.then((payload) => ({ source: 'deeplink' as const, payload })),
-        ])
-      : { source: 'prompt' as const, result: await promptPromise };
-
-    if (raced.source === 'deeplink') return { ...raced.payload, clientId };
-
-    const result = raced.result;
-    if (result.type === 'dismiss' || result.type === 'cancel') {
-      if (useHttpsBridge && useAuthCodeFlow) {
-        try {
-          return { ...(await waitDeepLink(25_000)), clientId };
-        } catch {
-          throw new Error('CANCELLED');
-        }
-      }
-      throw new Error('CANCELLED');
-    }
-    if (result.type !== 'success') throw new Error('Đăng nhập Google thất bại');
-
-    const parsed = resultFromAuthSession(result, redirectUri, clientId);
-    if (!parsed) {
-      throw new Error(useAuthCodeFlow ? 'Không nhận được mã Google' : 'Không nhận được token Google');
-    }
-    return { ...parsed, clientId };
+    return await deepLink;
   } finally {
     pendingOAuth = null;
   }
 }
-
-ensureLinkListener();

@@ -15,11 +15,14 @@ export const authApi = {
   }) => apiClient.post<AuthResponse>('/auth/register', data),
   me: () => apiClient.get<User>('/auth/me'),
   patchMe: (data: Partial<Pick<User, 'name' | 'bio' | 'avatarUrl'>>) => apiClient.patch<User>('/auth/me', data),
-  getGoogleConfig: async () => {
+  getGoogleConfig: async (): Promise<{
+    enabled: boolean;
+    clientId?: string;
+    iosClientId?: string;
+    androidClientId?: string;
+  }> => {
     try {
-      return await apiClient.get<{ enabled: boolean; clientId?: string; iosClientId?: string; androidClientId?: string }>(
-        '/auth/google/config',
-      );
+      return await apiClient.get('/auth/google/config');
     } catch {
       const clientId = GOOGLE_AUTH_CONFIG.webClientId;
       return { enabled: !!clientId, clientId };
@@ -30,6 +33,7 @@ export const authApi = {
     refreshToken?: string;
     idToken?: string;
     code?: string;
+    codeVerifier?: string;
     redirectUri?: string;
     clientId?: string;
   }) => {
@@ -44,14 +48,22 @@ export const authApi = {
     return apiClient.post<AuthResponse>('/auth/google/login', {
       idToken: data.idToken,
       code: data.code,
+      codeVerifier: data.codeVerifier,
       clientId: data.clientId,
       redirectUri: data.redirectUri || 'postmessage',
     });
   },
-  googlePrefill: (data: { idToken?: string; code?: string; redirectUri?: string; clientId?: string }) =>
+  googlePrefill: (data: {
+    idToken?: string;
+    code?: string;
+    codeVerifier?: string;
+    redirectUri?: string;
+    clientId?: string;
+  }) =>
     apiClient.post<GooglePrefill>('/auth/google/prefill', {
       idToken: data.idToken,
       code: data.code,
+      codeVerifier: data.codeVerifier,
       clientId: data.clientId,
       redirectUri: data.redirectUri || 'postmessage',
     }),

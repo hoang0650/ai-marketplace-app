@@ -44,6 +44,7 @@ export default function LoginScreen() {
         refreshToken: g.refreshToken,
         idToken: g.idToken,
         code: g.code,
+        codeVerifier: g.codeVerifier,
         redirectUri: g.redirectUri,
         clientId: g.clientId,
       });
