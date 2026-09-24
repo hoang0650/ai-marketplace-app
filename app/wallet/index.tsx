@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { IapTopup } from '@/components/wallet/IapTopup';
+import { GpayTopup } from '@/components/wallet/GpayTopup';
 import { displayFont } from '@/constants/fonts';
 import { formatMoney, formatDate } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
@@ -27,6 +28,15 @@ export default function WalletScreen() {
   const { t, language } = useT();
   const [payout, setPayout] = React.useState('10');
   const [persona, setPersona] = React.useState<PayoutPersona | undefined>(undefined);
+  const [topupMethod, setTopupMethod] = React.useState<'iap' | 'gpay'>('iap');
+
+  const gpayConfigQ = useQuery({
+    queryKey: ['gpay-config'],
+    queryFn: () => walletApi.gpayConfig(),
+    enabled: isAuthenticated,
+    staleTime: 5 * 60_000,
+  });
+  const gpayConfig = gpayConfigQ.data;
 
   const summary = useQuery({ queryKey: ['wallet-summary'], queryFn: () => walletApi.summary(), enabled: isAuthenticated });
   const txs = useQuery({ queryKey: ['wallet-txs'], queryFn: walletApi.list, enabled: isAuthenticated });
@@ -71,7 +81,18 @@ export default function WalletScreen() {
           </Text>
         </LinearGradient>
 
-        <IapTopup />
+        {gpayConfig?.enabled ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 20 }}>
+            <Chip
+              label={Platform.OS === 'ios' ? t('wallet.method.iapIos') : t('wallet.method.iapAndroid')}
+              active={topupMethod === 'iap'}
+              onPress={() => setTopupMethod('iap')}
+            />
+            <Chip label={t('wallet.gpay.name')} active={topupMethod === 'gpay'} onPress={() => setTopupMethod('gpay')} />
+          </View>
+        ) : null}
+
+        {gpayConfig?.enabled && topupMethod === 'gpay' ? <GpayTopup config={gpayConfig} /> : <IapTopup />}
 
         {isCreator ? (
           <View style={{ marginTop: 28 }}>
@@ -161,9 +182,11 @@ export default function WalletScreen() {
                   : t('wallet.method.iapAndroid')
                 : item.paymentMethod === 'paypal' || note.includes('paypal')
                   ? t('wallet.method.paypal')
-                  : debit
-                    ? t('wallet.type.debit')
-                    : t('wallet.type.deposit');
+                  : item.paymentMethod === 'gpay'
+                    ? t('wallet.method.gpayVn')
+                    : debit
+                      ? t('wallet.type.debit')
+                      : t('wallet.type.deposit');
             return (
               <View
                 key={item.id}

@@ -407,6 +407,28 @@ export interface PaypalCreateOrderResult {
 
 export type PaypalFunding = 'paypal';
 
+export interface GpayConfig {
+  enabled: boolean;
+  sandbox: boolean;
+  bankCode: string;
+  accountType: string;
+  minTopupVnd: number;
+  vndPerUsd: number;
+  merchantName?: string;
+}
+
+export interface GpayVirtualAccount {
+  id: string;
+  accountNumber: string;
+  accountName: string;
+  bankCode: string;
+  accountType: string;
+  status: 'pending' | 'open' | 'closed';
+  balanceVnd: number;
+  qrCode?: string;
+  openedAt: string | null;
+}
+
 export interface Review {
   id: string;
   productId: string;
