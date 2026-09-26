@@ -29,7 +29,9 @@ import type {
   PaypalCreateOrderResult,
   PaypalFunding,
   GpayConfig,
-  GpayVirtualAccount,
+  GpayCheckoutResponse,
+  GpayOrder,
+  GpayQrResponse,
   PlaygroundRunResult,
   GameSessionInfo,
   Coupon,
@@ -157,11 +159,13 @@ export const walletApi = {
   paypalCaptureOrder: (orderId: string) =>
     apiClient.post<{ success: boolean; status: string; wallet?: WalletTx }>('/paypal/capture-order', { orderId }),
   gpayConfig: () => apiClient.get<GpayConfig>('/gpay/config'),
-  /** Creates the caller's GPay Virtual Account on first call, then returns it. */
-  gpayAccount: (accountName?: string) =>
-    apiClient.post<{ success: boolean; created?: boolean; account: GpayVirtualAccount | null }>('/gpay/account', {
-      accountName,
-    }),
+  /** GPay gateway: returns `billUrl`; GPay redirects back to aimarkets://wallet. */
+  gpayCheckout: (amountVnd: number) =>
+    apiClient.post<GpayCheckoutResponse>('/gpay/checkout', { amountVnd, platform: 'app' }),
+  /** GPay QR Payment: dynamic VietQR for one top-up. */
+  gpayQr: (amountVnd: number) => apiClient.post<GpayQrResponse>('/gpay/qr', { amountVnd }),
+  gpayOrder: (requestId: string) =>
+    apiClient.get<{ success: boolean; order: GpayOrder }>(`/gpay/orders/${encodeURIComponent(requestId)}`),
   gpaySandboxCredit: (amountVnd: number) =>
     apiClient.post<{ success: boolean; creditedUsd: number; wallet: WalletTx }>('/gpay/sandbox/credit', { amountVnd }),
 };

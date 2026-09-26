@@ -410,6 +410,10 @@ export type PaypalFunding = 'paypal';
 export interface GpayConfig {
   available?: boolean;
   enabled: boolean;
+  /** GPay payment gateway (ATM / card / transfer on GPay's page). */
+  portalEnabled?: boolean;
+  /** Dynamic VietQR via GPay QR Payment. */
+  qrEnabled?: boolean;
   sandbox: boolean;
   canSimulate?: boolean;
   bankCode: string;
@@ -419,16 +423,31 @@ export interface GpayConfig {
   merchantName?: string;
 }
 
-export interface GpayVirtualAccount {
-  id: string;
+export interface GpayOrder {
+  requestId: string;
+  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  channel: string;
+  amountVnd: number;
+  amountUsd: number;
+  createdAt: string | null;
+}
+
+export interface GpayCheckoutResponse {
+  success: boolean;
+  order: GpayOrder;
+  billUrl: string;
+  billId: string;
+  expiredTime: number | null;
+}
+
+export interface GpayQrResponse {
+  success: boolean;
+  order: GpayOrder;
+  qrCode: string;
+  qrCodeImage: string;
   accountNumber: string;
   accountName: string;
-  bankCode: string;
-  accountType: string;
-  status: 'pending' | 'open' | 'closed';
-  balanceVnd: number;
-  qrCode?: string;
-  openedAt: string | null;
+  provider: string;
 }
 
 export interface Review {
