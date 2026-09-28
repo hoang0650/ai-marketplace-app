@@ -24,23 +24,44 @@ export interface User {
 
 export type KycStatus = 'none' | 'draft' | 'pending' | 'verified' | 'rejected';
 export type KycIdType = 'cccd' | 'cmnd' | 'passport' | 'other';
-export type KycSide = 'front' | 'back' | 'selfie';
+export type KycSide = 'front' | 'back';
+export type KycSubjectType = 'individual' | 'organization';
+export type KycOrgType = 'household' | 'company';
 
 export interface KycProfile {
   status: KycStatus;
+  subjectType: KycSubjectType;
+  /** Individual: the person. Organization: the legal representative / household owner. */
   fullName: string;
   idType: KycIdType;
   idNumber?: string;
   idNumberMasked: string;
+  personalTaxCode?: string;
+  personalTaxCodeMasked: string;
+  orgType: KycOrgType | '';
+  orgName: string;
+  orgTaxCode: string;
+  orgAddress: string;
   hasFront: boolean;
   hasBack: boolean;
-  hasSelfie: boolean;
   submittedAt: string | null;
   reviewedAt: string | null;
   rejectReason: string;
   canSubmit: boolean;
   canEdit: boolean;
   withdrawAllowed: boolean;
+}
+
+export interface KycSubmitBody {
+  subjectType: KycSubjectType;
+  fullName: string;
+  idType: KycIdType;
+  idNumber: string;
+  personalTaxCode?: string;
+  orgType?: KycOrgType;
+  orgName?: string;
+  orgTaxCode?: string;
+  orgAddress?: string;
 }
 
 export interface AuthResponse {

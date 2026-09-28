@@ -41,7 +41,7 @@ import type {
   AgentStatus,
   KycProfile,
   KycSide,
-  KycIdType,
+  KycSubmitBody,
   PayoutPolicy,
   PayoutPolicyResponse,
   PayoutQuote,
@@ -165,8 +165,7 @@ export const kycApi = {
     ),
   documentUrl: (side: KycSide) =>
     apiClient.get<{ side: string; url: string; expiresIn: number }>(`/kyc/documents/${side}`),
-  submit: (body: { fullName: string; idType: KycIdType; idNumber: string }) =>
-    apiClient.post<{ ok: boolean; kyc: KycProfile }>('/kyc/submit', body),
+  submit: (body: KycSubmitBody) => apiClient.post<{ ok: boolean; kyc: KycProfile }>('/kyc/submit', body),
 };
 
 export const reviewsApi = {
