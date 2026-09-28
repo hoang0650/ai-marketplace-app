@@ -15,6 +15,8 @@ import {
 } from '@/lib/runpod-schema';
 import { playgroundRunUrl } from '@/lib/runpod-urls';
 import { isVoiceCategory } from '@/constants/categories';
+import { playSound } from '@/services/sound';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 export type InputMode = 'messages' | 'prompt';
 export type ResultView = 'preview' | 'json';
@@ -56,6 +58,21 @@ function previewFromRun(product: Product, schema: RunpodModelSchema | null, res:
     output.video_url || output.audio_url || output.image_url || (output.images as string[] | undefined)?.[0] || '',
   ).trim();
   return { kind, text, uri, cost: Number(res.cost || output.cost || 0), raw: res };
+}
+
+/** Chime + spoken line when a media result (sound, voice, image, video) is ready; chat text stays silent. */
+function announceResult(result: ReturnType<typeof previewFromRun>, voiceProduct: boolean) {
+  if (!result.uri || result.kind === 'text') return;
+  const { t } = useSettingsStore.getState();
+  const key =
+    result.kind === 'audio'
+      ? voiceProduct
+        ? 'sound.voiceReady'
+        : 'sound.audioReady'
+      : result.kind === 'image'
+        ? 'sound.imageReady'
+        : 'sound.videoReady';
+  playSound('aiReady', { say: t(key) });
 }
 
 export function usePlayground(product: Product, isAuthenticated = false) {
@@ -196,7 +213,9 @@ export function usePlayground(product: Product, isAuthenticated = false) {
     },
     onSuccess: (res) => {
       setRunStatus('done');
-      setPreview(previewFromRun(product, schema, res));
+      const result = previewFromRun(product, schema, res);
+      setPreview(result);
+      announceResult(result, isVoiceCategory(product.category));
       setLogs((prev) => [
         {
           id: `${Date.now()}`,

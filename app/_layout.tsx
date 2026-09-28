@@ -11,6 +11,8 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useRecentStore } from '@/stores/recentStore';
 import { useTheme } from '@/hooks/useT';
 import { AuthSessionSync } from '@/hooks/useAuth';
+import { NotificationSoundWatcher } from '@/hooks/useNotificationSound';
+import { preloadSounds } from '@/services/sound';
 import { AnalyticsService } from '@/lib/analytics';
 import { tokenUnexpired } from '@/lib/jwt';
 
@@ -104,6 +106,7 @@ export default function RootLayout() {
   useEffect(() => {
     void Promise.all([hydrateAuth(), hydrateSettings(), hydrateRecent()]);
     AnalyticsService.track('app_open');
+    preloadSounds();
     void import('expo-screen-orientation')
       .then((SO) => SO.lockAsync(SO.OrientationLock.PORTRAIT_UP))
       .catch(() => {});
@@ -118,6 +121,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AuthGate>
           <AuthSessionSync />
+          <NotificationSoundWatcher />
           <ThemedStack />
         </AuthGate>
       </GestureHandlerRootView>

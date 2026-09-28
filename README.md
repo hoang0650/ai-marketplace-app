@@ -22,17 +22,25 @@ npx expo start
 
 ```
 EXPO_PUBLIC_API_URL=https://api.aimarkets.vn/v1
-EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=   # = GOOGLE_IOS_CLIENT_ID của API, đọc lúc build
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=   # = GOOGLE_IOS_CLIENT_ID của API (đăng ký URL scheme lúc build)
 ```
 
-**Google trên iOS** (khi build có `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` và API có cùng `GOOGLE_IOS_CLIENT_ID`):
+Client ID lấy từ `GET /v1/auth/google/config` của API trước, env build chỉ là dự phòng.
 
-1. App mở consent Google bằng iOS client, redirect `com.googleusercontent.apps.{prefix}:/oauthredirect` (scheme do `app.config.js` đăng ký), PKCE.
+**Google trên iOS** (giống phhotel-pms):
+
+1. App mở consent Google bằng iOS client (`GOOGLE_IOS_CLIENT_ID`), redirect `com.googleusercontent.apps.{prefix}:/oauthredirect` (scheme do plugin `@react-native-google-signin/google-signin` trong `app.config.js` đăng ký), PKCE.
 2. App gửi `code` + `codeVerifier` + `redirectUri` lên `POST /v1/auth/google/login` (hoặc `/prefill` khi đăng ký); API đổi code bằng iOS client (không secret).
 
-**Google trên Android** (và iOS chưa cấu hình iOS client) — do API host:
+**Google trên Android** — SDK native:
 
-Google không còn cho custom URI scheme trên Android, và Android client không có redirect URI, nên `GOOGLE_ANDROID_CLIENT_ID` chỉ dùng để API chấp nhận ID token (`azp`) từ SDK Google native (Credential Manager). Không có SDK đó, app dùng luồng sau:
+Google từ chối Android client trong luồng trình duyệt (redirect HTTPS bị `redirect_uri_mismatch`, custom scheme bị chặn), nên Android dùng `@react-native-google-signin/google-signin`:
+
+1. SDK nhận diện Android client theo package `app.phgroup.ai_market_vn` + SHA-1 chữ ký app, trả ID token có `aud` = Web client, `azp` = `GOOGLE_ANDROID_CLIENT_ID`.
+2. App gửi `idToken` lên `POST /v1/auth/google/login` (hoặc `/prefill`); API kiểm tra `aud`/`azp` nằm trong `GOOGLE_CLIENT_ID` / `GOOGLE_ANDROID_CLIENT_ID`.
+3. Trên Google Cloud, Android client phải khai báo đúng package và SHA-1 của **cả** key EAS upload và key App Signing của Play Console; nếu thiếu, SDK báo `DEVELOPER_ERROR` và app tự chuyển sang luồng do API host bên dưới.
+
+**Dự phòng** (Expo Go, Android thiếu SHA-1/Play services, iOS chưa có iOS client) — do API host:
 
 1. App mở `GET /v1/auth/google/start?mobile=1&scheme=aimarkets[&mode=signup]` bằng `WebBrowser.openAuthSessionAsync` (ASWebAuthenticationSession trên iOS, Custom Tabs trên Android).
 2. API chuyển sang Google bằng Web client (`GOOGLE_CLIENT_ID`); Google trả code về `https://api.aimarkets.vn/v1/auth/google/callback` — redirect URI duy nhất cần khai báo trên Google Cloud (web cũng dùng chung).

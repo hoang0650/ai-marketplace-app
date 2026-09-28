@@ -1,36 +1,22 @@
 /**
  * Expo dynamic config.
  *
- * Extends app.json at runtime so the iOS Google reverse-client URL scheme
- * (`com.googleusercontent.apps.{prefix}`) is registered whenever
- * EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID is set. Without it, ASWebAuthenticationSession
- * cannot hand the OAuth code back to the app and iOS Google sign-in fails.
+ * Registers the iOS Google reverse-client URL scheme
+ * (`com.googleusercontent.apps.{prefix}`) through the google-signin config
+ * plugin. It must match the API's GOOGLE_IOS_CLIENT_ID.
  */
-const iosClientId = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '').trim();
+const DEFAULT_IOS_CLIENT_ID = '321108577244-p1tp873s03sc3rmhc18b6tl0g8f0h1r4.apps.googleusercontent.com';
+const iosClientId = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || DEFAULT_IOS_CLIENT_ID).trim();
 
 function iosGoogleScheme(clientId) {
   const prefix = clientId.replace('.apps.googleusercontent.com', '').trim();
-  return prefix ? `com.googleusercontent.apps.${prefix}` : '';
+  return `com.googleusercontent.apps.${prefix}`;
 }
 
-module.exports = ({ config }) => {
-  const scheme = iosGoogleScheme(iosClientId);
-  if (!scheme) return config;
-
-  const ios = config.ios || {};
-  const infoPlist = ios.infoPlist || {};
-  const urlTypes = infoPlist.CFBundleURLTypes || [];
-  const alreadyRegistered = urlTypes.some((entry) => (entry.CFBundleURLSchemes || []).includes(scheme));
-  if (alreadyRegistered) return config;
-
-  return {
-    ...config,
-    ios: {
-      ...ios,
-      infoPlist: {
-        ...infoPlist,
-        CFBundleURLTypes: [...urlTypes, { CFBundleURLSchemes: [scheme] }],
-      },
-    },
-  };
-};
+module.exports = ({ config }) => ({
+  ...config,
+  plugins: [
+    ...(config.plugins || []),
+    ['@react-native-google-signin/google-signin', { iosUrlScheme: iosGoogleScheme(iosClientId) }],
+  ],
+});

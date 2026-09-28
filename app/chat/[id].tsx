@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -25,6 +25,7 @@ import { Screen } from '@/components/ui/Screen';
 import { getErrorMessage, ApiError } from '@/lib/errors';
 import { containsBlockedLink } from '@/lib/chat-security';
 import { formatDate } from '@/utils/format';
+import { playSound } from '@/services/sound';
 
 async function formFromAsset(asset: ImagePicker.ImagePickerAsset): Promise<FormData> {
   const form = new FormData();
@@ -102,6 +103,19 @@ export default function ChatThreadScreen() {
   const items = useMemo(() => msgs.data || [], [msgs.data]);
   const busy = send.isPending || upload.isPending;
   const me = String(user?.id || '');
+  const seenIds = useRef<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (!msgs.data) return;
+    if (!seenIds.current) {
+      seenIds.current = new Set(items.map((m) => String(m.id)));
+      return;
+    }
+    const known = seenIds.current;
+    const incoming = items.filter((m) => !known.has(String(m.id)) && String(m.senderId) !== me);
+    items.forEach((m) => known.add(String(m.id)));
+    if (incoming.length) playSound('notification', { say: t('sound.newMessage') });
+  }, [msgs.data, items, me, t]);
 
   const onSend = () => {
     const text = draft.trim();

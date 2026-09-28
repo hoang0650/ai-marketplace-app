@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/Input';
 import { availableLicenseTerms, formatDate, formatMoney, licenseUnitPrice, productPrice } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
 import { AnalyticsService } from '@/lib/analytics';
+import { playSound } from '@/services/sound';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { isContentCategory, isDownloadLicenseCategory, isLicenseCategory, isSkillCategory, isDatasetCategory } from '@/constants/categories';
 import { findActiveLicense, findPaidOrder } from '@/lib/access';
@@ -94,7 +95,10 @@ export default function CheckoutScreen() {
       ),
     onSuccess: (res) => {
       const skipCharge = !!(res.alreadyLicensed || res.alreadyPurchased);
-      if (!skipCharge) AnalyticsService.track('payment_completed', { orderId: res.orderId || '' });
+      if (!skipCharge) {
+        AnalyticsService.track('payment_completed', { orderId: res.orderId || '' });
+        playSound('orderSuccess', { say: t('sound.checkoutDone') });
+      }
       qc.invalidateQueries({ queryKey: ['orders'] });
       qc.invalidateQueries({ queryKey: ['wallet-summary'] });
       qc.invalidateQueries({ queryKey: ['licenses'] });

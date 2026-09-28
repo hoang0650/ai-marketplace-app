@@ -122,6 +122,9 @@
     "extra": {
       "router": {
         "origin": "https://aimarkets.vn/"
+      },
+      "eas": {
+        "projectId": "b87b9634-dbb2-40bf-b77d-bcbf0d87d660"
       }
     }
   }

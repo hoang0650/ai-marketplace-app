@@ -7,6 +7,7 @@ import type { GpayConfig, GpayOrder, GpayQrResponse } from '@/api/types';
 import { Button } from '@/components/ui/Button';
 import { useTheme, useT } from '@/hooks/useT';
 import { getErrorMessage } from '@/lib/errors';
+import { playSound } from '@/services/sound';
 
 const QUICK_VND = [50_000, 100_000, 200_000, 500_000, 1_000_000];
 const RETURN_URL = 'aimarkets://wallet';
@@ -56,6 +57,7 @@ export function GpayTopup({ config }: { config: GpayConfig }) {
     setQr(null);
     if (order.status === 'completed') {
       refreshWallet();
+      playSound('paymentSuccess', { say: t('sound.topupDone') });
       Alert.alert('AI Markets', t('wallet.gpay.paidOk', { usd: order.amountUsd }));
     } else {
       Alert.alert('AI Markets', t('wallet.gpay.paidFail'));
@@ -111,6 +113,7 @@ export function GpayTopup({ config }: { config: GpayConfig }) {
     mutationFn: (amountVnd: number) => walletApi.gpaySandboxCredit(amountVnd),
     onSuccess: () => {
       refreshWallet();
+      playSound('paymentSuccess', { say: t('sound.topupDone') });
       Alert.alert('AI Markets', t('wallet.gpay.sandboxOk'));
     },
     onError: (e: Error) => Alert.alert('AI Markets', getErrorMessage(e, language) || t('wallet.gpay.sandboxFail')),

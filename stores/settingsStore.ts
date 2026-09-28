@@ -12,11 +12,15 @@ type SettingsState = {
   themeMode: ThemeMode;
   onboarded: boolean;
   currency: string;
+  soundEnabled: boolean;
+  voiceEnabled: boolean;
   hydrate: () => Promise<void>;
   setLanguage: (language: Lang) => Promise<void>;
   setThemeMode: (themeMode: ThemeMode) => Promise<void>;
   setOnboarded: (onboarded: boolean) => Promise<void>;
   setCurrency: (currency: string) => Promise<void>;
+  setSoundEnabled: (soundEnabled: boolean) => Promise<void>;
+  setVoiceEnabled: (voiceEnabled: boolean) => Promise<void>;
   t: (key: string, vars?: Record<string, string | number>) => string;
   isDark: () => boolean;
   colors: () => typeof lightColors;
@@ -30,6 +34,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   themeMode: 'system',
   onboarded: false,
   currency: 'USD',
+  soundEnabled: true,
+  voiceEnabled: true,
   t: (key, vars) => translate(get().language, key, vars),
   isDark: () => {
     const mode = get().themeMode;
@@ -48,6 +54,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           themeMode: parsed.themeMode === 'light' || parsed.themeMode === 'dark' || parsed.themeMode === 'system' ? parsed.themeMode : 'system',
           onboarded: !!parsed.onboarded,
           currency: parsed.currency || 'USD',
+          soundEnabled: parsed.soundEnabled !== false,
+          voiceEnabled: parsed.voiceEnabled !== false,
         });
       }
     } finally {
@@ -70,6 +78,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ currency });
     await persist(get());
   },
+  setSoundEnabled: async (soundEnabled) => {
+    set({ soundEnabled });
+    await persist(get());
+  },
+  setVoiceEnabled: async (voiceEnabled) => {
+    set({ voiceEnabled });
+    await persist(get());
+  },
 }));
 
 async function persist(state: SettingsState) {
@@ -80,6 +96,8 @@ async function persist(state: SettingsState) {
       themeMode: state.themeMode,
       onboarded: state.onboarded,
       currency: state.currency,
+      soundEnabled: state.soundEnabled,
+      voiceEnabled: state.voiceEnabled,
     }),
   );
 }

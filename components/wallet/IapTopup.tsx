@@ -8,6 +8,7 @@ import { useT } from '@/hooks/useT';
 import { getErrorMessage } from '@/lib/errors';
 import { isExpoIapNativeAvailable } from '@/lib/iap-native';
 import { WALLET_IAP_SKUS, parseTopupAmount, resolveIapPack } from '@/lib/iap-packs';
+import { playSound } from '@/services/sound';
 import { formatMoney } from '@/utils/format';
 
 export function IapTopup() {
@@ -63,7 +64,10 @@ function IapTopupLive() {
         await finish(purchase);
         qc.invalidateQueries({ queryKey: ['wallet-summary'] });
         qc.invalidateQueries({ queryKey: ['wallet-txs'] });
-        if (!res.duplicate) Alert.alert('AI Markets', t('wallet.iapOk'));
+        if (!res.duplicate) {
+          playSound('paymentSuccess', { say: t('sound.topupDone') });
+          Alert.alert('AI Markets', t('wallet.iapOk'));
+        }
       } catch (e) {
         Alert.alert('AI Markets', getErrorMessage(e as Error, language) || t('wallet.iapFail'));
       } finally {
