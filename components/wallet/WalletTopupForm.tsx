@@ -10,7 +10,6 @@ type Props = {
   amount: string;
   onAmountChange: (value: string) => void;
   hint: string;
-  notice?: string;
   submitLabel: string;
   onSubmit: () => void;
   busy?: boolean;
@@ -22,7 +21,6 @@ export function WalletTopupForm({
   amount,
   onAmountChange,
   hint,
-  notice,
   submitLabel,
   onSubmit,
   busy,
@@ -39,11 +37,6 @@ export function WalletTopupForm({
     <View style={styles.wrap}>
       <Text style={[styles.title, { color: colors.text }]}>{t('wallet.topup')}</Text>
       <Text style={[styles.hint, { color: colors.textSecondary }]}>{hint}</Text>
-      {notice ? (
-        <Text style={[styles.notice, { color: colors.textSecondary, backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          {notice}
-        </Text>
-      ) : null}
 
       <View style={[styles.amountBox, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
         <Text style={[styles.currency, { color: colors.textSecondary }]}>USD</Text>
@@ -102,7 +95,6 @@ const styles = StyleSheet.create({
   wrap: { marginTop: 20 },
   title: { fontSize: 18, fontWeight: '700' },
   hint: { marginTop: 8, lineHeight: 21, fontSize: 14 },
-  notice: { marginTop: 12, borderWidth: 1, borderRadius: 12, padding: 12, lineHeight: 20, fontSize: 13 },
   amountBox: {
     marginTop: 16,
     borderWidth: 1,

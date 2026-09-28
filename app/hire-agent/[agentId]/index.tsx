@@ -193,8 +193,6 @@ export default function AgentDetailScreen() {
           <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19 }}>
             {agentSurfaceName(agent)}: {host} (session market-{'{userId}'})
           </Text>
-          <Text style={[styles.guideTitle, { color: colors.text }]}>{t('agents.pricing')}</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19 }}>{t('agents.pricingBody')}</Text>
         </View>
       </ScrollView>
     </Screen>

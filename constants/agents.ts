@@ -10,7 +10,7 @@ export const MARKETPLACE_AGENTS: MarketplaceAgent[] = [
     slug: 'hermes-agent',
     name: 'Hermes Agent',
     description:
-      'AI Markets Hermes dashboard on {userId}.hermes.aimarkets.vn — OpenRouter/Featherless models (provider cost + 25%).',
+      'AI Markets Hermes dashboard on {userId}.hermes.aimarkets.vn — OpenRouter/Featherless models.',
     icon: 'hermes',
     logoUrl: '/agents/hermes.png',
     version: '1.4.0',
@@ -25,7 +25,7 @@ export const MARKETPLACE_AGENTS: MarketplaceAgent[] = [
     slug: 'nano-claw',
     name: 'Nano Claw',
     description:
-      'AI Markets NanoClaw on {userId}.nanoclaw.aimarkets.vn — lightweight container agents (provider cost + 25%).',
+      'AI Markets NanoClaw on {userId}.nanoclaw.aimarkets.vn — lightweight container agents.',
     icon: 'nano',
     logoUrl: '/agents/nano-claw.png',
     version: '2.3.0',
@@ -40,7 +40,7 @@ export const MARKETPLACE_AGENTS: MarketplaceAgent[] = [
     slug: 'openclaw',
     name: 'OpenClaw',
     description:
-      'AI Markets OpenClaw Control UI on {userId}.openclaw.aimarkets.vn — OpenRouter/Featherless models (provider cost + 25%). PHHotel Nest models stay on phhotel.vn.',
+      'AI Markets OpenClaw Control UI on {userId}.openclaw.aimarkets.vn — OpenRouter/Featherless models. PHHotel Nest models stay on phhotel.vn.',
     icon: 'openclaw',
     logoUrl: '/agents/openclaw.png',
     version: '2026.3.24',
@@ -79,7 +79,7 @@ export const MARKETPLACE_AGENTS: MarketplaceAgent[] = [
     slug: 'space-bot',
     name: 'Space Bot',
     description:
-      'AI Markets SpaceBot on {userId}.spacebot.aimarkets.vn — always-on community agent with Discord/Slack/Telegram/Twitch channels (provider cost + 25%).',
+      'AI Markets SpaceBot on {userId}.spacebot.aimarkets.vn — always-on community agent with Discord/Slack/Telegram/Twitch channels.',
     icon: 'space',
     logoUrl: '/agents/space-bot.png',
     version: '2.1.0',

@@ -28,7 +28,6 @@ function IapNeedBuild() {
       amount={amount}
       onAmountChange={setAmount}
       hint={t('wallet.hint.iap', { store: storeLabel })}
-      notice={t('wallet.iapNeedBuild')}
       submitLabel={t('wallet.topup.submit')}
       onSubmit={() => Alert.alert('AI Markets', t('wallet.iapNeedBuild'))}
     />
@@ -167,7 +166,6 @@ function IapTopupLive() {
       amount={amount}
       onAmountChange={setAmount}
       hint={t('wallet.hint.iap', { store: storeLabel })}
-      notice={connected ? undefined : t('wallet.iapNeedBuild')}
       submitLabel={t('wallet.topup.submit')}
       onSubmit={submit}
       busy={!!busySku}

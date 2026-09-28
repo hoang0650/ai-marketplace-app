@@ -5,7 +5,7 @@ export const FALLBACK_HOME_BANNERS: Banner[] = [
   {
     id: 'fallback-hero-openclaw',
     title: 'OpenClaw trên AI Markets',
-    subtitle: 'Launch agent Control UI — provider cost + 25%',
+    subtitle: 'Launch agent Control UI',
     imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&q=80',
     linkType: 'agents',
     linkValue: '',
