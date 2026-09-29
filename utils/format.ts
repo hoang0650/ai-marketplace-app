@@ -1,5 +1,6 @@
 import type { LicenseTerm, Product } from '@/api/types';
 import { isLicenseCategory } from '@/constants/categories';
+import type { Lang } from '@/i18n/messages';
 
 const formatters = new Map<string, Intl.NumberFormat>();
 
@@ -85,19 +86,25 @@ export function productSale(p: Pick<Product, 'pricing' | 'category' | 'contentMe
   };
 }
 
-export function formatDate(iso?: string | null, locale: 'vi' | 'en' = 'vi') {
+export function formatDate(iso?: string | null, locale: Lang = 'vi') {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString(locale === 'en' ? 'en-GB' : 'vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const tag = locale === 'en' ? 'en-GB' : locale === 'zh' ? 'zh-CN' : 'vi-VN';
+  return d.toLocaleDateString(tag, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export function greetingHour(lang: 'vi' | 'en') {
+export function greetingHour(lang: Lang) {
   const h = new Date().getHours();
   if (lang === 'en') {
     if (h < 12) return 'Good morning';
     if (h < 18) return 'Good afternoon';
     return 'Good evening';
+  }
+  if (lang === 'zh') {
+    if (h < 12) return '早上好';
+    if (h < 18) return '下午好';
+    return '晚上好';
   }
   if (h < 12) return 'Chào buổi sáng';
   if (h < 18) return 'Chào buổi chiều';

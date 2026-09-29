@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Appearance } from 'react-native';
 import type { Lang } from '@/i18n/messages';
-import { translate } from '@/i18n/messages';
+import { isLang, translate } from '@/i18n/messages';
 import type { ThemeMode } from '@/theme/tokens';
 import { darkColors, lightColors } from '@/theme/tokens';
 
@@ -50,7 +50,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<SettingsState>;
         set({
-          language: parsed.language === 'en' ? 'en' : 'vi',
+          language: isLang(parsed.language) ? parsed.language : 'vi',
           themeMode: parsed.themeMode === 'light' || parsed.themeMode === 'dark' || parsed.themeMode === 'system' ? parsed.themeMode : 'system',
           onboarded: !!parsed.onboarded,
           currency: parsed.currency || 'USD',

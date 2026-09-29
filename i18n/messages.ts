@@ -1,4 +1,21 @@
-export type Lang = 'vi' | 'en';
+import { zh } from './messages.zh';
+
+export type Lang = 'vi' | 'en' | 'zh';
+
+export const LANGS: Array<{ id: Lang; native: string }> = [
+  { id: 'vi', native: 'Tiếng Việt' },
+  { id: 'en', native: 'English' },
+  { id: 'zh', native: '中文' },
+];
+
+export function isLang(value: unknown): value is Lang {
+  return value === 'vi' || value === 'en' || value === 'zh';
+}
+
+/** BCP 47 locale for Intl / TTS. */
+export function localeOf(lang: Lang): string {
+  return lang === 'en' ? 'en-US' : lang === 'zh' ? 'zh-CN' : 'vi-VN';
+}
 
 type Dict = Record<string, string>;
 
@@ -770,6 +787,74 @@ const vi: Dict = {
   'sound.videoReady': 'Video đã tạo xong',
   'settings.security': 'Bảo mật',
   'settings.notifications': 'Thông báo',
+  'noti.markAllRead': 'Đánh dấu tất cả đã đọc',
+  'noti.lede': 'Theo dõi cập nhật tài khoản, đơn hàng, ví, gian hàng và cộng đồng tại một nơi.',
+  'noti.unreadCount': '{n} chưa đọc',
+  'noti.reload': 'Tải lại',
+  'noti.settings': 'Cài đặt thông báo',
+  'noti.filterAll': 'Tất cả',
+  'noti.filterUnread': 'Chưa đọc ({n})',
+  'noti.unread': 'Chưa đọc',
+  'notify.wallet.depositCompleted.title': 'Nạp tiền đã xác nhận',
+  'notify.wallet.depositCompleted.body': 'Số tiền đã được cộng vào ví.',
+  'notify.wallet.depositRejected.title': 'Yêu cầu nạp bị từ chối',
+  'notify.wallet.depositRejected.body': 'Admin đã từ chối hoặc hủy yêu cầu nạp tiền.',
+  'notify.wallet.withdrawCompleted.title': 'Rút tiền đã chuyển',
+  'notify.wallet.withdrawCompleted.body': 'Yêu cầu rút đã được thanh toán.',
+  'notify.wallet.withdrawRejected.title': 'Yêu cầu rút bị từ chối',
+  'notify.wallet.withdrawRejected.body': 'Số tiền đã được hoàn lại số dư khả dụng.',
+  'notify.kyc.verified.title': 'eKYC đã được duyệt',
+  'notify.kyc.verified.body': 'Hồ sơ xác minh của bạn đã được duyệt. Bạn có thể rút tiền.',
+  'notify.kyc.rejected.title': 'eKYC bị từ chối',
+  'notify.kyc.rejected.body': 'Hồ sơ xác minh bị từ chối: {reason} Vui lòng cập nhật và gửi lại.',
+  'notify.chat.newMessage.title': 'Tin nhắn mới',
+  'notify.chat.newMessage.body': '{sender}: {preview}',
+  'notify.order.new.title': 'Đơn hàng mới',
+  'notify.order.new.body': '{buyer} đã mua {product} ({ownership})',
+  'notify.order.paid.title': 'Thanh toán thành công',
+  'notify.order.paid.body': '{product} đã thanh toán bằng ví AI Markets.',
+  'notify.order.paidLicense.title': 'Thanh toán thành công',
+  'notify.order.paidLicense.body': '{product} · license {licenseKey}. Email xác nhận đã gửi.',
+  'notify.dispute.opened.title': 'Khiếu nại đơn hàng',
+  'notify.dispute.opened.body': '{actor} đã khiếu nại {product}. Khoản thu của seller bị tạm giữ cho đến khi giải quyết.',
+  'notify.dispute.closedSeller.title': 'Khiếu nại đã đóng',
+  'notify.dispute.closedSeller.body': 'Khiếu nại về {product} đã được giải quyết có lợi cho seller. Khoản thanh toán đã có thể rút.',
+  'notify.dispute.closedBuyer.title': 'Khiếu nại đã đóng',
+  'notify.dispute.closedBuyer.body': 'Khiếu nại về {product} đã được giải quyết có lợi cho seller.',
+  'notify.dispute.refundBuyer.title': 'Hoàn tiền khiếu nại',
+  'notify.dispute.refundBuyer.body': 'Đã hoàn {amount} {currency} cho {product}.',
+  'notify.dispute.refundSeller.title': 'Khiếu nại: hoàn tiền người mua',
+  'notify.dispute.refundSeller.body': 'Khoản phải trả seller {amount} {currency} cho {product} đã bị đảo ngược (hoa hồng/thuế đã điều chỉnh trên sổ cái).',
+  'notify.complaint.workNew.title': 'Khiếu nại Work mới',
+  'notify.complaint.workNew.body': '{job}: {text}',
+  'notify.complaint.workAdmin.title': 'Khiếu nại Work',
+  'notify.complaint.workAdmin.body': '{kind} · {job}',
+  'notify.complaint.new.title': 'Khiếu nại mới',
+  'notify.complaint.new.body': '{text}',
+  'notify.complaint.newAdmin.title': 'Khiếu nại mới',
+  'notify.complaint.newAdmin.body': '{kind}',
+  'notify.complaint.sellerReplied.title': '{caseRef}: seller đã phản hồi',
+  'notify.complaint.sellerReplied.body': 'Seller đã gửi phản hồi. Sàn đang xem xét bằng chứng.',
+  'notify.complaint.sellerRepliedAdmin.title': '{caseRef}: seller đã phản hồi',
+  'notify.complaint.sellerRepliedAdmin.body': 'Đã nhận phản hồi của seller. Hồ sơ chuyển sang xem xét bằng chứng.',
+  'notify.complaint.appeal.title': '{caseRef}: kháng nghị',
+  'notify.complaint.appeal.body': '{name} yêu cầu xem xét lại nội bộ.',
+  'notify.complaint.askSeller.title': '{caseRef}: yêu cầu seller phản hồi',
+  'notify.complaint.askSeller.body': 'Sàn yêu cầu bạn phản hồi khiếu nại này.',
+  'notify.complaint.decision.title': '{caseRef}: quyết định',
+  'notify.complaint.decision.body': 'Quyết định: {decision}. {detail}',
+  'notify.kind.buyer_seller': 'Người mua → Seller',
+  'notify.kind.buyer_platform': 'Người mua → Sàn',
+  'notify.kind.seller_platform': 'Seller → Sàn',
+  'notify.kind.employer_freelancer': 'Nhà tuyển dụng → Freelancer',
+  'notify.kind.freelancer_employer': 'Freelancer → Nhà tuyển dụng',
+  'notify.kind.employer_platform': 'Nhà tuyển dụng → Sàn',
+  'notify.kind.freelancer_platform': 'Freelancer → Sàn',
+  'notify.decision.upheld': 'Chấp nhận khiếu nại',
+  'notify.decision.rejected': 'Bác khiếu nại',
+  'notify.decision.mediated': 'Hòa giải',
+  'notify.ownership.PLATFORM_DIRECT': 'Sàn bán',
+  'notify.ownership.THIRD_PARTY_SELLER': 'Seller bán',
   'protection.title': 'Bảo vệ người tiêu dùng',
   'protection.rights': 'Quyền của tôi',
   'protection.sellerInfo': 'Thông tin người bán',
@@ -1732,6 +1817,74 @@ const en: Dict = {
   'sound.videoReady': 'Your video is ready',
   'settings.security': 'Security',
   'settings.notifications': 'Notifications',
+  'noti.markAllRead': 'Mark all as read',
+  'noti.lede': 'Track account, order, wallet, shop and community updates in one place.',
+  'noti.unreadCount': '{n} unread',
+  'noti.reload': 'Reload',
+  'noti.settings': 'Notification settings',
+  'noti.filterAll': 'All',
+  'noti.filterUnread': 'Unread ({n})',
+  'noti.unread': 'Unread',
+  'notify.wallet.depositCompleted.title': 'Top-up confirmed',
+  'notify.wallet.depositCompleted.body': 'The amount has been added to your wallet.',
+  'notify.wallet.depositRejected.title': 'Top-up request rejected',
+  'notify.wallet.depositRejected.body': 'An admin rejected or cancelled your top-up request.',
+  'notify.wallet.withdrawCompleted.title': 'Withdrawal sent',
+  'notify.wallet.withdrawCompleted.body': 'Your withdrawal request has been paid.',
+  'notify.wallet.withdrawRejected.title': 'Withdrawal request rejected',
+  'notify.wallet.withdrawRejected.body': 'The amount has been returned to your available balance.',
+  'notify.kyc.verified.title': 'eKYC approved',
+  'notify.kyc.verified.body': 'Your verification has been approved. You can now withdraw.',
+  'notify.kyc.rejected.title': 'eKYC rejected',
+  'notify.kyc.rejected.body': 'Your verification was rejected: {reason} Please update and resubmit.',
+  'notify.chat.newMessage.title': 'New message',
+  'notify.chat.newMessage.body': '{sender}: {preview}',
+  'notify.order.new.title': 'New order',
+  'notify.order.new.body': '{buyer} purchased {product} ({ownership})',
+  'notify.order.paid.title': 'Payment successful',
+  'notify.order.paid.body': '{product} was paid with your AI Markets wallet.',
+  'notify.order.paidLicense.title': 'Payment successful',
+  'notify.order.paidLicense.body': '{product} · license {licenseKey}. A confirmation email has been sent.',
+  'notify.dispute.opened.title': 'Order dispute',
+  'notify.dispute.opened.body': '{actor} disputed {product}. Seller net is frozen until resolved.',
+  'notify.dispute.closedSeller.title': 'Dispute closed',
+  'notify.dispute.closedSeller.body': 'Dispute on {product} resolved for the seller. Payout is now withdrawable.',
+  'notify.dispute.closedBuyer.title': 'Dispute closed',
+  'notify.dispute.closedBuyer.body': 'Dispute on {product} was resolved in the seller\'s favor.',
+  'notify.dispute.refundBuyer.title': 'Dispute refund',
+  'notify.dispute.refundBuyer.body': 'Refunded {amount} {currency} for {product}.',
+  'notify.dispute.refundSeller.title': 'Dispute: buyer refunded',
+  'notify.dispute.refundSeller.body': 'Seller payable {amount} {currency} for {product} was reversed (commission/tax adjusted on ledger).',
+  'notify.complaint.workNew.title': 'New Work complaint',
+  'notify.complaint.workNew.body': '{job}: {text}',
+  'notify.complaint.workAdmin.title': 'Work complaint',
+  'notify.complaint.workAdmin.body': '{kind} · {job}',
+  'notify.complaint.new.title': 'New complaint',
+  'notify.complaint.new.body': '{text}',
+  'notify.complaint.newAdmin.title': 'New complaint',
+  'notify.complaint.newAdmin.body': '{kind}',
+  'notify.complaint.sellerReplied.title': '{caseRef}: seller replied',
+  'notify.complaint.sellerReplied.body': 'The seller submitted a response. The platform is reviewing evidence.',
+  'notify.complaint.sellerRepliedAdmin.title': '{caseRef}: seller replied',
+  'notify.complaint.sellerRepliedAdmin.body': 'Seller response received. Case moved to evidence review.',
+  'notify.complaint.appeal.title': '{caseRef}: appeal',
+  'notify.complaint.appeal.body': '{name} requested an internal review.',
+  'notify.complaint.askSeller.title': '{caseRef}: seller response requested',
+  'notify.complaint.askSeller.body': 'The platform asked you to respond to this complaint.',
+  'notify.complaint.decision.title': '{caseRef}: decision',
+  'notify.complaint.decision.body': 'Decision: {decision}. {detail}',
+  'notify.kind.buyer_seller': 'Buyer → Seller',
+  'notify.kind.buyer_platform': 'Buyer → Platform',
+  'notify.kind.seller_platform': 'Seller → Platform',
+  'notify.kind.employer_freelancer': 'Employer → Freelancer',
+  'notify.kind.freelancer_employer': 'Freelancer → Employer',
+  'notify.kind.employer_platform': 'Employer → Platform',
+  'notify.kind.freelancer_platform': 'Freelancer → Platform',
+  'notify.decision.upheld': 'Upheld',
+  'notify.decision.rejected': 'Rejected',
+  'notify.decision.mediated': 'Mediated',
+  'notify.ownership.PLATFORM_DIRECT': 'Sold by platform',
+  'notify.ownership.THIRD_PARTY_SELLER': 'Third-party seller',
   'protection.title': 'Consumer Protection',
   'protection.rights': 'My rights',
   'protection.sellerInfo': 'Seller information',
@@ -1926,9 +2079,25 @@ const en: Dict = {
   'search.popular': 'Popular searches',
 };
 
+type NotificationText = { title: string; body: string; key?: string; params?: Record<string, string | number> };
+
+/** Title/body of a notification in `lang`; falls back to the stored text. */
+export function translateNotification(lang: Lang, n: NotificationText): { title: string; body: string } {
+  const base = n.key ? `notify.${n.key}` : '';
+  if (!base || !vi[`${base}.title`]) return { title: n.title, body: n.body };
+  const params: Record<string, string | number> = { ...(n.params || {}) };
+  for (const [field, prefix] of [['kind', 'notify.kind'], ['decision', 'notify.decision'], ['ownership', 'notify.ownership']]) {
+    const v = params[field];
+    if (v != null && vi[`${prefix}.${v}`]) params[field] = translate(lang, `${prefix}.${v}`);
+  }
+  const body = translate(lang, `${base}.body`, params).trim();
+  const note = String(params.note ?? '').trim();
+  return { title: translate(lang, `${base}.title`, params), body: note ? `${body} ${note}` : body };
+}
+
 export function translate(lang: Lang, key: string, vars?: Record<string, string | number>): string {
-  const table = lang === 'en' ? en : vi;
-  let out = table[key] || key;
+  const table = lang === 'en' ? en : lang === 'zh' ? zh : vi;
+  let out = table[key] || (lang === 'zh' ? en[key] : undefined) || key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
       out = out.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));

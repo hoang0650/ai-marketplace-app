@@ -4,6 +4,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useT, useTheme } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { previewSound, previewVoice } from '@/services/sound';
+import { LANGS } from '@/i18n/messages';
 import type { ThemeMode } from '@/theme/tokens';
 
 type Colors = ReturnType<typeof useTheme>['colors'];
@@ -96,8 +97,9 @@ export default function SettingsScreen() {
         <Option key={m} colors={colors} label={t(`settings.theme.${m}`)} active={themeMode === m} onPress={() => setThemeMode(m)} />
       ))}
       <Text style={{ color: colors.textSecondary, marginTop: 16, fontWeight: '800' }}>{t('settings.language')}</Text>
-      <Option colors={colors} label="Tiếng Việt" active={language === 'vi'} onPress={() => setLanguage('vi')} />
-      <Option colors={colors} label="English" active={language === 'en'} onPress={() => setLanguage('en')} />
+      {LANGS.map((l) => (
+        <Option key={l.id} colors={colors} label={l.native} active={language === l.id} onPress={() => setLanguage(l.id)} />
+      ))}
       <Text style={{ color: colors.textSecondary, marginTop: 16, fontWeight: '800' }}>{t('settings.currency')}</Text>
       <Option colors={colors} label="USD" active={currency === 'USD'} onPress={() => setCurrency('USD')} />
       <Option colors={colors} label="VND" active={currency === 'VND'} onPress={() => setCurrency('VND')} />

@@ -26,6 +26,7 @@ import { getErrorMessage, ApiError } from '@/lib/errors';
 import { containsBlockedLink } from '@/lib/chat-security';
 import { formatDate } from '@/utils/format';
 import { playSound } from '@/services/sound';
+import type { Lang } from '@/i18n/messages';
 
 async function formFromAsset(asset: ImagePicker.ImagePickerAsset): Promise<FormData> {
   const form = new FormData();
@@ -254,7 +255,7 @@ function Bubble({ item, mine }: { item: ChatMessage; mine: boolean }) {
   );
 }
 
-function mapChatError(err: unknown, t: (k: string) => string, language: 'vi' | 'en'): string {
+function mapChatError(err: unknown, t: (k: string) => string, language: Lang): string {
   if (err instanceof ApiError) {
     if (err.code === 'LINKS_NOT_ALLOWED') return t('chat.noLinks');
     if (err.code === 'IMAGE_HOST_NOT_ALLOWED') return t('chat.imageOnlyHost');

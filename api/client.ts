@@ -4,6 +4,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useAuthStore } from '@/stores/authStore';
 import { tokenUnexpired } from '@/lib/jwt';
 import type { AuthResponse } from './types';
+import type { Lang } from '@/i18n/messages';
 
 export const API_CONFIG = {
   BASE_URL: (process.env.EXPO_PUBLIC_API_URL || 'https://api.aimarkets.vn/v1').replace(/\/$/, ''),
@@ -19,7 +20,7 @@ export const GOOGLE_AUTH_CONFIG = {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-function lang(): 'vi' | 'en' {
+function lang(): Lang {
   return useSettingsStore.getState().language;
 }
 

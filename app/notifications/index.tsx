@@ -10,11 +10,12 @@ import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { Button } from '@/components/ui/Button';
 import { formatDate } from '@/utils/format';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { translateNotification } from '@/i18n/messages';
 
 export default function NotificationsScreen() {
   const { isAuthenticated } = useAuth();
   const { colors } = useTheme();
-  const { t } = useT();
+  const { t, language } = useT();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['notifications'], queryFn: notificationsApi.list, enabled: isAuthenticated });
   const read = useMutation({ mutationFn: notificationsApi.readAll, onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }) });
@@ -22,17 +23,20 @@ export default function NotificationsScreen() {
   return (
     <Screen>
       <Text style={{ color: colors.text, fontSize: 24, fontWeight: '700' }}>{t('settings.notifications')}</Text>
-      <Button title="Read all" variant="outline" onPress={() => read.mutate()} style={{ marginVertical: 12 }} />
+      <Button title={t('noti.markAllRead')} variant="outline" onPress={() => read.mutate()} style={{ marginVertical: 12 }} />
       <FlatList
         data={q.data || []}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Pressable style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.border, opacity: item.read ? 0.6 : 1 }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{item.title}</Text>
-            <Text style={{ color: colors.textSecondary }}>{item.body}</Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{formatDate(item.createdAt)}</Text>
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const text = translateNotification(language, item);
+          return (
+            <Pressable style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.border, opacity: item.read ? 0.6 : 1 }}>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{text.title}</Text>
+              <Text style={{ color: colors.textSecondary }}>{text.body}</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{formatDate(item.createdAt, language)}</Text>
+            </Pressable>
+          );
+        }}
         ListEmptyComponent={<EmptyState title={t('common.empty')} />}
       />
     </Screen>

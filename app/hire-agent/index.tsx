@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { Stack, useRouter } from 'expo-router';
 import type { HiredAgent, MarketplaceAgent } from '@/api/types';
 import { href } from '@/lib/href';
+import { localeOf } from '@/i18n/messages';
 import { getAgent, isLaunchableAgent } from '@/constants/agents';
 import { useArchiveHiredAgent, useAgentLaunch, useHiredAgents } from '@/hooks/useAgentGateway';
 import { useAuth } from '@/hooks/useAuth';
@@ -49,7 +50,7 @@ function HiredRow({ row }: { row: HiredAgent }) {
       </View>
 
       <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-        {t('agents.launchedAt')} {new Date(row.launchedAt).toLocaleDateString(language === 'en' ? 'en-US' : 'vi-VN')}
+        {t('agents.launchedAt')} {new Date(row.launchedAt).toLocaleDateString(localeOf(language))}
       </Text>
 
       <View style={styles.actions}>

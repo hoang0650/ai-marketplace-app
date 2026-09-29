@@ -466,6 +466,9 @@ export interface NotificationItem {
   read: boolean;
   createdAt: string;
   href?: string;
+  /** i18n key rendered as `notify.<key>.title|body` with `params`. */
+  key?: string;
+  params?: Record<string, string | number>;
 }
 
 export interface LegalDocument {

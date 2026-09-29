@@ -31,6 +31,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { categoryLabel } from '@/constants/categories';
 import { formatDate } from '@/utils/format';
 import { displayFont } from '@/constants/fonts';
+import type { Lang } from '@/i18n/messages';
 
 type SortId = 'newest' | 'bestsellers' | 'rating';
 
@@ -334,7 +335,7 @@ function ShopReviews({
   rating: number;
   loading: boolean;
   t: (k: string, vars?: Record<string, string | number>) => string;
-  language: 'vi' | 'en';
+  language: Lang;
 }) {
   const router = useRouter();
   const { colors } = useTheme();

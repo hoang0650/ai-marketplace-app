@@ -1,6 +1,7 @@
 import { AppState, Platform } from 'react-native';
 import type { AudioPlayer } from 'expo-audio';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { localeOf, type Lang } from '@/i18n/messages';
 
 type SpeechModule = typeof import('expo-speech');
 type AudioModule = typeof import('expo-audio');
@@ -42,7 +43,7 @@ const CLIP_MS: Record<SoundEvent, number> = {
   aiReady: 1920,
 };
 
-const PHRASES: Record<'vi' | 'en', Record<SoundEvent, string>> = {
+const PHRASES: Record<Lang, Record<SoundEvent, string>> = {
   vi: {
     notification: 'Bạn có thông báo mới',
     paymentSuccess: 'Thanh toán thành công',
@@ -54,6 +55,12 @@ const PHRASES: Record<'vi' | 'en', Record<SoundEvent, string>> = {
     paymentSuccess: 'Payment successful',
     orderSuccess: 'Order created successfully',
     aiReady: 'Your AI content is ready',
+  },
+  zh: {
+    notification: '您有一条新通知',
+    paymentSuccess: '付款成功',
+    orderSuccess: '订单创建成功',
+    aiReady: '您的 AI 内容已生成',
   },
 };
 
@@ -89,7 +96,7 @@ export function preloadSounds(): void {
   });
 }
 
-async function pickVoice(Speech: SpeechModule, lang: 'vi' | 'en'): Promise<string | undefined> {
+async function pickVoice(Speech: SpeechModule, lang: Lang): Promise<string | undefined> {
   if (voiceByLang.has(lang)) return voiceByLang.get(lang) ?? undefined;
   try {
     const voices = await Speech.getAvailableVoicesAsync();
@@ -103,7 +110,7 @@ async function pickVoice(Speech: SpeechModule, lang: 'vi' | 'en'): Promise<strin
   }
 }
 
-function speak(text: string, lang: 'vi' | 'en', delayMs: number) {
+function speak(text: string, lang: Lang, delayMs: number) {
   const Speech = getSpeech();
   if (!Speech) return;
   if (speakTimer) clearTimeout(speakTimer);
@@ -114,7 +121,7 @@ function speak(text: string, lang: 'vi' | 'en', delayMs: number) {
         const voice = await pickVoice(Speech, lang);
         await Speech.stop();
         Speech.speak(text, {
-          language: lang === 'vi' ? 'vi-VN' : 'en-US',
+          language: localeOf(lang),
           voice,
           rate: 0.95,
           pitch: 1.0,
