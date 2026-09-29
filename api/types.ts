@@ -683,7 +683,7 @@ export interface OpenClawLaunchResult {
 
 export type AgentStatus = 'running' | 'archived' | 'provisioning' | 'stopped';
 
-export type AgentIconKind = 'openclaw' | 'hermes' | 'nano' | 'webui' | 'tavern' | 'space';
+export type AgentIconKind = 'openclaw' | 'hermes' | 'nano' | 'webui' | 'paperclip' | 'space';
 
 export interface MarketplaceAgent {
   id: string;
@@ -701,6 +701,8 @@ export interface MarketplaceAgent {
   hermesGateway?: boolean;
   nanoclawGateway?: boolean;
   spacebotGateway?: boolean;
+  openwebuiGateway?: boolean;
+  paperclipGateway?: boolean;
 }
 
 export interface HiredAgent {
@@ -740,8 +742,8 @@ export interface AgentSshAccess {
   session?: AgentSshAccess | null;
 }
 
-/** OpenClaw / Hermes / NanoClaw / SpaceBot all share this launch + pairing shape. */
-export type AgentGatewayId = 'openclaw' | 'hermes' | 'nanoclaw' | 'spacebot';
+/** OpenClaw / Hermes / NanoClaw / SpaceBot / Open WebUI / Paperclip all share this launch + pairing shape. */
+export type AgentGatewayId = 'openclaw' | 'hermes' | 'nanoclaw' | 'spacebot' | 'openwebui' | 'paperclip';
 
 /** Shared gateway surface — launch, device pairing, and temporary SSH. */
 export interface AgentGatewayApi {

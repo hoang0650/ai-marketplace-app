@@ -9,7 +9,7 @@ import type { MarketplaceAgent } from '@/api/types';
 import { useAgentLaunch } from '@/hooks/useAgentGateway';
 import { useTheme, useT } from '@/hooks/useT';
 
-/** Compact launch panel for one catalog agent (OpenClaw / Hermes / NanoClaw / SpaceBot). */
+/** Compact launch panel for one catalog agent (OpenClaw / Hermes / NanoClaw / SpaceBot / Open WebUI / Paperclip). */
 function AgentPanel({ agent, onDetails }: { agent: MarketplaceAgent; onDetails: () => void }) {
   const { colors } = useTheme();
   const { t } = useT();

@@ -4,7 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import {
-  agentBrand,
+  agentGatewayKey,
   agentHostTemplate,
   agentUiName,
   getAgent,
@@ -27,7 +27,7 @@ export default function AgentSetupScreen() {
   const { t } = useT();
 
   const agent = useMemo(() => getAgent(params.agentId) || getAgent('openclaw') || null, [params.agentId]);
-  const profile = agent ? AGENT_SETUP_PROFILES[agentGatewayProfileId(agent)] : AGENT_SETUP_PROFILES.openclaw;
+  const profile = agent ? AGENT_SETUP_PROFILES[agentGatewayKey(agent)] : AGENT_SETUP_PROFILES.openclaw;
   const launch = useAgentLaunch(agent);
   const ssh = useAgentSsh(agent);
   const launchable = isLaunchableAgent(agent);
@@ -80,7 +80,7 @@ export default function AgentSetupScreen() {
   const host = agentHostTemplate(agent);
   const channelStep = profile.channels ? 2 : 1;
   const sshStep = profile.pairing ? 4 : profile.channels ? 3 : 2;
-  const configStep = sshStep + 1;
+  const configStep = profile.sshAuth ? sshStep + 1 : sshStep;
   const channels = profile.channelSet === 'spacebot' ? SPACEBOT_CHANNELS : OPENCLAW_CHANNELS;
 
   return (
@@ -265,22 +265,24 @@ export default function AgentSetupScreen() {
             ) : null}
 
             {/* SSH */}
-            <View>
-              <Text style={[styles.stepTitle, { color: colors.text, marginBottom: 6 }]}>
-                <Text style={{ color: colors.tint }}>{sshStep} </Text>
-                {t('agents.sshTitle')}
-              </Text>
-              <AgentSshCard
-                ssh={ssh.ssh}
-                busy={ssh.busy}
-                hostPlaceholder={host}
-                onGenerate={(h) => void ssh.generate(h)}
-                onRevoke={() => void ssh.revoke()}
-              />
-              {ssh.status ? (
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 6 }}>{ssh.status}</Text>
-              ) : null}
-            </View>
+            {profile.sshAuth ? (
+              <View>
+                <Text style={[styles.stepTitle, { color: colors.text, marginBottom: 6 }]}>
+                  <Text style={{ color: colors.tint }}>{sshStep} </Text>
+                  {t('agents.sshTitle')}
+                </Text>
+                <AgentSshCard
+                  ssh={ssh.ssh}
+                  busy={ssh.busy}
+                  hostPlaceholder={host}
+                  onGenerate={(h) => void ssh.generate(h)}
+                  onRevoke={() => void ssh.revoke()}
+                />
+                {ssh.status ? (
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 6 }}>{ssh.status}</Text>
+                ) : null}
+              </View>
+            ) : null}
 
             {/* Config / about */}
             <View style={[styles.panel, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
@@ -308,15 +310,6 @@ export default function AgentSetupScreen() {
       </ScrollView>
     </Screen>
   );
-}
-
-function agentGatewayProfileId(agent: Parameters<typeof agentBrand>[0]) {
-  // Reuse the shared resolver so `nano-claw` maps to the `nanoclaw` profile.
-  const brand = agentBrand(agent);
-  if (brand === 'Hermes') return 'hermes' as const;
-  if (brand === 'NanoClaw') return 'nanoclaw' as const;
-  if (brand === 'SpaceBot') return 'spacebot' as const;
-  return 'openclaw' as const;
 }
 
 const styles = StyleSheet.create({

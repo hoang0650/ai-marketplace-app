@@ -106,7 +106,9 @@ export function isHireAgentCategory(id?: string, slug?: string) {
     slug === 'openclaw-ops-agent' ||
     slug === 'hermes-ops-agent' ||
     slug === 'nanoclaw-ops-agent' ||
-    slug === 'spacebot-ops-agent'
+    slug === 'spacebot-ops-agent' ||
+    slug === 'openwebui-ops-agent' ||
+    slug === 'paperclip-ops-agent'
   );
 }
 

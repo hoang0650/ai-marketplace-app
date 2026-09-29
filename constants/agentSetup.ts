@@ -99,7 +99,7 @@ export interface AgentSetupProfile {
   channelSet?: 'openclaw' | 'spacebot';
   /** Whether the device/DM pairing card applies (OpenClaw only). */
   pairing?: boolean;
-  /** SSH auth model: password (OpenClaw/Hermes/NanoClaw) or key (SpaceBot). */
+  /** SSH auth model: password (OpenClaw/Hermes/NanoClaw) or key (SpaceBot); unset = no SSH card. */
   sshAuth?: 'password' | 'key';
   /** One-line summary of what this wizard does for the agent. */
   lead: string;
@@ -227,5 +227,31 @@ export const AGENT_SETUP_PROFILES: Record<AgentGatewayKey, AgentSetupProfile> = 
       'Opens the SpaceBot dashboard scoped to your session. The marketplace token is passed in the URL hash and stored automatically — no device pairing.',
     configNote:
       'SpaceBot is a single Rust binary; configuration lives in config.toml ([messaging.*] blocks, [[agents]], [[bindings]]). Edit it from the dashboard (Config → Channels) or over SSH, then the daemon hot-reloads. SSH is key-based on port 2222.',
+  },
+  openwebui: {
+    id: 'openwebui',
+    brand: 'Open WebUI',
+    uiName: 'Open WebUI',
+    docsUrl: 'https://docs.openwebui.com',
+    hostTemplate: '{userId}.openwebui.aimarkets.vn',
+    channels: false,
+    lead: 'Launch your private Open WebUI workspace, then add your own model provider keys.',
+    launchBlurb:
+      'Creates (or reuses) your personal Open WebUI account and opens it already signed in with a one-time ticket. Chats, knowledge and settings are only visible to you.',
+    configNote:
+      'Add your own OpenAI-compatible endpoint and API key under Settings → Connections (Direct Connections). Keys stay in your account; AI Markets does not charge token fees for BYOK usage.',
+  },
+  paperclip: {
+    id: 'paperclip',
+    brand: 'Paperclip',
+    uiName: 'Paperclip Dashboard',
+    docsUrl: 'https://github.com/paperclipai/paperclip',
+    hostTemplate: '{userId}.paperclip.aimarkets.vn',
+    channels: false,
+    lead: 'Launch your Paperclip control plane and set up your first AI company.',
+    launchBlurb:
+      'Creates (or reuses) your personal Paperclip account and opens the board already signed in with a one-time ticket.',
+    configNote:
+      'Create a company, set its goal, then hire agents (Claude Code, Codex, OpenAI-compatible HTTP…) with your own API keys stored as company secrets. Budgets and heartbeats are managed per agent in the dashboard.',
   },
 };

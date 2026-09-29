@@ -2,27 +2,32 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { hermesApi, hiredAgentsApi, nanoclawApi, openclawApi, spacebotApi } from '@/api';
-import type { AgentGatewayApi, AgentSshAccess, MarketplaceAgent } from '@/api/types';
-import { agentGatewayKey, isLaunchableAgent } from '@/constants/agents';
+import {
+  hermesApi,
+  hiredAgentsApi,
+  nanoclawApi,
+  openclawApi,
+  openwebuiApi,
+  paperclipApi,
+  spacebotApi,
+} from '@/api';
+import type { AgentGatewayApi, AgentGatewayId, AgentSshAccess, MarketplaceAgent } from '@/api/types';
+import { agentGatewayKey, agentSupportsSsh, isLaunchableAgent } from '@/constants/agents';
 import { useAuth } from '@/hooks/useAuth';
 import { useT } from '@/hooks/useT';
 import { getErrorMessage } from '@/lib/errors';
 import { openOpenClawUrl, OpenClawBrowserError } from '@/lib/openClawBrowser';
 
-const GATEWAYS: Record<'openclaw' | 'hermes' | 'nanoclaw' | 'spacebot', AgentGatewayApi> = {
+const GATEWAYS: Record<AgentGatewayId, AgentGatewayApi> = {
   openclaw: openclawApi,
   hermes: hermesApi,
   nanoclaw: nanoclawApi,
   spacebot: spacebotApi,
+  openwebui: openwebuiApi,
+  paperclip: paperclipApi,
 };
 
-export function gatewayApiFor(
-  agent?: Pick<
-    MarketplaceAgent,
-    'id' | 'slug' | 'openclawGateway' | 'hermesGateway' | 'nanoclawGateway' | 'spacebotGateway'
-  > | null,
-) {
+export function gatewayApiFor(agent?: Parameters<typeof agentGatewayKey>[0]) {
   return GATEWAYS[agentGatewayKey(agent)];
 }
 
@@ -43,7 +48,7 @@ export function useAgentSsh(agent: MarketplaceAgent | null | undefined) {
 
   useEffect(() => {
     let cancelled = false;
-    if (!agent || !isLaunchableAgent(agent)) return;
+    if (!agent || !agentSupportsSsh(agent)) return;
     gatewayApiFor(agent)
       .activeSsh(agent.id)
       .then((res) => {
@@ -59,7 +64,7 @@ export function useAgentSsh(agent: MarketplaceAgent | null | undefined) {
 
   const generate = useCallback(
     async (host?: string) => {
-      if (!agent || !isLaunchableAgent(agent)) return;
+      if (!agent || !agentSupportsSsh(agent)) return;
       setBusy(true);
       setStatus(t(`${base}.sshGenerating`));
       try {

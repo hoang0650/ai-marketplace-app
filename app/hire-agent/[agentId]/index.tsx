@@ -8,6 +8,7 @@ import {
   agentHostTemplate,
   agentNeedsPairing,
   agentSubdomain,
+  agentSupportsSsh,
   agentSurfaceName,
   agentUiName,
   getAgent,
@@ -124,7 +125,7 @@ export default function AgentDetailScreen() {
           ) : null}
         </View>
 
-        {launchable ? (
+        {agentSupportsSsh(agent) ? (
           <>
             <AgentSshCard
               ssh={ssh.ssh}

@@ -37,6 +37,7 @@ import type {
   OpenClawLaunchResult,
   AgentSshAccess,
   AgentGatewayApi,
+  AgentGatewayId,
   HiredAgent,
   AgentStatus,
   KycProfile,
@@ -272,8 +273,8 @@ export const chatApi = {
     apiClient.uploadForm<{ ok: boolean; url: string }>('/uploads/image', form),
 };
 
-/** OpenClaw / Hermes / NanoClaw / SpaceBot share launch + pairing + ssh; only the mount differs. */
-function agentGatewayApi(base: 'openclaw' | 'hermes' | 'nanoclaw' | 'spacebot'): AgentGatewayApi {
+/** All agent runtimes share launch + pairing + ssh; only the mount differs (Open WebUI / Paperclip have no ssh). */
+function agentGatewayApi(base: AgentGatewayId): AgentGatewayApi {
   return {
     launch: () => apiClient.post<OpenClawLaunchResult>(`/${base}/launch`, { audience: 'aimarkets' }),
     approvePairing: (requestId?: string | null) =>
@@ -302,6 +303,8 @@ export const openclawApi = agentGatewayApi('openclaw');
 export const hermesApi = agentGatewayApi('hermes');
 export const nanoclawApi = agentGatewayApi('nanoclaw');
 export const spacebotApi = agentGatewayApi('spacebot');
+export const openwebuiApi = agentGatewayApi('openwebui');
+export const paperclipApi = agentGatewayApi('paperclip');
 
 /** Server-side "My Agents" list so web and app stay in sync. */
 export const hiredAgentsApi = {

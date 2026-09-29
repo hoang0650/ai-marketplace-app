@@ -54,25 +54,31 @@ export const MARKETPLACE_AGENTS: MarketplaceAgent[] = [
     id: 'open-webui',
     slug: 'open-webui',
     name: 'Open WebUI',
-    description: 'Chat-first interface for private models and agent tooling.',
+    description:
+      'AI Markets Open WebUI on {userId}.openwebui.aimarkets.vn — private chat workspace with your own model keys (BYOK).',
     icon: 'webui',
     logoUrl: '/agents/open-webui.png',
-    version: '0.6.1',
-    model: 'MiniMaxAI/MiniMax-M2.5',
+    version: '0.6.x',
+    model: 'BYOK (OpenAI-compatible)',
     docsUrl: 'https://docs.openwebui.com',
     public: true,
+    hireProductSlug: 'openwebui-ops-agent',
+    openwebuiGateway: true,
   },
   {
-    id: 'sillytavern',
-    slug: 'sillytavern',
-    name: 'SillyTavern',
-    description: 'Character-driven conversational front-end for creative agents.',
-    icon: 'tavern',
-    logoUrl: '/agents/sillytavern.png',
-    version: '1.12.0',
-    model: 'MiniMaxAI/MiniMax-M2.5',
-    docsUrl: 'https://docs.sillytavern.app',
+    id: 'paperclip',
+    slug: 'paperclip',
+    name: 'Paperclip',
+    description:
+      'AI Markets Paperclip on {userId}.paperclip.aimarkets.vn — run a company of AI agents with goals, org chart and budgets.',
+    icon: 'paperclip',
+    logoUrl: '/agents/paperclip.png',
+    version: '0.x',
+    model: 'BYOK (Claude / Codex / OpenAI-compatible)',
+    docsUrl: 'https://github.com/paperclipai/paperclip',
     public: true,
+    hireProductSlug: 'paperclip-ops-agent',
+    paperclipGateway: true,
   },
   {
     id: 'space-bot',
@@ -91,14 +97,62 @@ export const MARKETPLACE_AGENTS: MarketplaceAgent[] = [
   },
 ];
 
-export type AgentGatewayKey = 'openclaw' | 'hermes' | 'nanoclaw' | 'spacebot';
+export type AgentGatewayKey = 'openclaw' | 'hermes' | 'nanoclaw' | 'spacebot' | 'openwebui' | 'paperclip';
 
 type AgentLike = Partial<
   Pick<
     MarketplaceAgent,
-    'id' | 'slug' | 'openclawGateway' | 'hermesGateway' | 'nanoclawGateway' | 'spacebotGateway'
+    | 'id'
+    | 'slug'
+    | 'openclawGateway'
+    | 'hermesGateway'
+    | 'nanoclawGateway'
+    | 'spacebotGateway'
+    | 'openwebuiGateway'
+    | 'paperclipGateway'
   >
 >;
+
+/** Label + whether temporary SSH exists, per runtime. Open WebUI / Paperclip sign in via an SSO ticket only. */
+const RUNTIMES: Record<AgentGatewayKey, { brand: string; uiName: string; ssh: boolean; summary: string }> = {
+  openclaw: {
+    brand: 'OpenClaw',
+    uiName: 'OpenClaw UI',
+    ssh: true,
+    summary: 'Operator agent with Control UI, skills, and multi-channel tools.',
+  },
+  hermes: {
+    brand: 'Hermes',
+    uiName: 'Hermes Dashboard',
+    ssh: true,
+    summary: 'Self-improving agent with a web dashboard, messaging gateway, and skills.',
+  },
+  nanoclaw: {
+    brand: 'NanoClaw',
+    uiName: 'NanoClaw Dashboard',
+    ssh: true,
+    summary: 'Isolated container agents with a dashboard — channels installed per agent via skills.',
+  },
+  spacebot: {
+    brand: 'SpaceBot',
+    uiName: 'SpaceBot Dashboard',
+    ssh: true,
+    summary:
+      'Always-on community agent with a dashboard, memory graph, and Discord/Slack/Telegram/Twitch channels.',
+  },
+  openwebui: {
+    brand: 'Open WebUI',
+    uiName: 'Open WebUI',
+    ssh: false,
+    summary: 'Private ChatGPT-style workspace — your own account, chats, knowledge and model keys (BYOK).',
+  },
+  paperclip: {
+    brand: 'Paperclip',
+    uiName: 'Paperclip Dashboard',
+    ssh: false,
+    summary: 'Control plane for a company of AI agents — goals, org chart, tickets, budgets and heartbeats.',
+  },
+};
 
 /** Case/punctuation-insensitive key so `nano-claw`, `nanoclaw`, `hermes-agent` resolve. */
 export function normalizeAgentKey(value?: string | null): string {
@@ -148,22 +202,44 @@ export function isSpacebotAgent(agent?: AgentLike | null): boolean {
   return id === 'space-bot' || id === 'spacebot';
 }
 
-/** OpenClaw, Hermes, NanoClaw, or SpaceBot — Launch enabled on the marketplace. */
-export function isLaunchableAgent(agent?: AgentLike | null): boolean {
-  return (
-    isOpenClawAgent(agent) ||
-    isHermesAgent(agent) ||
-    isNanoclawAgent(agent) ||
-    isSpacebotAgent(agent)
-  );
+export function isOpenWebuiAgent(agent?: AgentLike | null): boolean {
+  if (!agent) return false;
+  if (agent.openwebuiGateway) return true;
+  const id = String(agent.id || agent.slug || '').toLowerCase();
+  return id === 'open-webui' || id === 'openwebui';
 }
 
-/** API mount for launch / pairing / ssh: `/v1/openclaw`, `/v1/hermes`, `/v1/nanoclaw`, `/v1/spacebot`. */
-export function agentGatewayKey(agent?: AgentLike | null): AgentGatewayKey {
+export function isPaperclipAgent(agent?: AgentLike | null): boolean {
+  if (!agent) return false;
+  if (agent.paperclipGateway) return true;
+  const id = String(agent.id || agent.slug || '').toLowerCase();
+  return id === 'paperclip';
+}
+
+function runtimeKey(agent?: AgentLike | null): AgentGatewayKey | null {
   if (isHermesAgent(agent)) return 'hermes';
   if (isNanoclawAgent(agent)) return 'nanoclaw';
   if (isSpacebotAgent(agent)) return 'spacebot';
-  return 'openclaw';
+  if (isOpenWebuiAgent(agent)) return 'openwebui';
+  if (isPaperclipAgent(agent)) return 'paperclip';
+  if (isOpenClawAgent(agent)) return 'openclaw';
+  return null;
+}
+
+/** OpenClaw, Hermes, NanoClaw, SpaceBot, Open WebUI, or Paperclip — Launch enabled on the marketplace. */
+export function isLaunchableAgent(agent?: AgentLike | null): boolean {
+  return runtimeKey(agent) !== null;
+}
+
+/** API mount for launch / pairing / ssh: `/v1/openclaw`, `/v1/hermes`, …, `/v1/openwebui`, `/v1/paperclip`. */
+export function agentGatewayKey(agent?: AgentLike | null): AgentGatewayKey {
+  return runtimeKey(agent) || 'openclaw';
+}
+
+/** Temporary SSH access exists only for the container runtimes, not the SSO web apps. */
+export function agentSupportsSsh(agent?: AgentLike | null): boolean {
+  const key = runtimeKey(agent);
+  return key !== null && RUNTIMES[key].ssh;
 }
 
 /** Only OpenClaw requires the device-pairing approval step. */
@@ -173,18 +249,9 @@ export function agentNeedsPairing(agent?: AgentLike | null): boolean {
 
 /** Hire-product slug → catalog agent, so `/product/spacebot-ops-agent` launches SpaceBot. */
 export function agentForHireSlug(slug?: string | null): MarketplaceAgent | undefined {
-  switch (String(slug || '').trim().toLowerCase()) {
-    case 'openclaw-ops-agent':
-      return getAgent('openclaw');
-    case 'hermes-ops-agent':
-      return getAgent('hermes');
-    case 'nanoclaw-ops-agent':
-      return getAgent('nano-claw');
-    case 'spacebot-ops-agent':
-      return getAgent('space-bot');
-    default:
-      return undefined;
-  }
+  const key = String(slug || '').trim().toLowerCase();
+  if (!key) return undefined;
+  return MARKETPLACE_AGENTS.find((a) => a.hireProductSlug === key && isLaunchableAgent(a));
 }
 
 /** Host subdomain for `{userId}.<subdomain>.aimarkets.vn`. */
@@ -193,21 +260,15 @@ export function agentSubdomain(agent?: AgentLike | null): string {
 }
 
 export function agentBrand(agent?: AgentLike | null): string {
-  if (isHermesAgent(agent)) return 'Hermes';
-  if (isNanoclawAgent(agent)) return 'NanoClaw';
-  if (isSpacebotAgent(agent)) return 'SpaceBot';
-  return 'OpenClaw';
+  return RUNTIMES[agentGatewayKey(agent)].brand;
 }
 
 /** Primary launch button label. */
 export function agentUiName(agent?: AgentLike | null): string {
-  if (isHermesAgent(agent)) return 'Hermes Dashboard';
-  if (isNanoclawAgent(agent)) return 'NanoClaw Dashboard';
-  if (isSpacebotAgent(agent)) return 'SpaceBot Dashboard';
-  return 'OpenClaw UI';
+  return RUNTIMES[agentGatewayKey(agent)].uiName;
 }
 
-/** Control UI (OpenClaw) vs Dashboard (Hermes / NanoClaw / SpaceBot). */
+/** Control UI (OpenClaw) vs Dashboard (the other runtimes). */
 export function agentSurfaceName(agent?: AgentLike | null): string {
   return isOpenClawAgent(agent) ? 'Control UI' : 'Dashboard';
 }
@@ -217,14 +278,5 @@ export function agentHostTemplate(agent?: AgentLike | null): string {
 }
 
 export function agentBrandSummary(agent?: AgentLike | null): string {
-  if (isHermesAgent(agent)) {
-    return 'Self-improving agent with a web dashboard, messaging gateway, and skills.';
-  }
-  if (isNanoclawAgent(agent)) {
-    return 'Isolated container agents with a dashboard — channels installed per agent via skills.';
-  }
-  if (isSpacebotAgent(agent)) {
-    return 'Always-on community agent with a dashboard, memory graph, and Discord/Slack/Telegram/Twitch channels.';
-  }
-  return 'Operator agent with Control UI, skills, and multi-channel tools.';
+  return RUNTIMES[agentGatewayKey(agent)].summary;
 }
