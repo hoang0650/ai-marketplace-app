@@ -633,6 +633,51 @@ export interface GameSessionInfo {
   playerMode?: 'terminal' | 'game';
 }
 
+export interface GpuOffer {
+  id: string;
+  name: string;
+  memoryGb: number;
+  pricePerHour: number;
+  availability: 'high' | 'medium' | 'low' | 'unknown';
+}
+
+export interface GpuOffersResponse {
+  offers: GpuOffer[];
+  currency: 'USD';
+  wallet: { available: number };
+  limits: {
+    minPrepayHours: number;
+    maxGpuCount: number;
+    maxActive: number;
+    volumeGb: { min: number; max: number; default: number };
+    diskGb: number;
+    warnMinutes: number;
+    terminateGraceHours: number;
+  };
+}
+
+export type GpuRentalStatus = 'creating' | 'running' | 'stopped' | 'terminated' | 'error';
+
+export interface GpuRental {
+  id: string;
+  name: string;
+  gpu: { id: string; name: string; memoryGb: number; count: number };
+  diskGb: number;
+  volumeGb: number;
+  status: GpuRentalStatus;
+  ready: boolean;
+  pricePerHour: number;
+  stoppedPricePerHour: number;
+  currency: 'USD';
+  billedMinutes: number;
+  billedTotal: number;
+  stoppedReason: '' | 'user' | 'insufficient_funds' | 'admin';
+  terminateAfter: string | null;
+  createdAt: string;
+  stoppedAt: string | null;
+  terminatedAt: string | null;
+}
+
 export type { RunpodModelSchema as PlaygroundSchema } from '@/lib/runpod-schema';
 
 export interface ChatConversation {

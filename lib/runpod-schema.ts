@@ -475,9 +475,9 @@ export function fallbackSchema(category: string, slug = category): RunpodModelSc
 
 export function seedSamplePrompt(category: string): string {
   const samples: Record<string, string> = {
-    'text-to-text': 'What is Runpod?',
-    inference: 'What is Runpod?',
-    'api-endpoint': 'What is Runpod?',
+    'text-to-text': 'What is AI Markets?',
+    inference: 'What is AI Markets?',
+    'api-endpoint': 'What is AI Markets?',
     'text-to-image': 'A beautiful sunset over mountains',
     'image-to-image': 'Keep composition, restyle as watercolor with warm pastel palette.',
     'text-to-video':
@@ -493,7 +493,7 @@ export function schemaSlug(product: { slug: string; runtime?: Record<string, unk
   const runtime = product.runtime || {};
   const fromUrl = String(runtime.publicEndpoint || runtime.serverlessEndpoint || '').match(/\/models\/([^/?]+)/);
   if (fromUrl?.[1]) return decodeURIComponent(fromUrl[1]);
-  return product.slug.replace(/^runpod-/, '');
+  return product.slug.replace(/^(?:aim|runpod)-/, '');
 }
 
 export function mergeSchema(raw: RunpodModelSchema | null | undefined, category: string, slug: string): RunpodModelSchema {

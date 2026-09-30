@@ -30,6 +30,8 @@ import type {
   PaypalFunding,
   PlaygroundRunResult,
   GameSessionInfo,
+  GpuOffersResponse,
+  GpuRental,
   Coupon,
   CouponPreview,
   ChatConversation,
@@ -237,7 +239,7 @@ export const playgroundApi = {
     action?: string;
   }) => apiClient.post<PlaygroundRunResult>('/playground/run', body, 180000),
   schema: (slug: string) =>
-    apiClient.get<RunpodModelSchema>(`/runpod/public-endpoints/${encodeURIComponent(slug)}/schema`),
+    apiClient.get<RunpodModelSchema>(`/endpoints/public-endpoints/${encodeURIComponent(slug)}/schema`),
 };
 
 export const gameSessionsApi = {
@@ -245,6 +247,19 @@ export const gameSessionsApi = {
     apiClient.post<GameSessionInfo>('/game-sessions', { productSlug }, 120000),
   one: (sessionId: string) => apiClient.get<GameSessionInfo>(`/game-sessions/${sessionId}`),
   stop: (sessionId: string) => apiClient.delete<{ ok: boolean; billedCost?: number }>(`/game-sessions/${sessionId}`),
+};
+
+export const gpuRentalApi = {
+  offers: () => apiClient.get<GpuOffersResponse>('/gpu/offers'),
+  list: () => apiClient.get<{ rentals: GpuRental[] }>('/gpu/rentals'),
+  one: (id: string) => apiClient.get<{ rental: GpuRental }>(`/gpu/rentals/${id}`),
+  create: (body: { offerId: string; name?: string; volumeGb?: number }) =>
+    apiClient.post<{ rental: GpuRental }>('/gpu/rentals', body, 120000),
+  start: (id: string) => apiClient.post<{ rental: GpuRental }>(`/gpu/rentals/${id}/start`, {}),
+  stop: (id: string) => apiClient.post<{ rental: GpuRental }>(`/gpu/rentals/${id}/stop`, {}),
+  remove: (id: string) => apiClient.delete<{ rental: GpuRental }>(`/gpu/rentals/${id}`),
+  open: (id: string, target: 'lab' | 'terminal') =>
+    apiClient.post<{ path: string; expiresIn: number }>(`/gpu/rentals/${id}/open`, { target }),
 };
 
 export const contentApi = {

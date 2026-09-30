@@ -4,7 +4,7 @@ import type { Product } from '@/api/types';
 const trimSlash = (url: string) => url.replace(/\/$/, '');
 
 export function publicGatewayUrls(modelId: string) {
-  const id = encodeURIComponent(String(modelId || 'model').replace(/^runpod-/, '') || 'model');
+  const id = encodeURIComponent(String(modelId || 'model').replace(/^(?:aim|runpod)-/, '') || 'model');
   const v1 = trimSlash(API_CONFIG.BASE_URL);
   const host = v1.replace(/\/v1$/i, '');
   return {

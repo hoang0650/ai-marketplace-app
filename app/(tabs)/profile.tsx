@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import {
   Activity,
   Briefcase,
+  Cpu,
   CreditCard,
   FileText,
   Heart,
@@ -71,6 +72,7 @@ export default function ProfileScreen() {
           <MenuRow icon={Wallet} label={t('wallet.title')} onPress={() => router.push('/wallet')} />
           <MenuRow icon={IdCard} label={t('kyc.title')} onPress={() => router.push(href('/kyc'))} />
           <MenuRow icon={Activity} label={t('usage.title')} onPress={() => router.push('/usage')} />
+          <MenuRow icon={Cpu} label={t('gpu.rent.title')} onPress={() => router.push(href('/gpu'))} />
           <MenuRow icon={CreditCard} label={t('profile.billing')} onPress={() => router.push('/wallet')} />
           <MenuRow icon={Receipt} label={t('profile.complaints')} onPress={() => router.push(href('/protection'))} last />
         </MenuGroup>
