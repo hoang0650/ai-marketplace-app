@@ -4,13 +4,16 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly userMessage: string;
+  /** Parsed JSON error body (e.g. `stopReason`, `supportedDevices`). */
+  readonly details?: Record<string, unknown>;
 
-  constructor(status: number, code: string, userMessage: string) {
+  constructor(status: number, code: string, userMessage: string, details?: Record<string, unknown>) {
     super(userMessage);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.userMessage = userMessage;
+    this.details = details;
   }
 }
 

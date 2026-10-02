@@ -149,6 +149,18 @@ export interface Product {
   infraProvider?: string;
   moderationStatus?: string;
   complianceStatus?: string;
+  /** GPU / game stream listings only. */
+  streaming?: ProductStreaming;
+}
+
+/** pc = web / desktop; mobile = this Android / iOS app (touch, landscape). */
+export type StreamDevice = 'pc' | 'mobile';
+
+export interface ProductStreaming {
+  devices: StreamDevice[];
+  /** Platform-sold GPU rented as a platform GPU workspace instead of a seller stream. */
+  platformRental?: boolean;
+  rentalOfferId?: string;
 }
 
 export interface CategoryMeta {
@@ -631,6 +643,35 @@ export interface GameSessionInfo {
   productSlug?: string;
   hosting?: 'external' | 'aimarkets';
   playerMode?: 'terminal' | 'game';
+  client?: 'pc' | 'android' | 'ios';
+  device?: StreamDevice;
+  profile?: StreamProfile;
+  stopReason?: string;
+  heartbeatMs?: number;
+  idleTimeoutMs?: number;
+  billedMinutes?: number;
+  billedCost?: number;
+}
+
+export interface StreamProfile {
+  device: StreamDevice;
+  maxWidth: number;
+  maxHeight: number;
+  fps: number;
+  bitrateKbps: number;
+  inputs: string[];
+  orientation: 'any' | 'landscape';
+}
+
+export interface GameHeartbeat {
+  ok?: boolean;
+  status?: string;
+  ratePerHour: number;
+  billedMinutes: number;
+  billedCost: number;
+  currency: string;
+  available?: number;
+  minutesLeft?: number;
 }
 
 export interface GpuOffer {
@@ -804,4 +845,63 @@ export interface AgentGatewayApi {
   }) => Promise<AgentSshAccess>;
   activeSsh: (agentId: string) => Promise<AgentSshAccess>;
   revokeSsh: (agentId: string) => Promise<{ success: boolean }>;
+}
+
+/** AI App Builder (rork-style, buyer's own provider key). */
+export type BuilderKind = 'web' | 'app';
+
+export interface BuilderFile {
+  path: string;
+  content: string;
+}
+
+export interface BuilderMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  files: string[];
+  provider: string;
+  model: string;
+  createdAt: string;
+}
+
+export interface BuilderProject {
+  id: string;
+  name: string;
+  kind: BuilderKind;
+  provider: string;
+  model: string;
+  version: number;
+  fileCount: number;
+  previewUrl: string;
+  lastGeneratedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  files?: BuilderFile[];
+  messages?: BuilderMessage[];
+}
+
+export interface ByokProvider {
+  id: string;
+  label: string;
+  keyUrl: string;
+  keyHint: string;
+  custom: boolean;
+  defaultModel: string;
+}
+
+export interface ByokKey {
+  provider: string;
+  last4: string;
+  baseUrl: string;
+  model: string;
+  status: 'active' | 'invalid';
+  lastVerifiedAt: string | null;
+}
+
+export interface BuilderGenerateResult {
+  project: BuilderProject;
+  touched: string[];
+  rejected: string[];
+  truncated: boolean;
 }

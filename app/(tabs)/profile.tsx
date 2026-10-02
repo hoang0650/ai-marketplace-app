@@ -18,6 +18,7 @@ import {
   Scale,
   Settings,
   Shield,
+  Sparkles,
   Store,
   Users,
   Wallet,
@@ -73,6 +74,7 @@ export default function ProfileScreen() {
           <MenuRow icon={IdCard} label={t('kyc.title')} onPress={() => router.push(href('/kyc'))} />
           <MenuRow icon={Activity} label={t('usage.title')} onPress={() => router.push('/usage')} />
           <MenuRow icon={Cpu} label={t('gpu.rent.title')} onPress={() => router.push(href('/gpu'))} />
+          <MenuRow icon={Sparkles} label={t('builder.title')} onPress={() => router.push(href('/builder'))} />
           <MenuRow icon={CreditCard} label={t('profile.billing')} onPress={() => router.push('/wallet')} />
           <MenuRow icon={Receipt} label={t('profile.complaints')} onPress={() => router.push(href('/protection'))} last />
         </MenuGroup>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { gpuRentalApi } from '@/api';
 import type { GpuOffer, GpuRental } from '@/api/types';
@@ -30,7 +30,18 @@ export default function GpuRentScreen() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
 
+  const { offer: presetOffer } = useLocalSearchParams<{ offer?: string }>();
+
   const offers = useQuery({ queryKey: ['gpu-offers'], queryFn: gpuRentalApi.offers, enabled: isAuthenticated });
+
+  useEffect(() => {
+    if (!presetOffer || selected) return;
+    const match = (offers.data?.offers || []).find((o) => o.id === presetOffer);
+    if (!match) return;
+    setSelected(match);
+    setName((n) => n || `${match.name} workspace`);
+  }, [presetOffer, offers.data, selected]);
+
   const rentals = useQuery({
     queryKey: ['gpu-rentals'],
     queryFn: async () => {

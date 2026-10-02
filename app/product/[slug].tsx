@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { MessageSquare, Play, ShoppingCart } from 'lucide-react-native';
@@ -40,7 +40,7 @@ import {
 } from '@/constants/categories';
 import { displayFont } from '@/constants/fonts';
 import { Chip } from '@/components/ui/Chip';
-import type { ContentUnlock, LicenseTerm } from '@/api/types';
+import type { ContentUnlock, LicenseTerm, StreamDevice } from '@/api/types';
 import { getErrorMessage } from '@/lib/errors';
 
 function playSrc(res: { playToken?: string; playUrl?: string }, page?: number): string {
@@ -176,6 +176,8 @@ export default function ProductScreen() {
   const priceCaption = t(productPriceCaptionKey(p, hasAccess));
   const firstEpisode = (episodeList.data || [])[0];
   const streamProduct = isComputeStreamCategory(p.category);
+  const streamDevices: StreamDevice[] = p.streaming?.devices?.length ? p.streaming.devices : ['pc', 'mobile'];
+  const platformRental = !!p.streaming?.platformRental;
   const showCart = !playground && !isOwner && !hasAccess;
 
   const startSellerChat = async () => {
@@ -245,9 +247,29 @@ export default function ProductScreen() {
     );
   }
 
+  /** App = mobile stream flow; platform GPU listings open a platform GPU workspace instead. */
+  const openStream = () => {
+    if (platformRental) {
+      const offer = p.streaming?.rentalOfferId || '';
+      router.push(href(`/gpu${offer ? `?offer=${encodeURIComponent(offer)}` : ''}`));
+      return;
+    }
+    if (!streamDevices.includes('mobile')) {
+      Alert.alert('', t('compute.device.pcOnly'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('compute.device.openWeb'),
+          onPress: () => void Linking.openURL(`https://aimarkets.vn/play/${encodeURIComponent(p.slug)}`),
+        },
+      ]);
+      return;
+    }
+    router.push(href(`/play/${p.slug}`));
+  };
+
   const openOwned = () => {
     if (isComputeStreamCategory(p.category)) {
-      router.push(href(`/play/${p.slug}`));
+      openStream();
       return;
     }
     if (isContentCategory(p.category)) {
@@ -288,7 +310,7 @@ export default function ProductScreen() {
       return;
     }
     if (isComputeStreamCategory(p.category)) {
-      router.push(href(`/play/${p.slug}`));
+      openStream();
       return;
     }
     if (hasAccess) {
@@ -375,8 +397,18 @@ export default function ProductScreen() {
           {isComputeStreamCategory(p.category) ? (
             <View style={{ marginTop: 16 }}>
               <Text style={section(colors.text)}>{t(isGpuComputeCategory(p.category) ? 'compute.play.kickerGpu' : 'compute.play.kicker')}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                <Badge label={t(p.soldByPlatform ? 'compute.supply.platform' : 'compute.supply.seller')} />
+                {streamDevices.map((d) => (
+                  <Badge key={d} label={t(`compute.device.${d}`)} />
+                ))}
+              </View>
               <Text style={{ color: colors.textSecondary, lineHeight: 20 }}>
-                {t(isGpuComputeCategory(p.category) ? 'compute.play.hintGpu' : 'compute.play.hint')}
+                {platformRental
+                  ? t('compute.stream.platformRental')
+                  : !streamDevices.includes('mobile')
+                    ? t('compute.device.pcOnly')
+                    : t(isGpuComputeCategory(p.category) ? 'compute.play.hintGpu' : 'compute.play.hint')}
               </Text>
             </View>
           ) : null}

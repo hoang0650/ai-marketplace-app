@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { apiClient } from './client';
 import type {
   CategoryMeta,
@@ -30,6 +31,7 @@ import type {
   PaypalFunding,
   PlaygroundRunResult,
   GameSessionInfo,
+  GameHeartbeat,
   GpuOffersResponse,
   GpuRental,
   Coupon,
@@ -48,6 +50,11 @@ import type {
   PayoutPolicy,
   PayoutPolicyResponse,
   PayoutQuote,
+  BuilderGenerateResult,
+  BuilderKind,
+  BuilderProject,
+  ByokKey,
+  ByokProvider,
 } from './types';
 import type { RunpodModelSchema } from '@/lib/runpod-schema';
 
@@ -242,10 +249,16 @@ export const playgroundApi = {
     apiClient.get<RunpodModelSchema>(`/endpoints/public-endpoints/${encodeURIComponent(slug)}/schema`),
 };
 
+/** The app is the mobile stream flow (touch, virtual gamepad, landscape); web is the PC flow. */
 export const gameSessionsApi = {
   start: (productSlug: string) =>
-    apiClient.post<GameSessionInfo>('/game-sessions', { productSlug }, 120000),
+    apiClient.post<GameSessionInfo>(
+      '/game-sessions',
+      { productSlug, client: Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'mobile' },
+      120000,
+    ),
   one: (sessionId: string) => apiClient.get<GameSessionInfo>(`/game-sessions/${sessionId}`),
+  heartbeat: (sessionId: string) => apiClient.post<GameHeartbeat>(`/game-sessions/${sessionId}/heartbeat`, {}),
   stop: (sessionId: string) => apiClient.delete<{ ok: boolean; billedCost?: number }>(`/game-sessions/${sessionId}`),
 };
 
@@ -260,6 +273,25 @@ export const gpuRentalApi = {
   remove: (id: string) => apiClient.delete<{ rental: GpuRental }>(`/gpu/rentals/${id}`),
   open: (id: string, target: 'lab' | 'terminal') =>
     apiClient.post<{ path: string; expiresIn: number }>(`/gpu/rentals/${id}/open`, { target }),
+};
+
+/** Generation can take minutes; the app uses the JSON mode (no SSE). */
+const BUILDER_GENERATE_TIMEOUT_MS = 9 * 60 * 1000;
+
+export const builderApi = {
+  providers: () => apiClient.get<{ providers: ByokProvider[]; keys: ByokKey[] }>('/builder/providers'),
+  list: () => apiClient.get<{ projects: BuilderProject[] }>('/builder/projects'),
+  create: (body: { name: string; kind: BuilderKind; provider?: string }) =>
+    apiClient.post<{ project: BuilderProject }>('/builder/projects', body),
+  one: (id: string) => apiClient.get<{ project: BuilderProject }>(`/builder/projects/${id}`),
+  update: (id: string, body: { name?: string; provider?: string; model?: string }) =>
+    apiClient.patch<{ project: BuilderProject }>(`/builder/projects/${id}`, body),
+  remove: (id: string) => apiClient.delete<{ success: boolean }>(`/builder/projects/${id}`),
+  generate: (id: string, body: { prompt: string; previewError?: string; provider?: string; model?: string }) =>
+    apiClient.post<BuilderGenerateResult>(`/builder/projects/${id}/generate`, { ...body, stream: false }, BUILDER_GENERATE_TIMEOUT_MS),
+  saveKey: (provider: string, body: { apiKey: string; baseUrl?: string; model?: string }) =>
+    apiClient.put<{ key: ByokKey }>(`/openclaw/byok/keys/${provider}`, body),
+  deleteKey: (provider: string) => apiClient.delete<{ success: boolean }>(`/openclaw/byok/keys/${provider}`),
 };
 
 export const contentApi = {

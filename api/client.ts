@@ -103,7 +103,12 @@ class ApiClient {
       if (!response.ok) {
         const message = typeof parsed?.message === 'string' ? parsed.message : rawBody;
         const code = typeof parsed?.code === 'string' ? parsed.code : `HTTP_${response.status}`;
-        throw new ApiError(response.status, code, toUserMessage(message, lang()));
+        throw new ApiError(
+          response.status,
+          code,
+          toUserMessage(message, lang()),
+          parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : undefined,
+        );
       }
       return (parsed ?? {}) as T;
     } catch (error) {
