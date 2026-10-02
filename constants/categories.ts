@@ -48,6 +48,8 @@ export const CATEGORY_META: CategoryMeta[] = [
   { id: 'hire-workflow', navGroup: 'talent', hubHref: '/category/hire-workflow' },
   { id: 'hire-build-web', navGroup: 'talent', hubHref: '/category/hire-build-web' },
   { id: 'hire-build-app', navGroup: 'talent', hubHref: '/category/hire-build-app' },
+  { id: 'template-web', navGroup: 'platform', hubHref: '/category/template-web' },
+  { id: 'template-app', navGroup: 'platform', hubHref: '/category/template-app' },
 ];
 
 export const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -75,6 +77,8 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'hire-workflow': Wrench,
   'hire-build-web': Briefcase,
   'hire-build-app': Briefcase,
+  'template-web': Sparkles,
+  'template-app': Sparkles,
 };
 
 export const NAV_GROUP_ORDER: NavGroup[] = ['generate', 'apis', 'platform', 'talent'];
@@ -147,6 +151,11 @@ export function isGpuCategory(id?: string) {
 /** Live GPU / game stream (not inference playground). */
 export function isComputeStreamCategory(id?: string) {
   return id === 'gpu-compute' || id === 'game-server';
+}
+
+/** Seller templates opened in AI Builder (template-web / template-app). */
+export function isTemplateCategory(id?: string) {
+  return id === 'template-web' || id === 'template-app';
 }
 
 export function isGpuComputeCategory(id?: string) {

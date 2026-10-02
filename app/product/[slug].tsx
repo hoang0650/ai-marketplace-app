@@ -6,7 +6,7 @@ import { MessageSquare, Play, ShoppingCart } from 'lucide-react-native';
 import { href } from '@/lib/href';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { productsApi, reviewsApi, contentApi, licensesApi, ordersApi, chatApi } from '@/api';
+import { productsApi, reviewsApi, contentApi, licensesApi, ordersApi, chatApi, builderApi } from '@/api';
 import { API_CONFIG } from '@/api/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, useT } from '@/hooks/useT';
@@ -35,13 +35,14 @@ import {
   isHireAgentCategory,
   isLicenseCategory,
   isPlaygroundCategory,
+  isTemplateCategory,
   isVoiceCategory,
   categoryLabel,
 } from '@/constants/categories';
 import { displayFont } from '@/constants/fonts';
 import { Chip } from '@/components/ui/Chip';
 import type { ContentUnlock, LicenseTerm, StreamDevice } from '@/api/types';
-import { getErrorMessage } from '@/lib/errors';
+import { ApiError, getErrorMessage } from '@/lib/errors';
 
 function playSrc(res: { playToken?: string; playUrl?: string }, page?: number): string {
   const token = String(res.playToken || '').trim();
@@ -137,6 +138,22 @@ export default function ProductScreen() {
       setPlayError(getErrorMessage(err, language));
     },
   });
+  const templateInfo = useQuery({
+    queryKey: ['builder-template', q.data?.id],
+    queryFn: () => builderApi.template(q.data!.id),
+    enabled: !!q.data && isTemplateCategory(q.data.category),
+  });
+  const templateStart = useMutation({
+    mutationFn: (productId: string) => builderApi.useTemplate(productId),
+    onSuccess: (res) => router.push(href(`/builder/${res.project.id}`)),
+    onError: (err, productId) => {
+      if (err instanceof ApiError && err.code === 'TEMPLATE_PURCHASE_REQUIRED') {
+        router.push(href(`/checkout/${productId}`));
+        return;
+      }
+      Alert.alert('', getErrorMessage(err, language));
+    },
+  });
 
   const p = q.data;
   if (q.isLoading || !p) {
@@ -166,11 +183,15 @@ export default function ProductScreen() {
       ((!!p.creatorId && String(p.creatorId) === String(user.id)) || (!!p.creatorSlug && p.creatorSlug === user.creatorSlug)));
   const playground = isPlaygroundCategory(p.category);
   const hasAccess = playground ? false : licensed ? !!activeLicense || isOwner : !!paidOrder || isOwner;
+  const template = isTemplateCategory(p.category);
+  const templateFree = template && (p.pricing?.model === 'free' || !Number(p.pricing?.price || 0));
   const canPlay = !!activeLicense || isOwner;
   const accessLoading = isAuthenticated && (myLicenses.isLoading || myOrders.isLoading);
   const cta = hireAgent
     ? t(`${agentGatewayKey(hireAgent)}.open`)
-    : isHireAgentCategory(p.category, p.slug)
+    : template
+      ? t(hasAccess || templateFree ? 'builder.tpl.use' : 'builder.tpl.buyUse')
+      : isHireAgentCategory(p.category, p.slug)
       ? t('agents.browse')
       : t(productCtaKey(p, { hasAccess, expiredLicense }));
   const priceCaption = t(productPriceCaptionKey(p, hasAccess));
@@ -178,7 +199,7 @@ export default function ProductScreen() {
   const streamProduct = isComputeStreamCategory(p.category);
   const streamDevices: StreamDevice[] = p.streaming?.devices?.length ? p.streaming.devices : ['pc', 'mobile'];
   const platformRental = !!p.streaming?.platformRental;
-  const showCart = !playground && !isOwner && !hasAccess;
+  const showCart = !playground && !isOwner && !hasAccess && !templateFree;
 
   const startSellerChat = async () => {
     if (!isAuthenticated) {
@@ -268,6 +289,10 @@ export default function ProductScreen() {
   };
 
   const openOwned = () => {
+    if (template) {
+      templateStart.mutate(p.id);
+      return;
+    }
     if (isComputeStreamCategory(p.category)) {
       openStream();
       return;
@@ -313,7 +338,7 @@ export default function ProductScreen() {
       openStream();
       return;
     }
-    if (hasAccess) {
+    if (hasAccess || templateFree) {
       openOwned();
       return;
     }
@@ -392,6 +417,36 @@ export default function ProductScreen() {
             <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>
               {t(isDownloadLicenseCategory(p.category) ? 'download.licenseHint' : 'checkout.licenseHint')}
             </Text>
+          ) : null}
+
+          {template ? (
+            <View style={{ marginTop: 16 }}>
+              <Text style={section(colors.text)}>{t('builder.tpl.kicker')}</Text>
+              <Text style={{ color: colors.textSecondary, lineHeight: 20 }}>
+                {t(hasAccess || templateFree ? 'builder.tpl.ownedHint' : 'builder.tpl.buyHint')}
+              </Text>
+              {templateInfo.data?.template ? (
+                <Text style={{ color: colors.textSecondary, marginTop: 6, fontSize: 12 }}>
+                  {t('builder.tpl.stats', {
+                    files: templateInfo.data.template.fileCount,
+                    version: templateInfo.data.template.version,
+                    uses: templateInfo.data.template.useCount,
+                  })}
+                </Text>
+              ) : null}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                {hasAccess || templateFree ? (
+                  <Chip
+                    label={templateStart.isPending ? t('builder.tpl.opening') : t('builder.tpl.use')}
+                    active
+                    onPress={() => (isAuthenticated ? templateStart.mutate(p.id) : router.push('/auth/login'))}
+                  />
+                ) : null}
+                {templateInfo.data?.template.demoUrl ? (
+                  <Chip label={t('builder.tpl.demo')} onPress={() => void Linking.openURL(templateInfo.data!.template.demoUrl)} />
+                ) : null}
+              </View>
+            </View>
           ) : null}
 
           {isComputeStreamCategory(p.category) ? (

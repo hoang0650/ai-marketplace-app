@@ -875,10 +875,84 @@ export interface BuilderProject {
   fileCount: number;
   previewUrl: string;
   lastGeneratedAt: string | null;
+  template?: { productId: string; name: string; version: number } | null;
+  git?: BuilderProjectGit | null;
   createdAt: string;
   updatedAt: string;
   files?: BuilderFile[];
   messages?: BuilderMessage[];
+}
+
+export interface BuilderProjectGit {
+  provider: 'github';
+  owner: string;
+  repo: string;
+  fullName: string;
+  branch: string;
+  repoUrl: string;
+  private: boolean;
+  lastCommitSha: string;
+  lastCommitUrl: string;
+  lastPushedAt: string | null;
+  lastPushedVersion: number;
+}
+
+export interface GitConnection {
+  provider: 'github';
+  method: 'oauth' | 'token';
+  login: string;
+  avatarUrl: string;
+  scopes: string;
+  status: 'active' | 'invalid';
+  lastUsedAt: string | null;
+  connectedAt: string;
+}
+
+export interface GitStatus {
+  providers: { id: 'github'; label: string; oauth: boolean }[];
+  connections: GitConnection[];
+}
+
+export interface GitRepo {
+  fullName: string;
+  owner: string;
+  name: string;
+  private: boolean;
+  defaultBranch: string;
+  htmlUrl: string;
+  pushedAt: string | null;
+}
+
+export interface GitPushBody {
+  create?: { name?: string; private?: boolean };
+  repo?: string;
+  branch?: string;
+  message?: string;
+}
+
+export interface GitPushResult {
+  git: BuilderProjectGit;
+  commit: { sha: string; url: string; unchanged: boolean };
+  repo: { fullName: string; url: string; private: boolean; created: boolean };
+}
+
+export interface BuilderTemplateMeta {
+  productId: string;
+  kind: BuilderKind;
+  ready: boolean;
+  version: number;
+  fileCount: number;
+  demoEnabled: boolean;
+  demoUrl: string;
+  useCount: number;
+  updatedAt: string | null;
+  access: boolean;
+  paths?: string[];
+}
+
+export interface BuilderTemplateListing {
+  product: Product;
+  template: BuilderTemplateMeta;
 }
 
 export interface ByokProvider {

@@ -53,6 +53,13 @@ import type {
   BuilderGenerateResult,
   BuilderKind,
   BuilderProject,
+  BuilderTemplateListing,
+  BuilderTemplateMeta,
+  GitConnection,
+  GitPushBody,
+  GitPushResult,
+  GitRepo,
+  GitStatus,
   ByokKey,
   ByokProvider,
 } from './types';
@@ -292,6 +299,22 @@ export const builderApi = {
   saveKey: (provider: string, body: { apiKey: string; baseUrl?: string; model?: string }) =>
     apiClient.put<{ key: ByokKey }>(`/openclaw/byok/keys/${provider}`, body),
   deleteKey: (provider: string) => apiClient.delete<{ success: boolean }>(`/openclaw/byok/keys/${provider}`),
+  templates: (kind?: BuilderKind) =>
+    apiClient.get<{ templates: BuilderTemplateListing[] }>(`/builder/templates${kind ? `?kind=${kind}` : ''}`),
+  template: (productId: string) =>
+    apiClient.get<{ template: BuilderTemplateMeta; isOwner: boolean }>(`/builder/templates/${productId}`),
+  useTemplate: (productId: string, name?: string) =>
+    apiClient.post<{ project: BuilderProject }>(`/builder/templates/${productId}/use`, name ? { name } : {}),
+  gitStatus: () => apiClient.get<GitStatus>('/builder/git'),
+  /** GitHub sends the auth session back to `returnTo?git_connect=…` (or `git_error=…`). */
+  gitOAuthStart: (returnTo: string) => apiClient.post<{ url: string }>('/builder/git/github/oauth/start', { returnTo }),
+  gitOAuthComplete: (connectId: string) =>
+    apiClient.post<{ connection: GitConnection }>('/builder/git/github/oauth/complete', { connectId }),
+  gitConnectToken: (token: string) => apiClient.post<{ connection: GitConnection }>('/builder/git/github/token', { token }),
+  gitDisconnect: () => apiClient.delete<{ success: boolean }>('/builder/git/github'),
+  gitRepos: () => apiClient.get<{ repos: GitRepo[] }>('/builder/git/github/repos'),
+  gitPush: (id: string, body: GitPushBody) => apiClient.post<GitPushResult>(`/builder/git/projects/${id}/push`, body, 60_000),
+  gitUnlink: (id: string) => apiClient.delete<{ git: null }>(`/builder/git/projects/${id}/link`),
 };
 
 export const contentApi = {

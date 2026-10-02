@@ -12,6 +12,7 @@ import { href } from '@/lib/href';
 import { useAuth } from '@/hooks/useAuth';
 import { useT } from '@/hooks/useT';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
+import { GitPanel } from '@/components/builder/GitPanel';
 
 const BG = '#0b0f17';
 const BAR = '#0c121c';
@@ -20,17 +21,22 @@ const ACCENT = '#3dffb0';
 const TEXT = '#e5e7eb';
 const MUTED = 'rgba(229,231,235,0.6)';
 
-type Tab = 'preview' | 'chat' | 'code';
+type Tab = 'preview' | 'chat' | 'code' | 'git';
 
 export default function BuilderStudioScreen() {
   useKeepAwake();
-  const { id, prompt: initialPrompt } = useLocalSearchParams<{ id: string; prompt?: string }>();
+  const {
+    id,
+    prompt: initialPrompt,
+    git_connect: gitConnect,
+    git_error: gitError,
+  } = useLocalSearchParams<{ id: string; prompt?: string; git_connect?: string; git_error?: string }>();
   const router = useRouter();
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
   const { t, language } = useT();
-  const [tab, setTab] = useState<Tab>(initialPrompt ? 'chat' : 'preview');
+  const [tab, setTab] = useState<Tab>(gitConnect || gitError ? 'git' : initialPrompt ? 'chat' : 'preview');
   const [project, setProject] = useState<BuilderProject | null>(null);
   const [prompt, setPrompt] = useState('');
   const [busy, setBusy] = useState(false);
@@ -124,7 +130,7 @@ export default function BuilderStudioScreen() {
       </View>
 
       <View style={styles.tabs}>
-        {(['preview', 'chat', 'code'] as Tab[]).map((k) => (
+        {(['preview', 'chat', 'code', 'git'] as Tab[]).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabOn]}>
             <Text style={[styles.tabText, tab === k && { color: BG }]}>{t(`builder.tab.${k}`)}</Text>
           </Pressable>
@@ -237,6 +243,18 @@ export default function BuilderStudioScreen() {
             </Pressable>
           </View>
         </View>
+      ) : tab === 'git' ? (
+        <GitPanel
+          project={project}
+          busy={busy}
+          connectId={gitConnect}
+          connectError={gitError}
+          onGit={(git) => {
+            const next = { ...project, git };
+            setProject(next);
+            qc.setQueryData(['builder-project', id], { project: next });
+          }}
+        />
       ) : (
         <ScrollView contentContainerStyle={{ padding: 12, gap: 6 }}>
           {(project.files || []).map((f) => (

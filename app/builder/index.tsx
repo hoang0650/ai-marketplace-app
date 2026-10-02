@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Linking, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Linking, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { builderApi } from '@/api';
-import type { BuilderKind, ByokProvider } from '@/api/types';
+import type { BuilderKind, BuilderTemplateListing, ByokProvider } from '@/api/types';
 import { getErrorMessage } from '@/lib/errors';
 import { href } from '@/lib/href';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,11 +33,37 @@ export default function BuilderHomeScreen() {
   const [keyProvider, setKeyProvider] = useState<ByokProvider | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [showKeys, setShowKeys] = useState(false);
+  const [selected, setSelected] = useState<BuilderTemplateListing | null>(null);
 
   const providers = useQuery({ queryKey: ['builder-providers'], queryFn: builderApi.providers, enabled: isAuthenticated });
   const projects = useQuery({ queryKey: ['builder-projects'], queryFn: builderApi.list, enabled: isAuthenticated });
+  const templates = useQuery({ queryKey: ['builder-templates'], queryFn: () => builderApi.templates(), enabled: isAuthenticated });
+  const kindTemplates = useMemo(
+    () => (templates.data?.templates || []).filter((row) => row.template.kind === kind),
+    [templates.data, kind],
+  );
   const activeKeys = useMemo(() => (providers.data?.keys || []).filter((k) => k.status === 'active'), [providers.data]);
   const hasKey = activeKeys.length > 0;
+  /** Opening a template as-is needs no AI key; restyling it with a prompt does. */
+  const canStart = selected ? !prompt.trim() || hasKey : hasKey && !!prompt.trim();
+
+  const startTemplate = useMutation({
+    mutationFn: () => builderApi.useTemplate(selected!.product.id),
+    onSuccess: (r) => {
+      const text = prompt.trim();
+      setPrompt('');
+      setSelected(null);
+      void qc.invalidateQueries({ queryKey: ['builder-projects'] });
+      router.push(href(`/builder/${r.project.id}${text ? `?prompt=${encodeURIComponent(text)}` : ''}`));
+    },
+    onError: (e) => setError(getErrorMessage(e, language)),
+  });
+
+  const priceLabel = (row: BuilderTemplateListing) => {
+    const pr = row.product.pricing;
+    if (!pr || pr.model === 'free' || !(Number(pr.price) > 0)) return t('builder.tpl.free');
+    return `$${Number(pr.price).toFixed(2)}`;
+  };
 
   const saveKey = useMutation({
     mutationFn: () => builderApi.saveKey(keyProvider!.id, { apiKey: apiKey.trim() }),
@@ -160,7 +186,10 @@ export default function BuilderHomeScreen() {
           {(['app', 'web'] as BuilderKind[]).map((k) => (
             <Pressable
               key={k}
-              onPress={() => setKind(k)}
+              onPress={() => {
+                setKind(k);
+                if (selected?.template.kind !== k) setSelected(null);
+              }}
               style={{ flex: 1, borderWidth: kind === k ? 2 : 1, borderColor: kind === k ? GOLD : colors.border, borderRadius: 14, padding: 12 }}
             >
               <Text style={{ color: colors.text, fontWeight: '700' }}>{t(`builder.kind.${k}`)}</Text>
@@ -169,12 +198,53 @@ export default function BuilderHomeScreen() {
           ))}
         </View>
 
+        <Text style={{ color: colors.text, fontWeight: '700', marginTop: 18 }}>{t('builder.tpl.startFrom')}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 10 }}>
+          <Pressable
+            onPress={() => setSelected(null)}
+            style={{ width: 140, borderWidth: !selected ? 2 : 1, borderColor: !selected ? GOLD : colors.border, borderRadius: 14, padding: 12, gap: 4 }}
+          >
+            <Text style={{ fontSize: 22 }}>✨</Text>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{t('builder.tpl.blank')}</Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 11, lineHeight: 15 }}>{t('builder.tpl.blankHint')}</Text>
+          </Pressable>
+          {kindTemplates.map((row) => {
+            const on = selected?.product.id === row.product.id;
+            return (
+              <Pressable
+                key={row.product.id}
+                onPress={() => (row.template.access ? setSelected(row) : router.push(href(`/product/${row.product.slug}`)))}
+                style={{ width: 170, borderWidth: on ? 2 : 1, borderColor: on ? GOLD : colors.border, borderRadius: 14, overflow: 'hidden' }}
+              >
+                {row.product.coverUrl ? (
+                  <Image source={{ uri: row.product.coverUrl }} style={{ width: '100%', height: 80 }} />
+                ) : (
+                  <View style={{ height: 80, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.border }}>
+                    <Text style={{ fontSize: 28 }}>{row.template.kind === 'app' ? '📱' : '🖥️'}</Text>
+                  </View>
+                )}
+                <View style={{ padding: 10, gap: 2 }}>
+                  <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }} numberOfLines={1}>
+                    {row.product.name}
+                  </Text>
+                  <Text style={{ color: row.template.access ? '#34d399' : colors.textSecondary, fontSize: 12 }} numberOfLines={1}>
+                    {row.template.access ? t('builder.tpl.owned') : `${priceLabel(row)} · ${t('builder.tpl.buy')}`}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+          {templates.isSuccess && !kindTemplates.length ? (
+            <Text style={{ color: colors.textSecondary, fontSize: 12, alignSelf: 'center', maxWidth: 180 }}>{t('builder.tpl.none')}</Text>
+          ) : null}
+        </ScrollView>
+
         <TextInput
           value={prompt}
           onChangeText={setPrompt}
           multiline
           maxLength={8000}
-          placeholder={t(`builder.promptPh.${kind}`)}
+          placeholder={selected ? t('builder.tpl.promptPh') : t(`builder.promptPh.${kind}`)}
           placeholderTextColor={colors.textSecondary}
           style={[input, { minHeight: 110, marginTop: 12, textAlignVertical: 'top' }]}
         />
@@ -188,10 +258,10 @@ export default function BuilderHomeScreen() {
           ))}
         </View>
         <Button
-          title={t('builder.startBuild')}
-          loading={create.isPending}
-          disabled={!hasKey || !prompt.trim()}
-          onPress={() => create.mutate()}
+          title={selected ? t('builder.tpl.useStart') : t('builder.startBuild')}
+          loading={create.isPending || startTemplate.isPending}
+          disabled={!canStart}
+          onPress={() => (selected ? startTemplate.mutate() : create.mutate())}
           style={{ marginTop: 12 }}
         />
 
@@ -224,6 +294,11 @@ export default function BuilderHomeScreen() {
               <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
                 {t(`builder.kind.${p.kind}`)} · {p.fileCount} {t('builder.files')} · {formatDate(p.updatedAt, language)}
               </Text>
+              {p.template ? (
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>
+                  {t('builder.tpl.from', { name: p.template.name })}
+                </Text>
+              ) : null}
             </Pressable>
           ))
         )}
