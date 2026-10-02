@@ -36,13 +36,15 @@ export default function SellerCenterScreen() {
     <Screen>
       <Text style={{ color: colors.text, fontSize: 24, fontWeight: '700', marginTop: 8 }}>{t('seller.center')}</Text>
       {me.data?.verificationStatus === 'VERIFIED' ? <Badge label={t('common.verified')} /> : <Text style={{ color: colors.warning, marginTop: 8 }}>{t('seller.notVerified')}</Text>}
-      {earnings.data ? (
+      {earnings.data || dash.data ? (
         <View style={{ marginTop: 16, padding: 16, borderRadius: 12, backgroundColor: colors.luxDark }}>
           <Text style={{ color: '#c9a961' }}>{t('seller.net')}</Text>
-          <Text style={{ color: '#f2efe8', fontSize: 24, fontWeight: '800' }}>{formatMoney(earnings.data.netPayable, earnings.data.currency)}</Text>
+          <Text style={{ color: '#f2efe8', fontSize: 24, fontWeight: '800' }}>
+            {earnings.data
+              ? formatMoney(earnings.data.netPayable, earnings.data.currency)
+              : formatMoney(Number(dash.data?.netPayable) || 0, String(dash.data?.currency || 'USD'))}
+          </Text>
         </View>
-      ) : dash.data ? (
-        <Text style={{ color: colors.textSecondary, marginTop: 12 }}>{String(dash.data.netPayable ?? '')}</Text>
       ) : null}
       {rows.map((r) => (
         <Pressable key={r.href} onPress={() => router.push(r.href as never)} style={{ paddingVertical: 16, borderBottomWidth: 1, borderColor: colors.border, minHeight: 48 }}>

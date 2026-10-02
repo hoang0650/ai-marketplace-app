@@ -8,7 +8,7 @@ type Props = {
   style?: ViewStyle;
 };
 
-/** Black Apple Pay CTA (PayPal capture). Do not restyle the fill or label. */
+/** Black Apple Pay CTA. Do not restyle the fill or label. */
 export function ApplePayButton({ onPress, disabled, loading, style }: Props) {
   return (
     <Pressable
