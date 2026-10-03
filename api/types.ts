@@ -948,6 +948,52 @@ export interface BuilderTemplateMeta {
   updatedAt: string | null;
   access: boolean;
   paths?: string[];
+  /** Linked GitHub source (owner only). */
+  git?: TemplateGitSource | null;
+}
+
+export interface TemplateGitSource {
+  provider: 'github';
+  repo: string;
+  branch: string;
+  path: string;
+  commitSha: string;
+  repoUrl: string;
+  syncedAt: string | null;
+}
+
+export interface TemplateGitPick {
+  repo: string;
+  branch?: string;
+  path?: string;
+}
+
+export interface TemplateBuildLine {
+  /** ms since the build started */
+  t: number;
+  level: 'info' | 'warn' | 'error' | 'success';
+  msg: string;
+}
+
+export interface TemplateBuild {
+  id: string;
+  kind: BuilderKind;
+  status: 'success' | 'failed';
+  source: (Omit<TemplateGitSource, 'syncedAt'> & { commitMessage?: string }) | null;
+  log: TemplateBuildLine[];
+  fileCount: number;
+  paths: string[];
+  skipped: { path: string; reason: string }[];
+  durationMs: number;
+  createdAt: string | null;
+  previewUrl: string;
+  productId: string | null;
+}
+
+export interface TemplateUploadResult {
+  template: BuilderTemplateMeta;
+  skipped: { path: string; reason: string }[];
+  build?: TemplateBuild;
 }
 
 export interface BuilderTemplateListing {

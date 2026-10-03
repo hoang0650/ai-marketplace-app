@@ -46,6 +46,7 @@ export default function BuilderStudioScreen() {
   const [provider, setProvider] = useState('');
   const [nonce, setNonce] = useState(0);
   const [openFile, setOpenFile] = useState('');
+  const [expanded, setExpanded] = useState(false);
   const started = useRef(false);
   const chatRef = useRef<ScrollView>(null);
 
@@ -113,10 +114,22 @@ export default function BuilderStudioScreen() {
 
   const uri = project ? `${project.previewUrl}?v=${project.version}-${nonce}` : '';
   const file = project?.files?.find((f) => f.path === openFile);
+  const full = expanded && tab === 'preview' && !!project;
 
   return (
     <KeyboardAvoidingView style={styles.bg} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
+      {full ? (
+        <View style={[styles.fullBar, { top: Math.max(insets.top, 8) }]}>
+          <Pressable onPress={() => setNonce((n) => n + 1)} hitSlop={10} style={styles.fullBtn}>
+            <Text style={styles.fullBtnText}>↻</Text>
+          </Pressable>
+          <Pressable onPress={() => setExpanded(false)} hitSlop={10} style={styles.fullBtn}>
+            <Text style={styles.fullBtnText}>{t('builder.collapse')}</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
       <View style={[styles.bar, { paddingTop: Math.max(insets.top, 8) }]}>
         <Pressable onPress={leave} hitSlop={12}>
           <Text style={styles.barBtn}>← {t('common.back')}</Text>
@@ -124,10 +137,24 @@ export default function BuilderStudioScreen() {
         <Text style={styles.barTitle} numberOfLines={1}>
           {project?.name || t('builder.title')}
         </Text>
+        {tab === 'preview' && project ? (
+          <Pressable onPress={() => setExpanded(true)} hitSlop={12}>
+            <Text style={styles.barBtn}>{t('builder.expand')}</Text>
+          </Pressable>
+        ) : null}
         <Pressable onPress={() => setNonce((n) => n + 1)} hitSlop={12}>
           <Text style={styles.barBtn}>↻</Text>
         </Pressable>
       </View>
+
+      {providers.isSuccess && !activeKeys.length ? (
+        <Pressable onPress={() => router.push(href('/builder'))} style={styles.keyBanner}>
+          <Text style={{ color: '#fcd34d', flex: 1, lineHeight: 19 }}>{t('builder.needKey.short')}</Text>
+          <Text style={{ color: BG, backgroundColor: ACCENT, fontWeight: '800', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, overflow: 'hidden' }}>
+            {t('builder.keys.setup')}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <View style={styles.tabs}>
         {(['preview', 'chat', 'code', 'git'] as Tab[]).map((k) => (
@@ -154,6 +181,8 @@ export default function BuilderStudioScreen() {
           </View>
         </View>
       ) : null}
+        </>
+      )}
 
       {!project ? (
         <View style={styles.center}>
@@ -163,7 +192,7 @@ export default function BuilderStudioScreen() {
         <WebView
           key={uri}
           source={{ uri }}
-          style={styles.fill}
+          style={[styles.fill, full && { marginTop: insets.top, marginBottom: insets.bottom }]}
           originWhitelist={['*']}
           javaScriptEnabled
           domStorageEnabled
@@ -203,8 +232,9 @@ export default function BuilderStudioScreen() {
               </View>
             ) : null}
           </ScrollView>
-          {activeKeys.length > 1 ? (
-            <ScrollView horizontal contentContainerStyle={{ gap: 8, paddingHorizontal: 12, paddingBottom: 6 }} showsHorizontalScrollIndicator={false}>
+          {activeKeys.length ? (
+            <ScrollView horizontal contentContainerStyle={{ gap: 8, paddingHorizontal: 12, paddingBottom: 6, alignItems: 'center' }} showsHorizontalScrollIndicator={false}>
+              <Text style={{ color: MUTED, fontSize: 12 }}>{t('builder.provider')}</Text>
               {activeKeys.map((k) => (
                 <Pressable
                   key={k.provider}
@@ -297,6 +327,10 @@ const styles = StyleSheet.create({
   barBtn: { color: ACCENT, fontWeight: '700', fontSize: 14 },
   barTitle: { color: TEXT, fontWeight: '800', fontSize: 15, flex: 1, textAlign: 'center' },
   tabs: { flexDirection: 'row', gap: 6, padding: 8, backgroundColor: BAR },
+  keyBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(251,191,36,0.1)', borderBottomWidth: 1, borderBottomColor: LINE },
+  fullBar: { position: 'absolute', right: 10, zIndex: 10, flexDirection: 'row', gap: 8 },
+  fullBtn: { backgroundColor: 'rgba(12,18,28,0.85)', borderWidth: 1, borderColor: LINE, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
+  fullBtnText: { color: TEXT, fontWeight: '700', fontSize: 12 },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: LINE },
   tabOn: { backgroundColor: ACCENT, borderColor: ACCENT },
   tabText: { color: TEXT, fontWeight: '700', fontSize: 13 },

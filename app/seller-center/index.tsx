@@ -24,6 +24,7 @@ export default function SellerCenterScreen() {
 
   const rows = [
     { label: t('seller.products'), href: '/seller-center/products' },
+    { label: t('builder.tpl.sell.title'), href: '/seller-center/templates' },
     { label: t('nav.messages'), href: '/(tabs)/messages' },
     { label: t('seller.coupons'), href: '/seller-center/coupons' },
     { label: t('seller.revenue'), href: '/seller-center/revenue' },

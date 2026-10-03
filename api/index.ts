@@ -55,6 +55,9 @@ import type {
   BuilderProject,
   BuilderTemplateListing,
   BuilderTemplateMeta,
+  TemplateBuild,
+  TemplateGitPick,
+  TemplateUploadResult,
   GitConnection,
   GitPushBody,
   GitPushResult,
@@ -284,6 +287,7 @@ export const gpuRentalApi = {
 
 /** Generation can take minutes; the app uses the JSON mode (no SSE). */
 const BUILDER_GENERATE_TIMEOUT_MS = 9 * 60 * 1000;
+const TEMPLATE_BUILD_TIMEOUT_MS = 2 * 60 * 1000;
 
 export const builderApi = {
   providers: () => apiClient.get<{ providers: ByokProvider[]; keys: ByokKey[] }>('/builder/providers'),
@@ -305,6 +309,20 @@ export const builderApi = {
     apiClient.get<{ template: BuilderTemplateMeta; isOwner: boolean }>(`/builder/templates/${productId}`),
   useTemplate: (productId: string, name?: string) =>
     apiClient.post<{ project: BuilderProject }>(`/builder/templates/${productId}/use`, name ? { name } : {}),
+  /** Seller's own template listings (any moderation status). */
+  myTemplates: () => apiClient.get<{ templates: BuilderTemplateListing[] }>('/builder/templates/mine'),
+  /** GitHub → checks (Dokploy-style log). Only a `success` build can be published. */
+  templateBuild: (body: { kind: BuilderKind; fromGit: TemplateGitPick } | { productId: string; fromGit?: TemplateGitPick }) =>
+    apiClient.post<{ build: TemplateBuild }>('/builder/templates/builds', body, TEMPLATE_BUILD_TIMEOUT_MS),
+  templateFromBuild: (productId: string, buildId: string) =>
+    apiClient.put<TemplateUploadResult>(`/builder/templates/${productId}/files`, { fromBuild: buildId }),
+  /** Rebuild from the linked repo; a failed build answers 422 TEMPLATE_BUILD_FAILED with `build` in the body. */
+  templateSyncGit: (productId: string) =>
+    apiClient.request<TemplateUploadResult>(`/builder/templates/${productId}/files`, {
+      method: 'PUT',
+      body: { fromGit: { sync: true } },
+      timeoutMs: TEMPLATE_BUILD_TIMEOUT_MS,
+    }),
   gitStatus: () => apiClient.get<GitStatus>('/builder/git'),
   /** GitHub sends the auth session back to `returnTo?git_connect=…` (or `git_error=…`). */
   gitOAuthStart: (returnTo: string) => apiClient.post<{ url: string }>('/builder/git/github/oauth/start', { returnTo }),
