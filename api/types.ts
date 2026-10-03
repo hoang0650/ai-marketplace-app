@@ -79,6 +79,8 @@ export interface ProductPricing {
   unit?: string;
   usageUnit?: string;
   compareAtPrice?: number;
+  /** Hire-request listings: the seller accepts a counter offer. */
+  negotiable?: boolean;
 }
 
 export interface ChangelogEntry {
@@ -1024,4 +1026,73 @@ export interface BuilderGenerateResult {
   touched: string[];
   rejected: string[];
   truncated: boolean;
+}
+
+export type HireStatus = 'requested' | 'quoted' | 'active' | 'completed' | 'terminated' | 'declined' | 'cancelled';
+export type HireMilestoneStatus = 'pending' | 'in_progress' | 'submitted' | 'approved' | 'cancelled';
+export type HireTerminateReason = 'late' | 'not_as_requested' | 'other';
+
+export interface HireMilestone {
+  id: string;
+  index: number;
+  title: string;
+  amount: number;
+  dueAt: string;
+  status: HireMilestoneStatus;
+  overdue: boolean;
+  builderProjectId: string | null;
+  previewUrl: string;
+  previewKind: 'web' | 'app' | null;
+  demoUrl: string;
+  demoNote: string;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  revisionNote: string;
+  revisionCount: number;
+  orderId: string | null;
+}
+
+export interface HireProject {
+  id: string;
+  role: 'buyer' | 'seller' | null;
+  status: HireStatus;
+  productId: string;
+  productName: string;
+  productSlug: string;
+  category: string;
+  buyerId: string;
+  buyerName: string;
+  sellerId: string;
+  sellerName: string;
+  brief: string;
+  budget: number;
+  desiredDeadline: string | null;
+  currency: string;
+  listPrice: number;
+  quote: { amount: number; note: string; by: 'seller' | 'buyer' | ''; at: string | null };
+  demoKind: 'web' | 'app' | null;
+  milestones: HireMilestone[];
+  currentMilestoneId: string | null;
+  paidTotal: number;
+  acceptedAt: string | null;
+  completedAt: string | null;
+  terminatedAt: string | null;
+  terminationReason: HireTerminateReason | '';
+  terminationNote: string;
+  complaintId: string | null;
+  events: { at: string; actor: string; action: string; note: string }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HireMilestoneDraft {
+  title: string;
+  amount: number;
+  dueAt: string;
+}
+
+export interface WorkListingFee {
+  vnd: number;
+  amount: number;
+  currency: string;
 }

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, SIGNUP_ROLES, type SignupRoleValue } from '@/schemas/auth';
+import { WORK_BOARD_ENABLED } from '@/constants/features';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
@@ -147,7 +148,7 @@ export default function RegisterScreen() {
         <Text style={{ color: colors.text, fontWeight: '700', marginTop: 8 }}>{t('auth.roleLabel')}</Text>
         <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4, marginBottom: 10 }}>{t('auth.roleHint')}</Text>
         <View style={{ gap: 8, marginBottom: 14 }}>
-          {SIGNUP_ROLES.map((r) => {
+          {SIGNUP_ROLES.filter((r) => WORK_BOARD_ENABLED || (r !== 'freelancer' && r !== 'employer')).map((r) => {
             const active = role === r;
             return (
               <Pressable

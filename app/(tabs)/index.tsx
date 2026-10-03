@@ -23,6 +23,8 @@ import { ProductRail } from '@/components/home/ProductRail';
 import { AgentRail } from '@/components/home/AgentRail';
 import { WorkRail } from '@/components/home/WorkRail';
 import { FALLBACK_HOME_BANNERS } from '@/constants/homeBanners';
+import { isHiddenCategory } from '@/constants/categories';
+import { WORK_BOARD_ENABLED } from '@/constants/features';
 import { formatMoney, greetingHour } from '@/utils/format';
 import { useCartStore } from '@/stores/cartStore';
 
@@ -97,8 +99,16 @@ function ShopRail({ shops, t }: { shops: Creator[]; t: (k: string, vars?: Record
   );
 }
 
+/** Banners may deep-link into paused sections (Work board, hidden categories). */
+function bannerVisible(b: Banner): boolean {
+  const link = String(b.linkValue || '');
+  if (b.linkType === 'category') return !isHiddenCategory(link);
+  if (b.linkType === 'url' && !WORK_BOARD_ENABLED && link.startsWith('/work')) return false;
+  return true;
+}
+
 function bySlot(all: Banner[] | undefined, slot: string): Banner[] {
-  return (all || []).filter((b) => b.slot === slot);
+  return (all || []).filter((b) => b.slot === slot && bannerVisible(b));
 }
 
 export default function HomeScreen() {
@@ -137,6 +147,7 @@ export default function HomeScreen() {
     queryKey: ['home', 'work', 'jobs'],
     queryFn: () => workApi.jobs(),
     staleTime: 60_000,
+    enabled: WORK_BOARD_ENABLED,
   });
 
   const feed = feedQ.data;
@@ -144,7 +155,7 @@ export default function HomeScreen() {
   const heroBanners = bySlot(allBanners, 'home_hero');
   const offerBanners = bySlot(allBanners, 'offers');
   const partnerBanners = bySlot(allBanners, 'partners');
-  const workJobs = ((workQ.data as WorkJob[]) || []).slice(0, 8);
+  const workJobs = WORK_BOARD_ENABLED ? ((workQ.data as WorkJob[]) || []).slice(0, 8) : [];
   const greeting = `${greetingHour(language)}${user?.name ? `, ${user.name}` : ''}`;
   const empty = useMemo(() => {
     if (!feed && !allBanners.length) return true;

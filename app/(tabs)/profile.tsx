@@ -7,6 +7,7 @@ import {
   Cpu,
   CreditCard,
   FileText,
+  Handshake,
   Heart,
   HelpCircle,
   IdCard,
@@ -31,6 +32,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
 import { MenuGroup, MenuRow } from '@/components/ui/MenuRow';
 import { displayFont } from '@/constants/fonts';
+import { WORK_BOARD_ENABLED } from '@/constants/features';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -67,7 +69,10 @@ export default function ProfileScreen() {
         <Text style={[styles.section, { color: colors.textSecondary }]}>{t('profile.section.account')}</Text>
         <MenuGroup>
           <MenuRow icon={Package} label={t('profile.orders')} onPress={() => router.push('/(tabs)/orders')} />
-          <MenuRow icon={Briefcase} label={t('hub.work')} onPress={() => router.push(href('/work'))} />
+          {WORK_BOARD_ENABLED ? (
+            <MenuRow icon={Briefcase} label={t('hub.work')} onPress={() => router.push(href('/work'))} />
+          ) : null}
+          <MenuRow icon={Handshake} label={t('hire.list.title')} onPress={() => router.push(href('/hire'))} />
           <MenuRow icon={Heart} label={t('profile.favorites')} onPress={() => router.push(href('/favorites'))} />
           <MenuRow icon={KeyRound} label={t('license.mine')} onPress={() => router.push(href('/licenses'))} />
           <MenuRow icon={Wallet} label={t('wallet.title')} onPress={() => router.push('/wallet')} />
@@ -86,13 +91,13 @@ export default function ProfileScreen() {
               {isSeller ? (
                 <MenuRow icon={Store} label={t('profile.seller')} onPress={() => router.push(href('/seller-center'))} />
               ) : null}
-              {isTalent ? (
+              {isTalent && WORK_BOARD_ENABLED ? (
                 <MenuRow icon={Users} label={t('signup.role.talent')} onPress={() => router.push(href('/work/talents'))} />
               ) : null}
-              {isFreelancer ? (
+              {isFreelancer || (isEmployer && !WORK_BOARD_ENABLED) ? (
                 <MenuRow icon={FileText} label={t('work.contracts')} onPress={() => router.push(href('/work/contracts'))} />
               ) : null}
-              {isEmployer ? (
+              {isEmployer && WORK_BOARD_ENABLED ? (
                 <MenuRow icon={LayoutDashboard} label={t('work.nav.dashboard')} onPress={() => router.push(href('/work/manage'))} />
               ) : null}
             </MenuGroup>

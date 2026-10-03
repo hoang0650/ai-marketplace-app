@@ -29,7 +29,7 @@ export default function SellerCouponsScreen() {
   const [endsAt, setEndsAt] = useState('');
 
   const coupons = useQuery({ queryKey: ['seller-coupons'], queryFn: couponsApi.list, enabled: isAuthenticated });
-  const products = useQuery({ queryKey: ['products', 'mine'], queryFn: () => productsApi.list({ limit: 200 }), enabled: isAuthenticated });
+  const products = useQuery({ queryKey: ['products', 'mine'], queryFn: () => productsApi.list({ limit: 200, includeHidden: true }), enabled: isAuthenticated });
   const mine = useMemo(
     () => (products.data || []).filter((p) => p.creatorSlug === user?.creatorSlug || p.creatorId === user?.id),
     [products.data, user?.creatorSlug, user?.id],

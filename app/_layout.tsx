@@ -78,6 +78,8 @@ function ThemedStack() {
         <Stack.Screen name="cart/index" options={{ title: '' }} />
         <Stack.Screen name="checkout/[id]" options={{ title: '' }} />
         <Stack.Screen name="seller-center/index" options={{ title: '' }} />
+        <Stack.Screen name="hire/index" options={{ title: '' }} />
+        <Stack.Screen name="hire/[id]" options={{ title: '' }} />
         <Stack.Screen name="play/[slug]" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="seller/[slug]" options={{ title: '' }} />
         <Stack.Screen name="legal/index" options={{ title: 'Trung tâm pháp lý' }} />

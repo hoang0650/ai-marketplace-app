@@ -10,6 +10,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
 import { displayFont } from '@/constants/fonts';
 import { HubBackButton } from '@/components/catalog/HubBackButton';
+import { WorkDisclaimer } from '@/components/work/WorkDisclaimer';
 
 const LINKS = [
   { href: '/work/jobs', icon: Briefcase, titleKey: 'work.nav.jobs', descKey: 'work.nav.jobsDesc' },
@@ -52,6 +53,8 @@ export default function WorkOverviewScreen() {
             onPress={() => router.push(isAuthenticated ? href('/work/post') : '/auth/login')}
           />
         </View>
+
+        <WorkDisclaimer />
 
         <View style={styles.grid}>
           {LINKS.map((link) => {

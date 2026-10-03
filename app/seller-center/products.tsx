@@ -16,7 +16,7 @@ export default function SellerProductsScreen() {
   const { colors } = useTheme();
   const { t } = useT();
   const [tab, setTab] = useState<(typeof TABS)[number]>('all');
-  const q = useQuery({ queryKey: ['products', 'mine'], queryFn: () => productsApi.list({ limit: 200 }) });
+  const q = useQuery({ queryKey: ['products', 'mine'], queryFn: () => productsApi.list({ limit: 200, includeHidden: true }) });
   const mine = (q.data || []).filter((p) => p.creatorSlug === user?.creatorSlug || p.creatorId === user?.id);
   const rows = mine.filter((p) => tab === 'all' || (p.moderationStatus || 'active').includes(tab));
   return (

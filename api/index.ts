@@ -65,8 +65,13 @@ import type {
   GitStatus,
   ByokKey,
   ByokProvider,
+  HireMilestoneDraft,
+  HireProject,
+  HireTerminateReason,
+  WorkListingFee,
 } from './types';
 import type { RunpodModelSchema } from '@/lib/runpod-schema';
+import { isHiddenCategory, withoutHiddenProducts } from '@/constants/categories';
 
 function qs(params: Record<string, string | number | boolean | undefined>) {
   const q = new URLSearchParams();
@@ -79,7 +84,10 @@ function qs(params: Record<string, string | number | boolean | undefined>) {
 }
 
 export const productsApi = {
-  list: (params?: {
+  list: async ({
+    includeHidden,
+    ...params
+  }: {
     q?: string;
     category?: string;
     creatorSlug?: string;
@@ -87,12 +95,26 @@ export const productsApi = {
     limit?: number;
     offset?: number;
     sort?: string;
-  }) => apiClient.get<Product[]>(`/products${qs(params || {})}`),
-  home: () => apiClient.get<HomeFeed>('/home'),
+    /** Seller back-office: keep listings in paused categories so owners can still manage them. */
+    includeHidden?: boolean;
+  } = {}) => {
+    const rows = await apiClient.get<Product[]>(`/products${qs(params)}`);
+    return includeHidden ? rows : withoutHiddenProducts(rows);
+  },
+  home: async () => {
+    const feed = await apiClient.get<HomeFeed>('/home');
+    return {
+      ...feed,
+      newArrivals: withoutHiddenProducts(feed?.newArrivals),
+      promoted: withoutHiddenProducts(feed?.promoted),
+      bestsellers: withoutHiddenProducts(feed?.bestsellers),
+    };
+  },
   listMany: async (categories: string[], limit = 40) => {
-    const lists = await Promise.all(categories.map((category) => apiClient.get<Product[]>(`/products${qs({ category, limit })}`)));
+    const visible = categories.filter((c) => !isHiddenCategory(c));
+    const lists = await Promise.all(visible.map((category) => apiClient.get<Product[]>(`/products${qs({ category, limit })}`)));
     const seen = new Set<string>();
-    return lists.flat().filter((p) => {
+    return withoutHiddenProducts(lists.flat()).filter((p) => {
       if (!p?.id || seen.has(p.id)) return false;
       seen.add(p.id);
       return true;
@@ -110,7 +132,10 @@ export const bannersApi = {
 };
 
 export const categoriesApi = {
-  list: () => apiClient.get<CategoryMeta[]>('/categories'),
+  list: async () => {
+    const rows = await apiClient.get<CategoryMeta[]>('/categories');
+    return (rows || []).filter((c) => !isHiddenCategory(c?.id));
+  },
 };
 
 export const creatorsApi = {
@@ -414,8 +439,31 @@ export const hiredAgentsApi = {
     apiClient.delete<{ success: boolean }>(`/agents/hired/${encodeURIComponent(agentId)}`),
 };
 
+/** Custom work (web, app, marketing, SEO, creator, automation): quote → phases → demo → approve per phase. */
+export const hireApi = {
+  list: (as?: 'buyer' | 'seller') => apiClient.get<HireProject[]>(`/hire/projects${qs({ as })}`),
+  one: (id: string) => apiClient.get<HireProject>(`/hire/projects/${id}`),
+  request: (body: { productId: string; brief: string; budget?: number; desiredDeadline?: string }) =>
+    apiClient.post<HireProject>('/hire/projects', body),
+  quote: (id: string, amount: number, note: string) =>
+    apiClient.post<HireProject>(`/hire/projects/${id}/quote`, { amount, note }),
+  counter: (id: string, amount: number, note: string) =>
+    apiClient.post<HireProject>(`/hire/projects/${id}/counter`, { amount, note }),
+  decline: (id: string, note: string) => apiClient.post<HireProject>(`/hire/projects/${id}/decline`, { note }),
+  cancel: (id: string) => apiClient.post<HireProject>(`/hire/projects/${id}/cancel`, {}),
+  accept: (id: string, milestones: HireMilestoneDraft[]) =>
+    apiClient.post<HireProject>(`/hire/projects/${id}/accept`, { milestones }),
+  submit: (id: string, body: { builderProjectId?: string; demoUrl?: string; note?: string }) =>
+    apiClient.post<HireProject>(`/hire/projects/${id}/submit`, body),
+  approve: (id: string) => apiClient.post<HireProject>(`/hire/projects/${id}/approve`, {}, 60_000),
+  revision: (id: string, note: string) => apiClient.post<HireProject>(`/hire/projects/${id}/revision`, { note }),
+  terminate: (id: string, reason: HireTerminateReason, note: string) =>
+    apiClient.post<HireProject>(`/hire/projects/${id}/terminate`, { reason, note }),
+};
+
 export const workApi = {
   fields: () => apiClient.get<WorkField[]>('/work/fields'),
+  listingFee: () => apiClient.get<WorkListingFee>('/work/listing-fee'),
   jobs: (params?: { q?: string; field?: string }) =>
     apiClient.get<WorkJob[]>(`/work/jobs${qs({ q: params?.q, field: params?.field })}`),
   job: (slug: string) => apiClient.get<WorkJob>(`/work/jobs/${slug}`),

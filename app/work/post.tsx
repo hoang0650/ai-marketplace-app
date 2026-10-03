@@ -13,7 +13,8 @@ import { Screen } from '@/components/ui/Screen';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
-import { getErrorMessage } from '@/lib/errors';
+import { ApiError, getErrorMessage } from '@/lib/errors';
+import { WorkDisclaimer, useWorkListingFee } from '@/components/work/WorkDisclaimer';
 
 const schema = z.object({
   title: z.string().min(3).max(160),
@@ -28,6 +29,8 @@ export default function WorkPostScreen() {
   const { t, language } = useT();
   const { isAuthenticated } = useAuth();
   const [error, setError] = useState('');
+  const [needTopup, setNeedTopup] = useState(false);
+  const { label: feeLabel } = useWorkListingFee();
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: { title: '', company: '', location: 'Remote', description: '' },
@@ -45,10 +48,12 @@ export default function WorkPostScreen() {
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       setError('');
+      setNeedTopup(false);
       const job = await workApi.postJob({ ...values, remote: true });
       router.replace(href(`/work/job/${job.slug}`));
     } catch (e) {
       setError(getErrorMessage(e, language));
+      setNeedTopup(e instanceof ApiError && e.status === 402);
     }
   });
 
@@ -57,6 +62,7 @@ export default function WorkPostScreen() {
       <Stack.Screen options={{ title: t('work.postJob') }} />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Text style={[styles.lede, { color: colors.textSecondary }]}>{t('work.postJobDesc')}</Text>
+        <WorkDisclaimer />
         <Controller control={form.control} name="title" render={({ field, fieldState }) => <Input label={t('work.form.title')} value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
         <Controller control={form.control} name="company" render={({ field, fieldState }) => <Input label={t('work.form.company')} value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
         <Controller control={form.control} name="location" render={({ field, fieldState }) => <Input label={t('work.form.location')} value={field.value} onChangeText={field.onChange} error={fieldState.error?.message} />} />
@@ -77,7 +83,14 @@ export default function WorkPostScreen() {
           )}
         />
         {error ? <Text style={{ color: colors.danger, marginBottom: 12 }}>{error}</Text> : null}
-        <Button title={t('work.form.submit')} onPress={onSubmit} loading={form.formState.isSubmitting} />
+        {needTopup ? (
+          <Button title={t('hire.topup')} variant="outline" onPress={() => router.push('/wallet')} style={{ marginBottom: 10 }} />
+        ) : null}
+        <Button
+          title={feeLabel ? t('work.form.submitPaid', { fee: feeLabel }) : t('work.form.submit')}
+          onPress={onSubmit}
+          loading={form.formState.isSubmitting}
+        />
       </ScrollView>
     </Screen>
   );

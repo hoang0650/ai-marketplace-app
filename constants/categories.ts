@@ -13,6 +13,7 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react-native';
+import { WORK_BOARD_ENABLED } from './features';
 
 export type NavGroup = 'generate' | 'apis' | 'platform' | 'talent';
 
@@ -51,6 +52,22 @@ export const CATEGORY_META: CategoryMeta[] = [
   { id: 'template-web', navGroup: 'platform', hubHref: '/category/template-web' },
   { id: 'template-app', navGroup: 'platform', hubHref: '/category/template-app' },
 ];
+
+/**
+ * Paused until the licence exists (film distribution, e-publication distribution, data intermediary).
+ * Keep in sync with web `HIDDEN_CATEGORIES`.
+ */
+export const HIDDEN_CATEGORIES: ReadonlySet<string> = new Set(['ai-film-series', 'story-book', 'dataset']);
+
+export function isHiddenCategory(id?: string | null) {
+  return HIDDEN_CATEGORIES.has(String(id || ''));
+}
+
+export function withoutHiddenProducts<T extends { category?: string }>(items: T[] | null | undefined): T[] {
+  return (items || []).filter((p) => !isHiddenCategory(p.category));
+}
+
+const VISIBLE_CATEGORY_META = CATEGORY_META.filter((c) => !isHiddenCategory(c.id));
 
 export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'text-to-text': Sparkles,
@@ -95,7 +112,7 @@ export const NAV_GROUP_TITLE: Record<NavGroup, string> = {
  * "Suggested for you" and are not shop categories.
  */
 export const HOME_CATEGORY_IDS = [
-  ...CATEGORY_META.filter((c) => c.navGroup === 'generate').map((c) => c.id),
+  ...VISIBLE_CATEGORY_META.filter((c) => c.navGroup === 'generate').map((c) => c.id),
   'inference',
   'api-endpoint',
 ] as const;
@@ -132,12 +149,14 @@ export function isSpacebotOpsProduct(slug?: string) {
   return slug === 'spacebot-ops-agent';
 }
 
-export const HOME_HUBS = [
-  { id: 'work', href: '/work', icon: Briefcase, titleKey: 'hub.work', shortKey: 'hub.work', descKey: 'hub.workDesc' },
-] as const;
+type HomeHub = { id: string; href: string; icon: LucideIcon; titleKey: string; shortKey: string; descKey: string };
+
+export const HOME_HUBS: HomeHub[] = WORK_BOARD_ENABLED
+  ? [{ id: 'work', href: '/work', icon: Briefcase, titleKey: 'hub.work', shortKey: 'hub.work', descKey: 'hub.workDesc' }]
+  : [];
 
 export function categoriesByNavGroup(group: NavGroup) {
-  return CATEGORY_META.filter((c) => c.navGroup === group);
+  return VISIBLE_CATEGORY_META.filter((c) => c.navGroup === group);
 }
 
 export function categoryMeta(id?: string) {
@@ -151,6 +170,20 @@ export function isGpuCategory(id?: string) {
 /** Live GPU / game stream (not inference playground). */
 export function isComputeStreamCategory(id?: string) {
   return id === 'gpu-compute' || id === 'game-server';
+}
+
+/** Custom-work listings: no checkout, the buyer sends a request and pays per approved phase. */
+export const HIRE_REQUEST_CATEGORIES = [
+  'hire-build-web',
+  'hire-build-app',
+  'hire-marketing',
+  'hire-seo',
+  'hire-creator',
+  'hire-workflow',
+] as const;
+
+export function isHireRequestCategory(id?: string) {
+  return !!id && (HIRE_REQUEST_CATEGORIES as readonly string[]).includes(id);
 }
 
 /** Seller templates opened in AI Builder (template-web / template-app). */

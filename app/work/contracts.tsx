@@ -16,6 +16,7 @@ import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { formatMoney } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
 import { HubBackButton } from '@/components/catalog/HubBackButton';
+import { WORK_BOARD_ENABLED } from '@/constants/features';
 
 type RoleFilter = 'all' | 'employer' | 'freelancer';
 
@@ -82,7 +83,10 @@ export default function WorkContractsScreen() {
 
     return (
       <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-        <Pressable onPress={() => item.jobSlug && router.push(href(`/work/job/${item.jobSlug}`))}>
+        <Pressable
+          disabled={!WORK_BOARD_ENABLED}
+          onPress={() => item.jobSlug && router.push(href(`/work/job/${item.jobSlug}`))}
+        >
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
             {item.jobTitle || item.jobSlug || t('work.contracts')}
           </Text>

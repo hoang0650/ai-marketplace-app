@@ -16,6 +16,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image as ImageIcon, Send } from 'lucide-react-native';
 import { href } from '@/lib/href';
+import { WORK_BOARD_ENABLED } from '@/constants/features';
 import { chatApi } from '@/api';
 import type { ChatMessage } from '@/api/types';
 import { useAuth } from '@/hooks/useAuth';
@@ -136,8 +137,11 @@ export default function ChatThreadScreen() {
           <Pressable
             onPress={() => {
               const c = convo.data!;
-              if (c.contextType === 'job' && c.jobSlug) router.push(href(`/work/job/${c.jobSlug}`));
-              else if (c.contextType === 'talent' && c.talentSlug) router.push(href(`/work/talent/${c.talentSlug}`));
+              if (c.contextType === 'job' && c.jobSlug) {
+                if (WORK_BOARD_ENABLED) router.push(href(`/work/job/${c.jobSlug}`));
+              } else if (c.contextType === 'talent' && c.talentSlug) {
+                if (WORK_BOARD_ENABLED) router.push(href(`/work/talent/${c.talentSlug}`));
+              }
               else if (c.productSlug) router.push(href(`/product/${c.productSlug}`));
             }}
             style={{ flexDirection: 'row', gap: 10, alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderColor: colors.border }}

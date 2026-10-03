@@ -1,12 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert, Linking } from 'react-native';
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { MessageSquare, Play, ShoppingCart } from 'lucide-react-native';
 import { href } from '@/lib/href';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { productsApi, reviewsApi, contentApi, licensesApi, ordersApi, chatApi, builderApi } from '@/api';
+import { productsApi, reviewsApi, contentApi, licensesApi, ordersApi, chatApi, builderApi, hireApi } from '@/api';
 import { API_CONFIG } from '@/api/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, useT } from '@/hooks/useT';
@@ -18,6 +18,7 @@ import { productPrice, availableLicenseTerms, licenseUnitPrice, formatMoney } fr
 import { Badge } from '@/components/ui/Badge';
 import { Rating } from '@/components/ui/Rating';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { NativeMediaPlayer } from '@/components/content/NativeMediaPlayer';
 import { EpisodeGrid } from '@/components/content/EpisodeGrid';
 import { ProductWorkspace } from '@/components/product/ProductWorkspace';
@@ -32,7 +33,9 @@ import {
   isContentCategory,
   isDownloadLicenseCategory,
   isFilmCategory,
+  isHiddenCategory,
   isHireAgentCategory,
+  isHireRequestCategory,
   isLicenseCategory,
   isPlaygroundCategory,
   isTemplateCategory,
@@ -69,7 +72,7 @@ export default function ProductScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isAuthenticated, user, isAdmin } = useAuth();
+  const { isAuthenticated, user, isAdmin, isInitialized } = useAuth();
   const { colors } = useTheme();
   const { t, language } = useT();
   /** Resolve the hired agent from the product slug so NanoClaw/SpaceBot launch their own gateway. */
@@ -117,6 +120,12 @@ export default function ProductScreen() {
   const [playError, setPlayError] = useState('');
   const [selectedEpisodeId, setSelectedEpisodeId] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
+  const hireOffset = useRef(0);
+  const [hireBrief, setHireBrief] = useState('');
+  const [hireBudget, setHireBudget] = useState('');
+  const [hireDeadline, setHireDeadline] = useState('');
+  const [hireBusy, setHireBusy] = useState(false);
+  const [hireError, setHireError] = useState('');
   const unlock = useMutation({
     mutationFn: ({ episodeId, licenseKey }: { episodeId: string; licenseKey?: string }) => contentApi.unlock(episodeId, licenseKey),
     onSuccess: (res: ContentUnlock, vars) => {
@@ -181,25 +190,75 @@ export default function ProductScreen() {
     isAdmin ||
     (!!user?.id &&
       ((!!p.creatorId && String(p.creatorId) === String(user.id)) || (!!p.creatorSlug && p.creatorSlug === user.creatorSlug)));
+  if (isHiddenCategory(p.category) && !isOwner) {
+    if (!isInitialized) {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
+          <ActivityIndicator color={colors.tint} />
+        </View>
+      );
+    }
+    return <Redirect href="/(tabs)/explore" />;
+  }
   const playground = isPlaygroundCategory(p.category);
-  const hasAccess = playground ? false : licensed ? !!activeLicense || isOwner : !!paidOrder || isOwner;
+  const hireRequest = isHireRequestCategory(p.category);
+  const hasAccess = playground || hireRequest ? false : licensed ? !!activeLicense || isOwner : !!paidOrder || isOwner;
   const template = isTemplateCategory(p.category);
   const templateFree = template && (p.pricing?.model === 'free' || !Number(p.pricing?.price || 0));
   const canPlay = !!activeLicense || isOwner;
   const accessLoading = isAuthenticated && (myLicenses.isLoading || myOrders.isLoading);
   const cta = hireAgent
     ? t(`${agentGatewayKey(hireAgent)}.open`)
-    : template
+    : hireRequest
+      ? t(isOwner ? 'hire.list.title' : 'hire.req.cta')
+      : template
       ? t(hasAccess || templateFree ? 'builder.tpl.use' : 'builder.tpl.buyUse')
       : isHireAgentCategory(p.category, p.slug)
       ? t('agents.browse')
       : t(productCtaKey(p, { hasAccess, expiredLicense }));
-  const priceCaption = t(productPriceCaptionKey(p, hasAccess));
+  const priceCaption = t(hireRequest ? 'hire.req.listPrice' : productPriceCaptionKey(p, hasAccess));
   const firstEpisode = (episodeList.data || [])[0];
   const streamProduct = isComputeStreamCategory(p.category);
   const streamDevices: StreamDevice[] = p.streaming?.devices?.length ? p.streaming.devices : ['pc', 'mobile'];
   const platformRental = !!p.streaming?.platformRental;
-  const showCart = !playground && !isOwner && !hasAccess && !templateFree;
+  const showCart = !playground && !hireRequest && !isOwner && !hasAccess && !templateFree;
+
+  const submitHireRequest = async () => {
+    if (!isAuthenticated) {
+      router.push('/auth/login');
+      return;
+    }
+    const brief = hireBrief.trim();
+    if (brief.length < 20) {
+      setHireError(t('hire.req.briefShort'));
+      return;
+    }
+    const deadline = hireDeadline.trim();
+    if (deadline && !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) {
+      setHireError(t('hire.dateFmt'));
+      return;
+    }
+    setHireBusy(true);
+    setHireError('');
+    try {
+      const project = await hireApi.request({
+        productId: p.id,
+        brief,
+        budget: Number(hireBudget) > 0 ? Number(hireBudget) : undefined,
+        desiredDeadline: deadline || undefined,
+      });
+      router.push(href(`/hire/${project.id}`));
+    } catch (err) {
+      const existing = err instanceof ApiError && err.code === 'HIRE_ALREADY_OPEN' ? err.details?.projectId : null;
+      if (existing) {
+        router.push(href(`/hire/${String(existing)}`));
+        return;
+      }
+      setHireError(getErrorMessage(err, language));
+    } finally {
+      setHireBusy(false);
+    }
+  };
 
   const startSellerChat = async () => {
     if (!isAuthenticated) {
@@ -329,6 +388,11 @@ export default function ProductScreen() {
       void launchAgent();
       return;
     }
+    if (hireRequest) {
+      if (isOwner) router.push(href('/hire?as=seller'));
+      else scrollRef.current?.scrollTo({ y: Math.max(0, hireOffset.current - 12), animated: true });
+      return;
+    }
     // Generic hire-agent listing without a launchable catalog entry (kept as before).
     if (isHireAgentCategory(p.category, p.slug)) {
       router.push(href('/agents'));
@@ -446,6 +510,66 @@ export default function ProductScreen() {
                   <Chip label={t('builder.tpl.demo')} onPress={() => void Linking.openURL(templateInfo.data!.template.demoUrl)} />
                 ) : null}
               </View>
+            </View>
+          ) : null}
+
+          {hireRequest ? (
+            <View
+              style={{ marginTop: 16 }}
+              onLayout={(e) => {
+                hireOffset.current = styles.cover.height + e.nativeEvent.layout.y;
+              }}
+            >
+              <Text style={section(colors.text)}>{t('hire.req.title')}</Text>
+              {(['step1', 'step2', 'step3', 'step4'] as const).map((k, i) => (
+                <Text key={k} style={{ color: colors.textSecondary, lineHeight: 20, marginBottom: 6 }}>
+                  {i + 1}. {t(`hire.req.${k}`)}
+                </Text>
+              ))}
+              <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4, marginBottom: 12 }}>
+                {t(p.pricing?.negotiable === false ? 'hire.req.fixedHint' : 'hire.req.negotiableHint')}
+              </Text>
+              {isOwner ? (
+                <Text style={{ color: colors.text, lineHeight: 20 }}>{t('hire.req.own')}</Text>
+              ) : (
+                <>
+                  <Input
+                    label={t('hire.req.brief')}
+                    placeholder={t('hire.req.briefPh')}
+                    value={hireBrief}
+                    onChangeText={setHireBrief}
+                    multiline
+                    numberOfLines={5}
+                    textAlignVertical="top"
+                    style={{ minHeight: 120 }}
+                    maxLength={4000}
+                  />
+                  <Input
+                    label={t('hire.req.budget')}
+                    placeholder={String(p.pricing?.price || '')}
+                    value={hireBudget}
+                    onChangeText={setHireBudget}
+                    keyboardType="decimal-pad"
+                  />
+                  <Input
+                    label={t('hire.req.deadline')}
+                    placeholder="YYYY-MM-DD"
+                    value={hireDeadline}
+                    onChangeText={setHireDeadline}
+                    autoCapitalize="none"
+                    maxLength={10}
+                  />
+                  {hireError ? <Text style={{ color: colors.danger, marginBottom: 10 }}>{hireError}</Text> : null}
+                  <Button
+                    title={hireBusy ? t('hire.req.sending') : t('hire.req.send')}
+                    loading={hireBusy}
+                    onPress={() => void submitHireRequest()}
+                  />
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 8, lineHeight: 18 }}>
+                    {t('hire.req.escrowHint')}
+                  </Text>
+                </>
+              )}
             </View>
           ) : null}
 
