@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useRouter } from 'expo-router';
 import {
   Activity,
+  BarChart3,
   Briefcase,
   Cpu,
   CreditCard,
@@ -36,7 +37,7 @@ import { WORK_BOARD_ENABLED } from '@/constants/features';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, isAuthenticated, isCreator, isSeller, isTalent, isFreelancer, isEmployer, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, isCreator, isSeller, isTalent, isFreelancer, isEmployer, logout } = useAuth();
   const { colors } = useTheme();
   const { t } = useT();
   const avatar = user?.avatarUrl;
@@ -100,6 +101,15 @@ export default function ProfileScreen() {
               {isEmployer && WORK_BOARD_ENABLED ? (
                 <MenuRow icon={LayoutDashboard} label={t('work.nav.dashboard')} onPress={() => router.push(href('/work/manage'))} />
               ) : null}
+            </MenuGroup>
+          </>
+        ) : null}
+
+        {isAdmin ? (
+          <>
+            <Text style={[styles.section, { color: colors.textSecondary }]}>{t('profile.section.admin')}</Text>
+            <MenuGroup>
+              <MenuRow icon={BarChart3} label={t('admin.title')} onPress={() => router.push(href('/admin'))} last />
             </MenuGroup>
           </>
         ) : null}

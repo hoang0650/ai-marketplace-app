@@ -213,6 +213,55 @@ export interface Banner {
   sortOrder?: number;
 }
 
+export type AdminGranularity = 'day' | 'week' | 'month';
+
+/** One period bucket; `date` is its first day (YYYY-MM-DD, Vietnam time). */
+export interface AdminDailyPoint {
+  date: string;
+  gross: number;
+  platformFee: number;
+  sellerNet: number;
+  orders: number;
+  deposits: number;
+  users: number;
+}
+
+export interface AdminShopRevenue {
+  sellerId: string;
+  shopName: string;
+  creatorSlug?: string;
+  avatarUrl?: string;
+  orders: number;
+  grossRevenue: number;
+  platformFee: number;
+  sellerNet: number;
+  storeFeeAmount?: number;
+  playStoreFeeAmount?: number;
+  appStoreFeeAmount?: number;
+}
+
+export interface AdminOverview {
+  users: number;
+  products: number;
+  creators: number;
+  orders: number;
+  paidOrders: number;
+  currency: string;
+  platformFeeRate: number;
+  totalGrossRevenue: number;
+  platformFee: number;
+  storeFees?: number;
+  playStoreFees?: number;
+  appStoreFees?: number;
+  sellerNet: number;
+  buyerDeposits: number;
+  buyerDepositCount: number;
+  shops: AdminShopRevenue[];
+  series?: AdminDailyPoint[];
+  usersList: Array<{ id: string; name: string; email: string; role: string; accountStatus?: string }>;
+  productsList: Array<{ id: string; name: string; category: string; salesCount?: number }>;
+}
+
 export interface Order {
   id: string;
   productId: string;
@@ -238,6 +287,8 @@ export interface Order {
   completedAt?: string | null;
   disputeStatus?: string;
   disputeReason?: string;
+  disputeOpenedAt?: string | null;
+  sellerNet?: number;
   canDispute?: boolean;
   payoutHeld?: boolean;
   contractSnapshot?: { termsVersion?: string; refundPolicy?: string } | null;

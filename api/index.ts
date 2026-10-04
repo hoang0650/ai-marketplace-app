@@ -71,6 +71,9 @@ import type {
   HireProject,
   HireTerminateReason,
   WorkListingFee,
+  AdminDailyPoint,
+  AdminGranularity,
+  AdminOverview,
 } from './types';
 import type { RunpodModelSchema } from '@/lib/runpod-schema';
 import { isHiddenCategory, withoutHiddenProducts } from '@/constants/categories';
@@ -456,6 +459,15 @@ export const agentPlansApi = {
 };
 
 /** Custom work (web, app, marketing, SEO, creator, automation): quote → phases → demo → approve per phase. */
+export const adminApi = {
+  overview: () => apiClient.get<AdminOverview>('/admin/overview'),
+  revenueSeries: (granularity: AdminGranularity) =>
+    apiClient.get<{ granularity: AdminGranularity; series: AdminDailyPoint[] }>(`/admin/revenue-series${qs({ granularity })}`),
+  disputes: () => apiClient.get<Order[]>('/admin/disputes'),
+  resolveDispute: (orderId: string, resolution: 'seller' | 'buyer') =>
+    apiClient.patch<Order>(`/admin/disputes/${orderId}`, { resolution }),
+};
+
 export const hireApi = {
   list: (as?: 'buyer' | 'seller') => apiClient.get<HireProject[]>(`/hire/projects${qs({ as })}`),
   one: (id: string) => apiClient.get<HireProject>(`/hire/projects/${id}`),
