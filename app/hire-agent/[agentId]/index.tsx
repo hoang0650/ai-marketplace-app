@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import {
@@ -14,7 +14,8 @@ import {
   getAgent,
   isLaunchableAgent,
 } from '@/constants/agents';
-import { useAgentLaunch, useAgentSsh } from '@/hooks/useAgentGateway';
+import { useAgentLaunch, useAgentPlan, useAgentSsh } from '@/hooks/useAgentGateway';
+import { formatDate, formatMoney } from '@/utils/format';
 import { useTheme, useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
@@ -27,11 +28,12 @@ export default function AgentDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ agentId?: string }>();
   const { colors } = useTheme();
-  const { t } = useT();
+  const { t, language } = useT();
 
   const agent = useMemo(() => getAgent(params.agentId) || null, [params.agentId]);
   const launch = useAgentLaunch(agent);
   const ssh = useAgentSsh(agent);
+  const plan = useAgentPlan(agent);
   const [wsUrl, setWsUrl] = useState('');
   const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
@@ -88,6 +90,76 @@ export default function AgentDetailScreen() {
             />
           ) : null}
         </View>
+
+        {launchable ? (
+          <View style={[styles.panel, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
+            <Text style={[styles.heading, { color: colors.text }]}>{t('agents.plan.title')}</Text>
+            {plan.pricing ? (
+              <Text style={{ color: colors.text, fontSize: 13, lineHeight: 19 }}>
+                {t('agents.plan.price', {
+                  price: formatMoney(plan.pricing.fee.vnd, 'VND'),
+                  days: plan.pricing.fee.periodDays,
+                })}
+              </Text>
+            ) : null}
+            <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19 }}>
+              {!plan.plan
+                ? t('agents.plan.signIn')
+                : plan.plan.exempt
+                  ? t('agents.plan.exempt')
+                  : plan.plan.active
+                    ? t('agents.plan.activeUntil', {
+                        date: formatDate(plan.plan.paidUntil, language),
+                        days: plan.plan.daysLeft,
+                      })
+                    : plan.plan.purgedAt
+                      ? t('agents.plan.purged', { date: formatDate(plan.plan.purgedAt, language) })
+                      : plan.plan.paidUntil
+                        ? [
+                            t('agents.plan.expired', { date: formatDate(plan.plan.paidUntil, language) }),
+                            plan.plan.purgeDueAt
+                              ? t('agents.plan.retention', { date: formatDate(plan.plan.purgeDueAt, language) })
+                              : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')
+                        : t('agents.plan.none')}
+            </Text>
+            {plan.plan && !plan.plan.exempt ? (
+              <View style={styles.btnRow}>
+                <Button
+                  title={
+                    plan.subscribing
+                      ? t('agents.plan.processing')
+                      : plan.plan.active
+                        ? t('agents.plan.renew')
+                        : t('agents.plan.rent')
+                  }
+                  loading={plan.subscribing}
+                  onPress={() => void plan.subscribe()}
+                />
+              </View>
+            ) : null}
+            {plan.plan && !plan.plan.exempt && plan.plan.paidUntil ? (
+              <View style={styles.switchRow}>
+                <Text style={{ color: colors.text, fontSize: 13, lineHeight: 19, flex: 1 }}>
+                  {t('agents.plan.autoRenew')}
+                </Text>
+                <Switch
+                  value={plan.plan.autoRenew}
+                  disabled={plan.updatingAutoRenew}
+                  onValueChange={(on) => plan.setAutoRenew(on)}
+                  accessibilityLabel={t('agents.plan.autoRenew')}
+                />
+              </View>
+            ) : null}
+            <Text style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 18 }}>
+              {plan.pricing?.byokOnly
+                ? t('agents.plan.byokOnly')
+                : t('agents.plan.tokenNote', { pct: Math.round((plan.pricing?.tokenMarkup ?? 0.25) * 100) })}
+            </Text>
+          </View>
+        ) : null}
 
         {/* Web endpoints */}
         <View style={[styles.panel, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
@@ -223,6 +295,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700' },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   btnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
   panel: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },
   heading: { fontSize: 16, fontWeight: '800' },
   label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },

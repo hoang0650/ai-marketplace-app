@@ -42,6 +42,8 @@ import type {
   AgentSshAccess,
   AgentGatewayApi,
   AgentGatewayId,
+  AgentPricing,
+  AgentSubscriptionStatus,
   HiredAgent,
   AgentStatus,
   KycProfile,
@@ -437,6 +439,20 @@ export const hiredAgentsApi = {
     }),
   remove: (agentId: string) =>
     apiClient.delete<{ success: boolean }>(`/agents/hired/${encodeURIComponent(agentId)}`),
+};
+
+/** Monthly agent rental — prepaid from the wallet; token usage is billed separately (BYOK is free). */
+export const agentPlansApi = {
+  pricing: () => apiClient.get<AgentPricing[]>('/agents/pricing'),
+  list: () => apiClient.get<AgentSubscriptionStatus[]>('/agents/subscriptions'),
+  one: (agentId: AgentGatewayId) => apiClient.get<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`),
+  subscribe: (agentId: AgentGatewayId) =>
+    apiClient.post<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`, {}),
+  setAutoRenew: (agentId: AgentGatewayId, autoRenew: boolean) =>
+    apiClient.request<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`, {
+      method: 'PATCH',
+      body: { autoRenew },
+    }),
 };
 
 /** Custom work (web, app, marketing, SEO, creator, automation): quote → phases → demo → approve per phase. */

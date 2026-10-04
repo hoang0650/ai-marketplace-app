@@ -3,12 +3,14 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';import { Stack
 import type { MarketplaceAgent } from '@/api/types';
 import { href } from '@/lib/href';
 import {
+  agentGatewayKey,
   agentHostTemplate,
   agentUiName,
   isLaunchableAgent,
   listMarketplaceAgents,
 } from '@/constants/agents';
-import { useAgentLaunch } from '@/hooks/useAgentGateway';
+import { useAgentLaunch, useAgentPricing } from '@/hooks/useAgentGateway';
+import { formatMoney } from '@/utils/format';
 import { useTheme, useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +24,8 @@ function AgentCard({ agent }: { agent: MarketplaceAgent }) {
   const { t } = useT();
   const launch = useAgentLaunch(agent);
   const launchable = isLaunchableAgent(agent);
+  const kind = launchable ? agentGatewayKey(agent) : null;
+  const price = useAgentPricing().find((p) => p.agentId === kind);
 
   return (
     <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
@@ -32,6 +36,11 @@ function AgentCard({ agent }: { agent: MarketplaceAgent }) {
         </Text>
       </View>
       <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19 }}>{agent.description}</Text>
+      {price ? (
+        <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700' }}>
+          {t('agents.plan.cardPrice', { price: formatMoney(price.fee.vnd, 'VND'), days: price.fee.periodDays })}
+        </Text>
+      ) : null}
 
       <View style={styles.actions}>
         <Button

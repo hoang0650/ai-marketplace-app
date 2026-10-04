@@ -833,6 +833,40 @@ export interface AgentSshAccess {
 /** OpenClaw / Hermes / NanoClaw / SpaceBot / Open WebUI / Paperclip all share this launch + pairing shape. */
 export type AgentGatewayId = 'openclaw' | 'hermes' | 'nanoclaw' | 'spacebot' | 'openwebui' | 'paperclip';
 
+export interface AgentFee {
+  vnd: number;
+  amount: number;
+  currency: string;
+  periodDays: number;
+}
+
+/** Public price row from GET /agents/pricing. */
+export interface AgentPricing {
+  agentId: AgentGatewayId;
+  fee: AgentFee;
+  /** Markup over the provider price on AI Markets-provided models (0.25 = +25%). */
+  tokenMarkup: number;
+  /** Runs only on the buyer's own provider keys — never billed per token. */
+  byokOnly: boolean;
+}
+
+/** Monthly plan of one hosted agent (launch is refused with 402 AGENT_SUBSCRIPTION_REQUIRED when inactive). */
+export interface AgentSubscriptionStatus {
+  agentId: AgentGatewayId;
+  active: boolean;
+  exempt: boolean;
+  paidUntil: string | null;
+  daysLeft: number;
+  /** Wallet auto-renewal (on by default; renews ~1 day before expiry). */
+  autoRenew: boolean;
+  /** Set once the plan expired: workspace data is deleted at this time unless renewed. */
+  purgeDueAt: string | null;
+  purgedAt: string | null;
+  retentionDays: number;
+  fee: AgentFee;
+  charged?: boolean;
+}
+
 /** Shared gateway surface — launch, device pairing, and temporary SSH. */
 export interface AgentGatewayApi {
   launch: () => Promise<OpenClawLaunchResult>;
