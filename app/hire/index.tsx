@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { formatDate, formatMoney } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
-import { categoryLabel } from '@/constants/categories';
+import { HIRE_REQUEST_CATEGORIES, categoryLabel, categoryMeta } from '@/constants/categories';
 import { hireStatusColor } from '@/lib/hire';
 
 type Tab = 'all' | 'buyer' | 'seller';
@@ -98,7 +98,20 @@ export default function HireProjectsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 40 }}
           refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} tintColor={colors.tint} />}
-          ListEmptyComponent={<EmptyState title={t('hire.list.empty')} />}
+          ListEmptyComponent={
+            <View>
+              <EmptyState title={t('hire.list.empty')} />
+              <View style={styles.services}>
+                {HIRE_REQUEST_CATEGORIES.map((id) => (
+                  <Chip
+                    key={id}
+                    label={categoryLabel(id, t, id)}
+                    onPress={() => router.push(href(categoryMeta(id)?.hubHref || `/category/${id}`))}
+                  />
+                ))}
+              </View>
+            </View>
+          }
           renderItem={renderItem}
         />
       )}
@@ -109,6 +122,7 @@ export default function HireProjectsScreen() {
 const styles = StyleSheet.create({
   lede: { fontSize: 14, lineHeight: 20, marginBottom: 10, marginTop: 4 },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  services: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   card: { borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 12 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   cat: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, flexShrink: 1 },

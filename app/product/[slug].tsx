@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
   cover: { width: '100%', height: 280 },
   thumb: { width: 72, height: 72, borderRadius: 10 },
   playOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(17,17,17,0.28)',

@@ -120,7 +120,6 @@ export function GpuStreamPlayer({ uri, terminal, onLoad, onError }: Props) {
         mediaPlaybackRequiresUserAction={false}
         hideKeyboardAccessoryView
         keyboardDisplayRequiresUserAction={!!terminal}
-        automaticallyAdjustKeyboardInsets={!terminal}
         mixedContentMode="always"
         androidLayerType="hardware"
         overScrollMode="never"
