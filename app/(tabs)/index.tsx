@@ -26,7 +26,7 @@ import { FALLBACK_HOME_BANNERS } from '@/constants/homeBanners';
 import { isHiddenCategory } from '@/constants/categories';
 import { WORK_BOARD_ENABLED } from '@/constants/features';
 import { formatMoney, greetingHour } from '@/utils/format';
-import { useCartStore } from '@/stores/cartStore';
+import { useCart } from '@/hooks/useCart';
 
 function homeFromCatalog(items: Product[]): HomeFeed {
   const byNew = [...items].sort(
@@ -116,7 +116,7 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const { t, language } = useT();
   const user = useAuthStore((s) => s.user);
-  const cartCount = useCartStore((s) => s.lines.reduce((n, l) => n + l.qty, 0));
+  const { count: cartCount } = useCart();
 
   const feedQ = useQuery({
     queryKey: ['home', 'feed'],

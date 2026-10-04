@@ -3,6 +3,7 @@ type AnalyticsEvent =
   | 'product_view'
   | 'search'
   | 'add_favorite'
+  | 'add_to_cart'
   | 'checkout_started'
   | 'payment_started'
   | 'payment_completed'

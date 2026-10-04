@@ -13,7 +13,7 @@ import { useTheme, useT } from '@/hooks/useT';
 import { agentForHireSlug, agentGatewayKey } from '@/constants/agents';
 import { useAgentLaunch } from '@/hooks/useAgentGateway';
 import { useRecentStore } from '@/stores/recentStore';
-import { useCartStore } from '@/stores/cartStore';
+import { useCart } from '@/hooks/useCart';
 import { productPrice, availableLicenseTerms, licenseUnitPrice, formatMoney } from '@/utils/format';
 import { Badge } from '@/components/ui/Badge';
 import { Rating } from '@/components/ui/Rating';
@@ -79,7 +79,7 @@ export default function ProductScreen() {
   const hireAgent = useMemo(() => agentForHireSlug(slug), [slug]);
   const { opening: openingAgent, launch: launchAgent } = useAgentLaunch(hireAgent);
   const addViewed = useRecentStore((s) => s.addViewed);
-  const addToCart = useCartStore((s) => s.add);
+  const cart = useCart();
   const [licenseTerm, setLicenseTerm] = useState<LicenseTerm>('month');
   const scrollRef = useRef<ScrollView>(null);
   const playOffset = useRef(0);
@@ -93,9 +93,7 @@ export default function ProductScreen() {
     },
     enabled: !!slug,
   });
-  const inCart = useCartStore((s) =>
-    s.lines.some((l) => l.product.id === q.data?.id || l.product.slug === String(slug)),
-  );
+  const inCart = cart.has(q.data?.id);
   const reviews = useQuery({ queryKey: ['reviews', q.data?.id], queryFn: () => reviewsApi.list(q.data!.id), enabled: !!q.data?.id });
   const episodeList = useQuery({
     queryKey: ['content-episodes', slug],
@@ -782,12 +780,17 @@ export default function ProductScreen() {
             {showCart ? (
               <Pressable
                 onPress={() => {
+                  if (!isAuthenticated) {
+                    router.push('/auth/login');
+                    return;
+                  }
                   if (inCart) {
                     router.push(href('/cart'));
                     return;
                   }
-                  addToCart(p);
+                  cart.add(p.id).catch((err) => Alert.alert(t('cart.title'), getErrorMessage(err, language)));
                 }}
+                disabled={cart.adding}
                 accessibilityRole="button"
                 accessibilityLabel={inCart ? t('cart.view') : t('cart.add')}
                 style={styles.iconBtn}

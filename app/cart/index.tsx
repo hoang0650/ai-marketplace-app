@@ -1,14 +1,15 @@
 import React from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
-import { useCartStore } from '@/stores/cartStore';
+import { useCart } from '@/hooks/useCart';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { productPrice } from '@/utils/format';
 import { isComputeStreamCategory } from '@/constants/categories';
 
@@ -16,9 +17,16 @@ export default function CartScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { t } = useT();
-  const lines = useCartStore((s) => s.lines);
-  const setQty = useCartStore((s) => s.setQty);
-  const remove = useCartStore((s) => s.remove);
+  const { lines, setQty, remove, isAuthenticated, isLoading, isFetching, refetch } = useCart();
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Stack.Screen options={{ title: t('cart.title') }} />
+        <LoginPrompt />
+      </>
+    );
+  }
 
   return (
     <Screen>
@@ -27,12 +35,17 @@ export default function CartScreen() {
         data={lines}
         keyExtractor={(item) => item.product.id}
         contentContainerStyle={{ paddingBottom: 24 }}
+        refreshControl={
+          <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => void refetch()} tintColor={colors.tint} />
+        }
         ListEmptyComponent={
-          <EmptyState
-            title={t('cart.empty')}
-            cta={t('cart.explore')}
-            onPress={() => router.push('/(tabs)/explore')}
-          />
+          isLoading ? null : (
+            <EmptyState
+              title={t('cart.empty')}
+              cta={t('cart.explore')}
+              onPress={() => router.push('/(tabs)/explore')}
+            />
+          )
         }
         renderItem={({ item }) => (
           <View
@@ -66,7 +79,7 @@ export default function CartScreen() {
                     <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>−</Text>
                   </Pressable>
                   <Text style={{ color: colors.text, fontWeight: '700' }}>{item.qty}</Text>
-                  <Pressable onPress={() => setQty(item.product.id, item.qty + 1)} hitSlop={8}>
+                  <Pressable onPress={() => setQty(item.product.id, item.qty + 1)} hitSlop={8} disabled={item.qty >= 99}>
                     <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>+</Text>
                   </Pressable>
                   <Pressable onPress={() => remove(item.product.id)} hitSlop={8}>
@@ -81,7 +94,7 @@ export default function CartScreen() {
                     href(
                       isComputeStreamCategory(item.product.category)
                         ? `/play/${item.product.slug}`
-                        : `/checkout/${item.product.id}`,
+                        : `/checkout/${item.product.id}?qty=${item.qty}`,
                     ),
                   )
                 }

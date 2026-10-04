@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CouponPreview, IssuedLicense, LicenseTerm } from '@/api/types';
 import { billingApi, couponsApi, licensesApi, ordersApi, productsApi } from '@/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/hooks/useCart';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
@@ -21,10 +22,12 @@ import { isContentCategory, isDownloadLicenseCategory, isLicenseCategory, isSkil
 import { findActiveLicense, findPaidOrder } from '@/lib/access';
 
 export default function CheckoutScreen() {
-  const { id, term: termParam } = useLocalSearchParams<{ id: string; term?: string }>();
+  const { id, term: termParam, qty: qtyParam } = useLocalSearchParams<{ id: string; term?: string; qty?: string }>();
+  const qty = Math.max(1, Math.min(99, Math.floor(Number(qtyParam) || 1)));
   const router = useRouter();
   const qc = useQueryClient();
   const { isAuthenticated } = useAuth();
+  const cart = useCart();
   const { colors } = useTheme();
   const { t, language } = useT();
   const [doneId, setDoneId] = useState('');
@@ -57,10 +60,11 @@ export default function CheckoutScreen() {
     if (!p) return '';
     if (licensed) {
       const amount = licenseUnitPrice(p, selected);
-      return `${formatMoney(amount, p.pricing?.currency || 'USD')} / ${t(`license.term.${selected}`)}`;
+      const label = `${formatMoney(amount, p.pricing?.currency || 'USD')} / ${t(`license.term.${selected}`)}`;
+      return qty > 1 ? `${label} × ${qty}` : label;
     }
-    return productPrice(p);
-  }, [p, licensed, selected, t]);
+    return qty > 1 ? `${productPrice(p)} × ${qty}` : productPrice(p);
+  }, [p, licensed, selected, t, qty]);
 
   useEffect(() => {
     setPreview(null);
@@ -71,7 +75,7 @@ export default function CheckoutScreen() {
       couponsApi.preview({
         productId: String(id),
         code: couponCode,
-        quantity: 1,
+        quantity: qty,
         licenseTerm: licensed ? selected : undefined,
       }),
     onSuccess: (row) => {
@@ -88,7 +92,7 @@ export default function CheckoutScreen() {
     mutationFn: () =>
       billingApi.checkout(
         String(id),
-        1,
+        qty,
         licensed ? selected : undefined,
         Platform.OS === 'ios' ? 'APP_STORE' : Platform.OS === 'android' ? 'GOOGLE_PLAY' : 'WEB',
         couponCode.trim() || undefined,
@@ -102,6 +106,7 @@ export default function CheckoutScreen() {
       qc.invalidateQueries({ queryKey: ['orders'] });
       qc.invalidateQueries({ queryKey: ['wallet-summary'] });
       qc.invalidateQueries({ queryKey: ['licenses'] });
+      if (cart.has(String(id))) cart.remove(String(id));
       setIssued(res.license || activeLicense || null);
       setAlreadyOwned(skipCharge);
       setDoneId(res.orderId || paidOrder?.id || 'owned');

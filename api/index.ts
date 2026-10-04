@@ -230,6 +230,16 @@ export const wishlistApi = {
   toggle: (productId: string) => apiClient.post<{ wishlist: Product[]; added: boolean }>('/wishlist/toggle', { productId }),
 };
 
+export type CartResponse = { items: Array<{ product: Product; qty: number }>; count: number };
+
+export const cartApi = {
+  get: () => apiClient.get<CartResponse>('/cart'),
+  add: (productId: string, qty = 1) => apiClient.post<CartResponse>('/cart/items', { productId, qty }),
+  setQty: (productId: string, qty: number) =>
+    apiClient.patch<CartResponse>(`/cart/items/${encodeURIComponent(productId)}`, { qty }),
+  remove: (productId: string) => apiClient.delete<CartResponse>(`/cart/items/${encodeURIComponent(productId)}`),
+};
+
 export const notificationsApi = {
   list: () => apiClient.get<NotificationItem[]>('/notifications'),
   readAll: () => apiClient.post<NotificationItem[]>('/notifications/read-all'),
