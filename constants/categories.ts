@@ -54,10 +54,10 @@ export const CATEGORY_META: CategoryMeta[] = [
 ];
 
 /**
- * Paused until the licence exists (film distribution, e-publication distribution, data intermediary).
+ * Paused until the licence exists (data intermediary).
  * Keep in sync with web `HIDDEN_CATEGORIES`.
  */
-export const HIDDEN_CATEGORIES: ReadonlySet<string> = new Set(['ai-film-series', 'story-book', 'dataset']);
+export const HIDDEN_CATEGORIES: ReadonlySet<string> = new Set(['dataset']);
 
 export function isHiddenCategory(id?: string | null) {
   return HIDDEN_CATEGORIES.has(String(id || ''));
