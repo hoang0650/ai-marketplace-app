@@ -54,10 +54,10 @@ export const CATEGORY_META: CategoryMeta[] = [
 ];
 
 /**
- * Paused until the licence exists (data intermediary).
+ * Categories hidden from browsing. Empty since Quy chế 2.1 (05/10/2026): dataset is offered again.
  * Keep in sync with web `HIDDEN_CATEGORIES`.
  */
-export const HIDDEN_CATEGORIES: ReadonlySet<string> = new Set(['dataset']);
+export const HIDDEN_CATEGORIES: ReadonlySet<string> = new Set<string>([]);
 
 export function isHiddenCategory(id?: string | null) {
   return HIDDEN_CATEGORIES.has(String(id || ''));
