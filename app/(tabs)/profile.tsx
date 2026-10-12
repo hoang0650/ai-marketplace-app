@@ -15,9 +15,11 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  Percent,
   Receipt,
   Scale,
   Settings,
+  Share2,
   Shield,
   Sparkles,
   Store,
@@ -75,6 +77,7 @@ export default function ProfileScreen() {
           <MenuRow icon={Heart} label={t('profile.favorites')} onPress={() => router.push(href('/favorites'))} />
           <MenuRow icon={KeyRound} label={t('license.mine')} onPress={() => router.push(href('/licenses'))} />
           <MenuRow icon={Wallet} label={t('wallet.title')} onPress={() => router.push('/wallet')} />
+          <MenuRow icon={Share2} label={t('aff.nav')} onPress={() => router.push(href('/affiliate'))} />
           <MenuRow icon={IdCard} label={t('kyc.title')} onPress={() => router.push(href('/kyc'))} />
           <MenuRow icon={Activity} label={t('usage.title')} onPress={() => router.push('/usage')} />
           <MenuRow icon={Cpu} label={t('gpu.rent.title')} onPress={() => router.push(href('/gpu'))} />
@@ -89,6 +92,9 @@ export default function ProfileScreen() {
             <MenuGroup>
               {isSeller ? (
                 <MenuRow icon={Store} label={t('profile.seller')} onPress={() => router.push(href('/seller-center'))} />
+              ) : null}
+              {isSeller || isTalent ? (
+                <MenuRow icon={Percent} label={t('sellAff.title')} onPress={() => router.push(href('/seller-center/affiliate'))} />
               ) : null}
               {isTalent && WORK_BOARD_ENABLED ? (
                 <MenuRow icon={Users} label={t('signup.role.talent')} onPress={() => router.push(href('/work/talents'))} />

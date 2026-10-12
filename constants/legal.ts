@@ -88,6 +88,13 @@ export const LEGAL_POLICIES: LegalPolicyMeta[] = [
     group: 'commerce',
   },
   {
+    slug: 'chinh-sach-affiliate',
+    file: '20-chinh-sach-affiliate.md',
+    title: 'Chính sách chương trình Affiliate',
+    summary: 'Phiên bản 2026.10.12: hoa hồng 0–25% giá trị đơn do người bán chi trả, last-click 30 ngày, giữ 48 giờ, thuế TNCN, hành vi cấm và thu hồi hoa hồng.',
+    group: 'commerce',
+  },
+  {
     slug: 'chinh-sach-bao-mat-va-du-lieu',
     file: '08-chinh-sach-bao-mat-va-du-lieu.md',
     title: 'Bảo mật và dữ liệu cá nhân',
@@ -179,6 +186,8 @@ const ALIASES: Record<string, string> = {
   cookies: 'chinh-sach-cookies',
   'tax-policy': 'chinh-sach-thue',
   'invoice-policy': 'chinh-sach-hoa-don',
+  'affiliate-policy': 'chinh-sach-affiliate',
+  affiliate: 'chinh-sach-affiliate',
 };
 
 export function resolveLegalPolicy(slugOrAlias: string | null | undefined): LegalPolicyMeta | undefined {

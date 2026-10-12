@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { apiClient } from './client';
+import { affiliateClickStore } from './affiliate';
 import type {
   CategoryMeta,
   CheckoutResult,
@@ -155,7 +156,7 @@ export const ordersApi = {
 };
 
 export const billingApi = {
-  checkout: (
+  checkout: async (
     productId: string,
     quantity = 1,
     licenseTerm?: string,
@@ -169,6 +170,8 @@ export const billingApi = {
       licenseTerm,
       salesChannel,
       couponCode,
+      // Last-click referral kept by affiliateClickStore; the API checks window and self-referral.
+      affiliateClickId: await affiliateClickStore.current(),
     }),
 };
 

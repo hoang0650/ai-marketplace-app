@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert, Linking } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert, Linking, Share } from 'react-native';
 import { Image } from 'expo-image';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { MessageSquare, Play, ShoppingCart } from 'lucide-react-native';
@@ -47,6 +47,7 @@ import { displayFont } from '@/constants/fonts';
 import { Chip } from '@/components/ui/Chip';
 import type { ContentUnlock, LicenseTerm, StreamDevice } from '@/api/types';
 import { ApiError, getErrorMessage } from '@/lib/errors';
+import { affiliateApi, ratePct } from '@/api/affiliate';
 
 function playSrc(res: { playToken?: string; playUrl?: string }, page?: number): string {
   const token = String(res.playToken || '').trim();
@@ -70,8 +71,12 @@ function playSrc(res: { playToken?: string; playUrl?: string }, page?: number): 
 }
 
 export default function ProductScreen() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, ref: refCode } = useLocalSearchParams<{ slug: string; ref?: string }>();
   const insets = useSafeAreaInsets();
+  // Referral link (`/product/<slug>?ref=CODE`): record the click (last click wins, kept for the window).
+  useEffect(() => {
+    if (slug && refCode) void affiliateApi.track({ code: String(refCode), productSlug: String(slug) });
+  }, [slug, refCode]);
   const router = useRouter();
   const { isAuthenticated, user, isAdmin, isInitialized } = useAuth();
   const { colors } = useTheme();
@@ -174,6 +179,16 @@ export default function ProductScreen() {
   }
 
   const seller = p.sellerName || p.creatorName;
+  /** Seller-set affiliate rate (product or store default); 0 = not in the program. */
+  const affiliateRate = Number((p as { affiliateEffectiveRate?: number }).affiliateEffectiveRate) || 0;
+  const shareAffiliate = async () => {
+    try {
+      const link = await affiliateApi.link({ productSlug: p.slug });
+      await Share.share({ message: `${p.name} — ${link.url}`, url: link.url });
+    } catch (err) {
+      Alert.alert('', getErrorMessage(err, language));
+    }
+  };
   const runtime = p.runtime || {};
   const licensed = isLicenseCategory(p.category);
   const terms = licensed ? availableLicenseTerms(p) : [];
@@ -437,6 +452,18 @@ export default function ProductScreen() {
           ) : null}
         </Pressable>
         <View style={{ padding: 16 }}>
+          {affiliateRate > 0 && !isOwner ? (
+            <View style={[styles.affBox, { borderColor: colors.tint }]}>
+              <Text style={{ color: colors.tint, fontWeight: '800' }}>{t('aff.upTo', { rate: ratePct(affiliateRate) })}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => (isAuthenticated ? void shareAffiliate() : router.push('/auth/login'))}
+                style={{ marginTop: 6, minHeight: 44, justifyContent: 'center' }}
+              >
+                <Text style={{ color: colors.tint, fontWeight: '700', textDecorationLine: 'underline' }}>{t('aff.getLink')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
           <Text style={{ color: colors.tint, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', fontSize: 11 }}>
             {categoryLabel(p.category, t, p.category)}
           </Text>
@@ -818,6 +845,7 @@ function section(color: string) {
 }
 
 const styles = StyleSheet.create({
+  affBox: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, padding: 10, marginBottom: 12 },
   cover: { width: '100%', height: 280 },
   thumb: { width: 72, height: 72, borderRadius: 10 },
   playOverlay: {

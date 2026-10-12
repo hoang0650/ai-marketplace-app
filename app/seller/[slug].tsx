@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { affiliateApi } from '@/api/affiliate';
 import {
   ActivityIndicator,
   Alert,
@@ -43,7 +44,11 @@ function sortProducts(list: Product[], sort: SortId) {
 }
 
 export default function SellerScreen() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, ref: refCode } = useLocalSearchParams<{ slug: string; ref?: string }>();
+  // Store referral link (`?ref=CODE`): any product of this seller is attributed to the last click.
+  useEffect(() => {
+    if (slug && refCode) void affiliateApi.track({ code: String(refCode), storeSlug: String(slug) });
+  }, [slug, refCode]);
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const { t, language } = useT();
