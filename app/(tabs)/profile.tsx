@@ -8,7 +8,6 @@ import {
   Cpu,
   CreditCard,
   FileText,
-  Handshake,
   Heart,
   HelpCircle,
   IdCard,
@@ -73,7 +72,6 @@ export default function ProfileScreen() {
           {WORK_BOARD_ENABLED ? (
             <MenuRow icon={Briefcase} label={t('hub.work')} onPress={() => router.push(href('/work'))} />
           ) : null}
-          <MenuRow icon={Handshake} label={t('hire.list.title')} onPress={() => router.push(href('/hire'))} />
           <MenuRow icon={Heart} label={t('profile.favorites')} onPress={() => router.push(href('/favorites'))} />
           <MenuRow icon={KeyRound} label={t('license.mine')} onPress={() => router.push(href('/licenses'))} />
           <MenuRow icon={Wallet} label={t('wallet.title')} onPress={() => router.push('/wallet')} />

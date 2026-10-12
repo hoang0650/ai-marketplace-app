@@ -42,6 +42,7 @@ import {
   isVoiceCategory,
   categoryLabel,
 } from '@/constants/categories';
+import { HIRE_QUOTE_FLOW_ENABLED } from '@/constants/features';
 import { displayFont } from '@/constants/fonts';
 import { Chip } from '@/components/ui/Chip';
 import type { ContentUnlock, LicenseTerm, StreamDevice } from '@/api/types';
@@ -199,7 +200,8 @@ export default function ProductScreen() {
     return <Redirect href="/(tabs)/explore" />;
   }
   const playground = isPlaygroundCategory(p.category);
-  const hireRequest = isHireRequestCategory(p.category);
+  // Quy chế 2.1: professional services are fixed packages paid from the wallet — no quote flow.
+  const hireRequest = HIRE_QUOTE_FLOW_ENABLED && isHireRequestCategory(p.category);
   const hasAccess = playground || hireRequest ? false : licensed ? !!activeLicense || isOwner : !!paidOrder || isOwner;
   const template = isTemplateCategory(p.category);
   const templateFree = template && (p.pricing?.model === 'free' || !Number(p.pricing?.price || 0));
