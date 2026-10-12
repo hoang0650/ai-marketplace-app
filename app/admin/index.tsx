@@ -139,9 +139,7 @@ export default function AdminScreen() {
                         <Text style={[styles.strong, { color: colors.text }]}>{money(s.grossRevenue)}</Text>
                       </View>
                       <Text style={[styles.sub, { color: colors.textSecondary }]}>
-                        {t('admin.shops.orders', { n: s.orders })} · {t('admin.metric.platformFee')} {money(s.platformFee)} ·{' '}
-                        {t('admin.metric.playFee')} {money(s.playStoreFeeAmount || 0)} · {t('admin.metric.appFee')}{' '}
-                        {money(s.appStoreFeeAmount || 0)}
+                        {t('admin.shops.orders', { n: s.orders })} · {t('admin.metric.platformFee')} {money(s.platformFee)}
                       </Text>
                       <Text style={[styles.sub, { color: colors.success }]}>
                         {t('admin.metric.sellerNet')}: {money(s.sellerNet)}
@@ -302,8 +300,6 @@ function OverviewTab({
   const parts = [
     { label: t('admin.metric.platformFee'), value: d.platformFee || 0, color: colors.tint },
     { label: t('admin.metric.sellerNet'), value: d.sellerNet || 0, color: '#0f766e' },
-    { label: t('admin.metric.playFee'), value: d.playStoreFees || 0, color: '#16a34a' },
-    { label: t('admin.metric.appFee'), value: d.appStoreFees || 0, color: '#2563eb' },
   ];
   const used = parts.reduce((s, p) => s + p.value, 0);
   parts.push({ label: t('admin.metric.rest'), value: Math.max(0, gross - used), color: '#9ca3af' });
@@ -314,9 +310,6 @@ function OverviewTab({
     { label: t('admin.metric.gross'), value: money(d.totalGrossRevenue), hint: t('admin.kpi.paidOrders', { n: d.paidOrders }) },
     { label: t('admin.metric.platformFee'), value: money(d.platformFee), hint: t('admin.kpi.feeHint', { rate: Math.round(d.platformFeeRate * 100) }) },
     { label: t('admin.metric.sellerNet'), value: money(d.sellerNet), hint: t('admin.kpi.sellerNetHint') },
-    { label: t('admin.kpi.storeFees'), value: money(d.storeFees || 0), hint: t('admin.kpi.storeFeesHint') },
-    { label: t('admin.metric.playFee'), value: money(d.playStoreFees || 0) },
-    { label: t('admin.metric.appFee'), value: money(d.appStoreFees || 0) },
     { label: t('admin.metric.deposits'), value: money(d.buyerDeposits), hint: t('admin.kpi.depositCount', { n: d.buyerDepositCount }) },
     { label: t('admin.kpi.users'), value: String(d.users) },
     { label: t('admin.kpi.creators'), value: String(d.creators) },

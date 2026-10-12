@@ -42,7 +42,7 @@ export const LEGAL_POLICIES: LegalPolicyMeta[] = [
     slug: 'chinh-sach-nguoi-ban',
     file: '03-chinh-sach-nguoi-ban.md',
     title: 'Chính sách người bán',
-    summary: 'Điều kiện đăng bán, eKYC, giấy chứng nhận đăng ký kinh doanh, phí sàn 20%, thuế 8%, phí CH Play/App Store, giữ tiền 48 giờ.',
+    summary: 'Điều kiện đăng bán, eKYC, giấy chứng nhận đăng ký kinh doanh, phí sàn 20%, thuế 8%, giữ tiền 48 giờ.',
     group: 'commerce',
   },
   {
