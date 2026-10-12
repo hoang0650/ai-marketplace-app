@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { WORK_BOARD_ENABLED } from '@/constants/features';
 import { useQuery } from '@tanstack/react-query';
 import { hireApi } from '@/api';
 import type { HireProject } from '@/api/types';
@@ -20,7 +21,13 @@ type Tab = 'all' | 'buyer' | 'seller';
 
 const TAB_LABEL: Record<Tab, string> = { all: 'hire.list.all', buyer: 'hire.list.asBuyer', seller: 'hire.list.asSeller' };
 
-export default function HireProjectsScreen() {
+/** Legacy Hire projects are shut down with Work: the screen redirects home. */
+export default function HireProjectsScreenRoute() {
+  if (!WORK_BOARD_ENABLED) return <Redirect href="/" />;
+  return <HireProjectsScreen />;
+}
+
+function HireProjectsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ as?: string }>();
   const tab: Tab = params.as === 'buyer' || params.as === 'seller' ? params.as : 'all';

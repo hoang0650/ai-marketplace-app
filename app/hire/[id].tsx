@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { WORK_BOARD_ENABLED } from '@/constants/features';
 import { WebView } from 'react-native-webview';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { builderApi, chatApi, hireApi, walletApi } from '@/api';
@@ -29,7 +30,13 @@ function confirmAsync(message: string, okLabel: string, cancelLabel: string, des
   });
 }
 
-export default function HireProjectScreen() {
+/** Legacy Hire projects are shut down with Work: the screen redirects home. */
+export default function HireProjectScreenRoute() {
+  if (!WORK_BOARD_ENABLED) return <Redirect href="/" />;
+  return <HireProjectScreen />;
+}
+
+function HireProjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();

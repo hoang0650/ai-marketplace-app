@@ -1,12 +1,12 @@
 import React from 'react';
-import { Redirect, Stack, useSegments } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { useTheme } from '@/hooks/useT';
 import { WORK_BOARD_ENABLED } from '@/constants/features';
 
 export default function WorkLayout() {
   const { colors } = useTheme();
-  const segments = useSegments() as string[];
-  if (!WORK_BOARD_ENABLED && segments[1] !== 'contracts') return <Redirect href="/" />;
+  // Legacy Work is fully shut down (contracts included): every screen redirects home.
+  if (!WORK_BOARD_ENABLED) return <Redirect href="/" />;
   return (
     <Stack
       screenOptions={{

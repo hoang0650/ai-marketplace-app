@@ -1,8 +1,8 @@
 /**
  * Work board (job posts, talent profiles/CVs) and quote-based Hire projects are discontinued
- * (Quy chế 2.1, 05/10/2026) and replaced by fixed-package professional services. Existing
- * contracts and hire projects stay reachable by direct link so they can finish; the API answers
- * 410 for new activity. Keep in sync with web `src/app/models/feature-flags.ts`.
+ * (Quy chế 2.1, 05/10/2026) and replaced by fixed-package professional services. Since
+ * 10/2026 legacy Work is fully shut down: every Work/Hire screen redirects home and the API
+ * answers 410 for all Work/Hire endpoints (data is kept, not deleted). Keep in sync with web `src/app/models/feature-flags.ts`.
  */
 export const WORK_BOARD_ENABLED = false;
 

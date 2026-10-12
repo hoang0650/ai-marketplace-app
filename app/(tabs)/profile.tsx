@@ -93,7 +93,7 @@ export default function ProfileScreen() {
               {isTalent && WORK_BOARD_ENABLED ? (
                 <MenuRow icon={Users} label={t('signup.role.talent')} onPress={() => router.push(href('/work/talents'))} />
               ) : null}
-              {isFreelancer || (isEmployer && !WORK_BOARD_ENABLED) ? (
+              {isFreelancer && WORK_BOARD_ENABLED ? (
                 <MenuRow icon={FileText} label={t('work.contracts')} onPress={() => router.push(href('/work/contracts'))} />
               ) : null}
               {isEmployer && WORK_BOARD_ENABLED ? (
