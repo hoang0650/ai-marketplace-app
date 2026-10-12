@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -22,15 +22,10 @@ export default function SellerAffiliateScreen() {
   const { colors } = useTheme();
   const { t, language } = useT();
   const q = useQuery({ queryKey: ['affiliate', 'seller'], queryFn: affiliateApi.seller, enabled: isAuthenticated });
-  const [defaultPct, setDefaultPct] = useState('0');
+  // Unsaved edits only; untouched fields show the saved value from the server.
+  const [defaultEdit, setDefaultEdit] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState('');
-
-  useEffect(() => {
-    if (!q.data) return;
-    setDefaultPct(toPct(q.data.defaultRate) || '0');
-    setEdits(Object.fromEntries(q.data.products.map((p) => [p.id, toPct(p.affiliateRate)])));
-  }, [q.data]);
 
   if (!isAuthenticated) {
     return (
@@ -49,6 +44,8 @@ export default function SellerAffiliateScreen() {
     setSaving(key);
     try {
       await fn();
+      setDefaultEdit(null);
+      setEdits({});
       await qc.invalidateQueries({ queryKey: ['affiliate', 'seller'] });
       Alert.alert('', t('sellAff.saved'));
     } catch (err) {
@@ -58,14 +55,17 @@ export default function SellerAffiliateScreen() {
     }
   };
 
+  const defaultPct = defaultEdit ?? (toPct(d?.defaultRate) || '0');
+  const productPct = (id: string, saved: number | null) => edits[id] ?? toPct(saved);
+
   const saveDefault = () => {
     const rate = percentToRate(defaultPct);
     if (rate === undefined || rate === null) return Alert.alert('', t('sellAff.invalid'));
     void run('default', () => affiliateApi.setDefaultRate(rate));
   };
 
-  const saveProduct = (id: string) => {
-    const rate = percentToRate(edits[id] ?? '', { allowEmpty: true });
+  const saveProduct = (id: string, saved: number | null) => {
+    const rate = percentToRate(productPct(id, saved), { allowEmpty: true });
     if (rate === undefined) return Alert.alert('', t('sellAff.invalid'));
     void run(id, () => productsApi.update(id, { affiliateRate: rate }));
   };
@@ -82,7 +82,7 @@ export default function SellerAffiliateScreen() {
             <View style={[styles.card, { borderColor: colors.border }]}>
               <Text style={[styles.h, { color: colors.text }]}>{t('sellAff.defaultTitle')}</Text>
               <Text style={[muted, { marginBottom: 8 }]}>{t('sellAff.defaultHint')}</Text>
-              <Input label={t('sellAff.ratePct')} value={defaultPct} onChangeText={setDefaultPct} keyboardType="decimal-pad" />
+              <Input label={t('sellAff.ratePct')} value={defaultPct} onChangeText={setDefaultEdit} keyboardType="decimal-pad" />
               <Button title={t('sellAff.save')} loading={saving === 'default'} onPress={saveDefault} />
               <Text style={{ color: colors.text, marginTop: 10, fontWeight: '600' }}>{t('sellAff.formula')}</Text>
               <Text style={[muted, { marginTop: 4 }]}>{t('sellAff.example')}</Text>
@@ -111,12 +111,12 @@ export default function SellerAffiliateScreen() {
                 </Text>
                 <Input
                   label={t('sellAff.productRate')}
-                  value={edits[p.id] ?? ''}
+                  value={productPct(p.id, p.affiliateRate)}
                   onChangeText={(v) => setEdits((e) => ({ ...e, [p.id]: v }))}
                   keyboardType="decimal-pad"
                   placeholder={t('sellAff.inherit')}
                 />
-                <Button title={t('sellAff.save')} variant="outline" loading={saving === p.id} onPress={() => saveProduct(p.id)} />
+                <Button title={t('sellAff.save')} variant="outline" loading={saving === p.id} onPress={() => saveProduct(p.id, p.affiliateRate)} />
               </View>
             ))}
           </>
