@@ -77,7 +77,7 @@ export default function AffiliateScreen() {
         <ActivityIndicator color={colors.tint} />
       ) : (
         <>
-          {!s.payoutReady ? (
+          {s.kycRequired || !s.payoutReady ? (
             <Pressable onPress={() => router.push(href('/kyc'))} style={[styles.card, { borderColor: colors.border }]}>
               <Text style={{ color: colors.text }}>{t('aff.kycNotice')}</Text>
               <Text style={{ color: colors.tint, fontWeight: '700', marginTop: 4 }}>{t('aff.kycCta')}</Text>
@@ -86,7 +86,7 @@ export default function AffiliateScreen() {
 
           <View style={styles.grid}>
             {[
-              [t('aff.code'), s.code],
+              [t('aff.code'), s.code || '—'],
               [t('aff.clicks'), String(s.clicks)],
               [t('aff.orders'), String(s.orders)],
               [t('aff.pending'), formatMoney(s.commission.pending, cur)],
@@ -108,6 +108,7 @@ export default function AffiliateScreen() {
             </Text>
           ) : null}
 
+          {s.kycRequired ? null : (
           <View style={[styles.card, { borderColor: colors.border }]}>
             <Text style={[styles.h, { color: colors.text }]}>{t('aff.linkTitle')}</Text>
             <Text style={[muted, { marginBottom: 8 }]}>{t('aff.linkHint')}</Text>
@@ -131,6 +132,7 @@ export default function AffiliateScreen() {
               </View>
             ) : null}
           </View>
+          )}
 
           <Text style={[styles.h, { color: colors.text, marginTop: 8 }]}>{t('aff.recent')}</Text>
           {s.recent.length === 0 ? <Text style={muted}>{t('aff.empty')}</Text> : null}
@@ -153,6 +155,7 @@ export default function AffiliateScreen() {
 
           <Text style={[styles.h, { color: colors.text, marginTop: 16 }]}>{t('aff.rulesTitle')}</Text>
           {[
+            t('aff.rule.kyc'),
             t('aff.rule.rate'),
             t('aff.rule.window', { days: s.config.attributionDays }),
             t('aff.rule.self'),

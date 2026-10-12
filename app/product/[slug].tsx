@@ -186,6 +186,13 @@ export default function ProductScreen() {
       const link = await affiliateApi.link({ productSlug: p.slug });
       await Share.share({ message: `${p.name} — ${link.url}`, url: link.url });
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'KYC_REQUIRED') {
+        Alert.alert('', t('aff.kycNotice'), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('aff.kycCta'), onPress: () => router.push(href('/kyc')) },
+        ]);
+        return;
+      }
       Alert.alert('', getErrorMessage(err, language));
     }
   };

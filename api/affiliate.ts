@@ -27,8 +27,11 @@ export type AffiliateCommissionRow = {
 };
 
 export type AffiliateStats = {
-  code: string;
+  /** null until the user is eKYC-verified. */
+  code: string | null;
   kycStatus: string;
+  kycRequired?: boolean;
+  linkReady?: boolean;
   payoutReady: boolean;
   clicks: number;
   orders: number;
