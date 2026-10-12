@@ -17,6 +17,8 @@ import { getErrorMessage } from '@/lib/errors';
 import { HubBackButton } from '@/components/catalog/HubBackButton';
 
 const SIDES: KycSide[] = ['front', 'back'];
+/** Household businesses / companies also upload the business registration certificate (Quy chế 2.1 Mục VIII). */
+const ORG_SIDES: KycSide[] = [...SIDES, 'license'];
 const ID_TYPES: KycIdType[] = ['cccd', 'cmnd', 'passport', 'other'];
 const SUBJECT_TYPES: KycSubjectType[] = ['individual', 'organization'];
 const ORG_TYPES: KycOrgType[] = ['household', 'company'];
@@ -72,8 +74,9 @@ export default function KycScreen() {
       if (k.orgName) setOrgName(k.orgName);
       if (k.orgTaxCode) setOrgTaxCode(k.orgTaxCode);
       if (k.orgAddress) setOrgAddress(k.orgAddress);
-      for (const side of SIDES) {
-        if (side === 'front' ? k.hasFront : k.hasBack) {
+      for (const side of ORG_SIDES) {
+        const has = side === 'front' ? k.hasFront : side === 'back' ? k.hasBack : !!k.hasLicense;
+        if (has) {
           try {
             const r = await kycApi.documentUrl(side);
             setPreviews((m) => ({ ...m, [side]: r.url }));
@@ -300,7 +303,7 @@ export default function KycScreen() {
         ) : null}
 
         {section(isOrg ? 'kyc.docsRep' : 'kyc.docs')}
-        {SIDES.map((side) => (
+        {(isOrg ? ORG_SIDES : SIDES).map((side) => (
           <View key={side} style={[styles.card, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>{t(`kyc.side.${side}`)}</Text>
             {previews[side] ? (
@@ -320,6 +323,12 @@ export default function KycScreen() {
             ) : null}
           </View>
         ))}
+        {isOrg ? (
+          <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>
+            {t(orgType === 'company' ? 'kyc.licenseHintCompany' : 'kyc.licenseHintHousehold')}
+          </Text>
+        ) : null}
+        <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8 }}>{t('kyc.vneidNote')}</Text>
 
         {canEdit ? (
           <View style={{ gap: 10, marginTop: 8 }}>

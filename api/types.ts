@@ -24,7 +24,8 @@ export interface User {
 
 export type KycStatus = 'none' | 'draft' | 'pending' | 'verified' | 'rejected';
 export type KycIdType = 'cccd' | 'cmnd' | 'passport' | 'other';
-export type KycSide = 'front' | 'back';
+/** `license`: business registration certificate (household business / company). */
+export type KycSide = 'front' | 'back' | 'license';
 export type KycSubjectType = 'individual' | 'organization';
 export type KycOrgType = 'household' | 'company';
 
@@ -44,6 +45,9 @@ export interface KycProfile {
   orgAddress: string;
   hasFront: boolean;
   hasBack: boolean;
+  /** Business registration certificate uploaded (organizations). */
+  hasLicense?: boolean;
+  licenseRequired?: boolean;
   submittedAt: string | null;
   reviewedAt: string | null;
   rejectReason: string;
