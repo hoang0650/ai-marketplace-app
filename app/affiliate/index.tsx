@@ -13,7 +13,7 @@ import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { formatDate, formatMoney } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
 import { href } from '@/lib/href';
-import { openLegal } from '@/lib/legalLinks';
+import { openLegal, openWeb, webUrl } from '@/lib/legalLinks';
 
 /** Pasted product/store URL or a bare product slug → link target. */
 function parseTarget(raw: string): { productSlug?: string; storeSlug?: string } | null {
@@ -135,6 +135,22 @@ export default function AffiliateScreen() {
           </View>
           )}
 
+          {s.pitCommitment ? (
+            <View style={[styles.card, { borderColor: colors.border }]}>
+              <Text style={[styles.h, { color: colors.text }]}>{t('aff.pit08.title')}</Text>
+              <Text style={muted}>{t('aff.pit08.status', { status: t(`aff.pit08.st.${s.pitCommitment.status}`) })}</Text>
+              {s.pitCommitment.activeForCurrentYear ? (
+                <Text style={[muted, { marginTop: 4 }]}>{t('aff.pit08.active', { year: s.pitCommitment.currentYear })}</Text>
+              ) : null}
+              {s.pitCommitment.status === 'rejected' && s.pitCommitment.rejectReason ? (
+                <Text style={{ color: '#c0392b', marginTop: 4 }}>{s.pitCommitment.rejectReason}</Text>
+              ) : null}
+              <Pressable onPress={() => void openWeb(webUrl('/affiliate', language))} style={{ minHeight: 44, justifyContent: 'center' }}>
+                <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('aff.pit08.upload')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
           <Text style={[styles.h, { color: colors.text, marginTop: 8 }]}>{t('aff.recent')}</Text>
           {s.recent.length === 0 ? <Text style={muted}>{t('aff.empty')}</Text> : null}
           {s.recent.map((r) => (
@@ -163,6 +179,7 @@ export default function AffiliateScreen() {
             t('aff.rule.hold', { hours: s.config.holdHours }),
             t('aff.rule.refund'),
             t('aff.rule.pit'),
+            t('aff.rule.pitCert'),
             t('aff.rule.banned'),
           ].map((line) => (
             <Text key={line} style={[muted, { marginBottom: 4, lineHeight: 19 }]}>

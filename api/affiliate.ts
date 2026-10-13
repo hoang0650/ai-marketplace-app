@@ -6,7 +6,17 @@ export type AffiliateConfig = {
   maxRate: number;
   attribution: 'last_click';
   holdHours: number;
-  pit: { enabled: boolean; rate: number; thresholdVnd: number; legalReview: boolean };
+  /** 10% PIT when a single payment >= thresholdVnd (2,000,000 VND); 0% with an approved Mẫu 08/CK-TNCN. */
+  pit: {
+    enabled: boolean;
+    rate: number;
+    thresholdVnd: number;
+    legalReview: boolean;
+    rule?: string;
+    commitmentForm?: string;
+    commitmentExempts?: boolean;
+    yearEndCertificate?: boolean;
+  };
 };
 
 export type AffiliateCommissionRow = {
@@ -41,6 +51,18 @@ export type AffiliateStats = {
   commission: { pending: number; available: number; reversed: number; pitWithheld: number; total: number };
   recent: AffiliateCommissionRow[];
   config: AffiliateConfig;
+  pitCommitment?: PitCommitment;
+};
+
+/** Cam kết Mẫu 08/CK-TNCN - uploaded on the website, approved by an admin. */
+export type PitCommitment = {
+  status: 'none' | 'draft' | 'pending' | 'approved' | 'rejected';
+  year: number | null;
+  hasDocument: boolean;
+  personalTaxCode: string;
+  rejectReason: string;
+  activeForCurrentYear: boolean;
+  currentYear: number;
 };
 
 export type AffiliateLink = { code: string; scope: 'product' | 'store'; rate: number; inProgram: boolean; path: string; url: string };
