@@ -13,6 +13,7 @@ import { formatMoney, formatDate } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
 import { Input } from '@/components/ui/Input';
 import { AnalyticsService } from '@/lib/analytics';
+import { InvoiceChoice } from '@/components/orders/InvoiceChoice';
 
 function routeId(value: string | string[] | undefined): string {
   if (Array.isArray(value)) return String(value[0] || '').trim();
@@ -61,6 +62,7 @@ export default function OrderDetailScreen() {
         <Text style={{ color: colors.text, fontWeight: '800', fontSize: 20, marginTop: 16 }}>{formatMoney(order.amount, order.currency)}</Text>
         <Text style={{ color: colors.textSecondary, marginTop: 6 }}>{formatDate(order.createdAt)}</Text>
         {order.taxAmount ? <Text style={{ color: colors.textSecondary, marginTop: 10 }}>Tax: {formatMoney(order.taxAmount, order.currency)}</Text> : null}
+        {order.status === 'paid' || order.status === 'refunded' ? <InvoiceChoice orderId={order.id} /> : null}
         <Button title={t('order.complaint')} variant="outline" onPress={() => router.push(href(`/complaint/create?orderId=${order.id}`))} style={{ marginTop: 20 }} />
         <Button title={t('order.review')} variant="outline" onPress={() => router.push(href(`/reviews/create?productId=${order.productId}`))} style={{ marginTop: 10 }} />
         {order.canDispute ? (

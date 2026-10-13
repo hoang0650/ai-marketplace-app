@@ -19,6 +19,7 @@ import { AnalyticsService } from '@/lib/analytics';
 import { playSound } from '@/services/sound';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { isContentCategory, isDownloadLicenseCategory, isLicenseCategory, isSkillCategory, isDatasetCategory } from '@/constants/categories';
+import { InvoiceChoice } from '@/components/orders/InvoiceChoice';
 import { findActiveLicense, findPaidOrder } from '@/lib/access';
 
 export default function CheckoutScreen() {
@@ -134,6 +135,7 @@ export default function CheckoutScreen() {
         ) : paidOrder?.id ? (
           <Text style={{ color: colors.textSecondary, marginTop: 8 }}>#{paidOrder.id}</Text>
         ) : null}
+        {doneId && doneId !== 'owned' && !alreadyOwned ? <InvoiceChoice orderId={doneId} /> : null}
         {license?.licenseKey ? (
           <View style={{ borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardBackground, borderRadius: 12, padding: 16, marginTop: 16 }}>
             <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700' }}>{t('license.key')}</Text>
