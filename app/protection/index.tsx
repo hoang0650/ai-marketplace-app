@@ -5,11 +5,12 @@ import { href } from '@/lib/href';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
+import { openLegal } from '@/lib/legalLinks';
 
 export default function ProtectionScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { t } = useT();
+  const { t, language } = useT();
   const rows = [
     { label: t('protection.complaints'), href: '/complaint/create' as const, extra: () => router.push('/(tabs)/messages') },
     { label: t('protection.disputes'), href: '/(tabs)/orders' as const },
@@ -25,7 +26,7 @@ export default function ProtectionScreen() {
       {rows.map((r) => (
         <Pressable
           key={r.label}
-          onPress={() => router.push(href(r.href))}
+          onPress={() => (r.href.startsWith('/legal/') ? void openLegal(r.href.slice(7), language) : router.push(href(r.href)))}
           style={{ paddingVertical: 16, borderBottomWidth: 1, borderColor: colors.border, minHeight: 48 }}
         >
           <Text style={{ color: colors.text, fontWeight: '600' }}>{r.label}</Text>

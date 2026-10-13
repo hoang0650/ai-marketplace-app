@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { href } from '@/lib/href';
+import { Stack } from 'expo-router';
+import { openLegal } from '@/lib/legalLinks';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
@@ -11,13 +11,11 @@ import { displayFont } from '@/constants/fonts';
 import { LEGAL_POLICIES, LEGAL_POLICY_GROUPS, LEGAL_QUICK_SLUGS, type LegalPolicyMeta } from '@/constants/legal';
 
 export default function LegalIndexScreen() {
-  const router = useRouter();
   const { colors } = useTheme();
-  const { t } = useT();
+  const { t, language } = useT();
   const [query, setQuery] = useState('');
 
   const titleOf = (p: LegalPolicyMeta) => t(`legal.policy.${p.slug}.title`);
-  const summaryOf = (p: LegalPolicyMeta) => t(`legal.policy.${p.slug}.summary`);
 
   const quick = LEGAL_QUICK_SLUGS.map((slug) => LEGAL_POLICIES.find((p) => p.slug === slug)).filter(
     (p): p is LegalPolicyMeta => !!p,
@@ -32,9 +30,7 @@ export default function LegalIndexScreen() {
         if (!q) return true;
         return (
           titleOf(p).toLowerCase().includes(q) ||
-          summaryOf(p).toLowerCase().includes(q) ||
           p.title.toLowerCase().includes(q) ||
-          p.summary.toLowerCase().includes(q) ||
           p.slug.includes(q)
         );
       }),
@@ -57,7 +53,7 @@ export default function LegalIndexScreen() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quick} style={styles.quickRow}>
           {quick.map((p) => (
-            <Chip key={p.slug} label={titleOf(p)} onPress={() => router.push(href(`/legal/${p.slug}`))} />
+            <Chip key={p.slug} label={titleOf(p)} onPress={() => void openLegal(p.slug, language)} />
           ))}
         </ScrollView>
 
@@ -71,7 +67,7 @@ export default function LegalIndexScreen() {
               {g.items.map((doc, i) => (
                 <Pressable
                   key={doc.slug}
-                  onPress={() => router.push(href(`/legal/${doc.slug}`))}
+                  onPress={() => void openLegal(doc.slug, language)}
                   style={({ pressed }) => [
                     styles.doc,
                     i < g.items.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
@@ -80,7 +76,6 @@ export default function LegalIndexScreen() {
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.docTitle, { color: colors.text }]}>{titleOf(doc)}</Text>
-                    <Text style={[styles.docSummary, { color: colors.textSecondary }]}>{summaryOf(doc)}</Text>
                   </View>
                   <Text style={{ color: colors.tint, fontWeight: '800' }}>→</Text>
                 </Pressable>
@@ -118,7 +113,6 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
   doc: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, minHeight: 72 },
   docTitle: { fontSize: 15, fontWeight: '700', lineHeight: 20, includeFontPadding: false },
-  docSummary: { fontSize: 13, lineHeight: 18, marginTop: 4, includeFontPadding: false },
   empty: { textAlign: 'center', marginVertical: 24 },
   contact: { borderWidth: 1, borderRadius: 16, padding: 16, marginTop: 8 },
   contactTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },

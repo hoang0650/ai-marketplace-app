@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { href } from '@/lib/href';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,6 +15,8 @@ import { Button } from '@/components/ui/Button';
 import { getErrorMessage } from '@/lib/errors';
 import { displayFont } from '@/constants/fonts';
 import { legalApi } from '@/api';
+import { useQuery } from '@tanstack/react-query';
+import { openLegal } from '@/lib/legalLinks';
 import { signInWithGoogle } from '@/services/googleAuth';
 
 export default function RegisterScreen() {
@@ -23,6 +24,10 @@ export default function RegisterScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { t, language } = useT();
+  // Current published versions, shown next to the links and sent with the acceptance.
+  const termsDoc = useQuery({ queryKey: ['legal-doc', 'terms'], queryFn: () => legalApi.one('terms'), retry: false });
+  const privacyDoc = useQuery({ queryKey: ['legal-doc', 'privacy'], queryFn: () => legalApi.one('privacy'), retry: false });
+  const ver = (v?: string) => (v ? ` · v${v}` : '');
   const { register, registerLoading, googlePrefill } = useAuth();
   const [formError, setFormError] = useState('');
   const [role, setRole] = useState<SignupRoleValue>('buyer');
@@ -92,8 +97,8 @@ export default function RegisterScreen() {
         googleSignupToken: googleSignupToken || undefined,
       });
       try {
-        await legalApi.accept('terms');
-        await legalApi.accept('privacy');
+        await legalApi.accept('terms', { version: termsDoc.data?.version, context: 'register' });
+        await legalApi.accept('privacy', { version: privacyDoc.data?.version, context: 'register' });
       } catch {
         /* backend remains source of truth if accept fails */
       }
@@ -181,7 +186,10 @@ export default function RegisterScreen() {
           render={({ field, fieldState }) => (
             <Pressable onPress={() => field.onChange(!field.value)} style={{ marginBottom: 8, minHeight: 44, justifyContent: 'center' }}>
               <Text style={{ color: colors.text }}>{field.value ? '☑' : '☐'} {t('auth.agreeTerms')}</Text>
-              <Text style={{ color: colors.tint }} onPress={() => router.push(href('/legal/terms'))}>Terms</Text>
+              <Text style={{ color: colors.tint }} onPress={() => void openLegal('terms', language)}>
+                {t('legal.policy.dieu-khoan-su-dung.title')}
+                {ver(termsDoc.data?.version)}
+              </Text>
               {fieldState.error ? <Text style={{ color: colors.danger }}>{fieldState.error.message}</Text> : null}
             </Pressable>
           )}
@@ -192,7 +200,10 @@ export default function RegisterScreen() {
           render={({ field }) => (
             <Pressable onPress={() => field.onChange(!field.value)} style={{ marginBottom: 16, minHeight: 44, justifyContent: 'center' }}>
               <Text style={{ color: colors.text }}>{field.value ? '☑' : '☐'} {t('auth.agreePrivacy')}</Text>
-              <Text style={{ color: colors.tint }} onPress={() => router.push(href('/legal/privacy'))}>Privacy · Consumer Protection</Text>
+              <Text style={{ color: colors.tint }} onPress={() => void openLegal('privacy', language)}>
+                {t('legal.policy.chinh-sach-bao-mat-va-du-lieu.title')}
+                {ver(privacyDoc.data?.version)}
+              </Text>
             </Pressable>
           )}
         />

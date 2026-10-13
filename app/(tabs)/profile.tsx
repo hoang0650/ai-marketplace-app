@@ -23,6 +23,7 @@ import {
   Shield,
   Sparkles,
   Store,
+  Trash2,
   Users,
   Wallet,
 } from 'lucide-react-native';
@@ -83,7 +84,8 @@ export default function ProfileScreen() {
           <MenuRow icon={Cpu} label={t('gpu.rent.title')} onPress={() => router.push(href('/gpu'))} />
           <MenuRow icon={Sparkles} label={t('builder.title')} onPress={() => router.push(href('/builder'))} />
           <MenuRow icon={CreditCard} label={t('profile.billing')} onPress={() => router.push('/wallet')} />
-          <MenuRow icon={Receipt} label={t('profile.complaints')} onPress={() => router.push(href('/protection'))} last />
+          <MenuRow icon={Receipt} label={t('profile.complaints')} onPress={() => router.push(href('/protection'))} />
+          <MenuRow icon={Trash2} label={t('del.title')} hint={t('del.menuHint')} onPress={() => router.push(href('/account/delete'))} last />
         </MenuGroup>
 
         {isCreator ? (

@@ -13,6 +13,7 @@ import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { formatDate, formatMoney } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
 import { href } from '@/lib/href';
+import { openLegal } from '@/lib/legalLinks';
 
 /** Pasted product/store URL or a bare product slug → link target. */
 function parseTarget(raw: string): { productSlug?: string; storeSlug?: string } | null {
@@ -168,7 +169,7 @@ export default function AffiliateScreen() {
               • {line}
             </Text>
           ))}
-          <Pressable onPress={() => router.push(href('/legal/chinh-sach-affiliate'))} style={{ minHeight: 44, justifyContent: 'center' }}>
+          <Pressable onPress={() => void openLegal('chinh-sach-affiliate', language)} style={{ minHeight: 44, justifyContent: 'center' }}>
             <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('aff.policy')}</Text>
           </Pressable>
         </>

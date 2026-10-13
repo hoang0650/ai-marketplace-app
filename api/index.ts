@@ -266,7 +266,9 @@ export const complaintsApi = {
 export const legalApi = {
   list: (locale = 'vi') => apiClient.get<LegalDocument[]>(`/legal${qs({ locale })}`),
   one: (documentType: string, locale = 'vi') => apiClient.get<LegalDocument>(`/legal/${documentType}${qs({ locale })}`),
-  accept: (documentType: string) => apiClient.post(`/legal/${documentType}/accept`),
+  /** `version` = the version shown to the user (from `one`); the API refuses it with 409 if a newer one exists. */
+  accept: (documentType: string, body?: { version?: string; context?: string; locale?: string }) =>
+    apiClient.post(`/legal/${documentType}/accept`, body ?? {}),
 };
 
 export const sellersApi = {
