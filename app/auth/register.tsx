@@ -153,7 +153,7 @@ export default function RegisterScreen() {
         <Text style={{ color: colors.text, fontWeight: '700', marginTop: 8 }}>{t('auth.roleLabel')}</Text>
         <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4, marginBottom: 10 }}>{t('auth.roleHint')}</Text>
         <View style={{ gap: 8, marginBottom: 14 }}>
-          {SIGNUP_ROLES.filter((r) => WORK_BOARD_ENABLED || (r !== 'freelancer' && r !== 'employer')).map((r) => {
+          {SIGNUP_ROLES.filter((r) => WORK_BOARD_ENABLED || r === 'buyer' || r === 'seller').map((r) => {
             const active = role === r;
             return (
               <Pressable
