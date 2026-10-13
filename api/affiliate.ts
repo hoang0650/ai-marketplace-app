@@ -11,6 +11,7 @@ export type AffiliateConfig = {
     enabled: boolean;
     rate: number;
     thresholdVnd: number;
+    minWithdrawVnd?: number;
     legalReview: boolean;
     rule?: string;
     commitmentForm?: string;
@@ -52,6 +53,15 @@ export type AffiliateStats = {
   recent: AffiliateCommissionRow[];
   config: AffiliateConfig;
   pitCommitment?: PitCommitment;
+  /** Affiliate wallet slice: withdraw only when availableVnd >= minWithdrawVnd; PIT per withdrawal. */
+  withdrawal?: {
+    available: number;
+    availableVnd: number;
+    minWithdrawVnd: number;
+    canWithdraw: boolean;
+    pitRate: number;
+    pitCommitmentApplied: boolean;
+  };
 };
 
 /** Cam kết Mẫu 08/CK-TNCN - uploaded on the website, approved by an admin. */

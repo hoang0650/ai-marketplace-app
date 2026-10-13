@@ -135,6 +135,21 @@ export default function AffiliateScreen() {
           </View>
           )}
 
+          {s.withdrawal ? (
+            <View style={[styles.card, { borderColor: colors.border }]}>
+              <Text style={muted}>
+                {t('aff.wd.info', {
+                  amount: s.withdrawal.availableVnd.toLocaleString('vi-VN'),
+                  min: s.withdrawal.minWithdrawVnd.toLocaleString('vi-VN'),
+                  rate: Math.round(s.withdrawal.pitRate * 1000) / 10,
+                })}
+              </Text>
+              <Pressable onPress={() => void openWeb(webUrl('/affiliate', language))} style={{ minHeight: 44, justifyContent: 'center' }}>
+                <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('aff.wd.open')}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
           {s.pitCommitment ? (
             <View style={[styles.card, { borderColor: colors.border }]}>
               <Text style={[styles.h, { color: colors.text }]}>{t('aff.pit08.title')}</Text>
