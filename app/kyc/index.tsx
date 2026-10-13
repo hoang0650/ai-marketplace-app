@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { kycApi } from '@/api';
-import type { KycIdType, KycOrgType, KycSide, KycSubjectType, KycSubmitBody } from '@/api/types';
+import type { KycIdType, KycOrgType, KycProfile, KycSide, KycSubjectType, KycSubmitBody } from '@/api/types';
 import { href } from '@/lib/href';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useT';
@@ -29,17 +30,26 @@ const COMPANY_TAX_RE = /^\d{10}(-\d{3})?$/;
 const HOUSEHOLD_TAX_RE = /^(\d{10}(-\d{3})?|\d{12})$/;
 const normalizeTax = (v: string) => v.replace(/[\s.]/g, '');
 
-async function formFromAsset(asset: ImagePicker.ImagePickerAsset): Promise<FormData> {
+/** Business licence must be a PDF (max 10MB); ID front/back stay images. */
+const LICENSE_MAX_BYTES = 10 * 1024 * 1024;
+type KycLicenseFile = { name: string; size: number; contentType: string; isPdf: boolean };
+const licenseFileOf = (k?: KycProfile) => (k as (KycProfile & { licenseFile?: KycLicenseFile | null }) | undefined)?.licenseFile;
+const fileSize = (bytes: number) =>
+  bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+async function formFromFile(file: { uri: string; name: string; type: string; webFile?: File }): Promise<FormData> {
   const form = new FormData();
-  const name = asset.fileName || 'kyc.jpg';
-  const type = asset.mimeType || 'image/jpeg';
   if (Platform.OS === 'web') {
-    const blob = await fetch(asset.uri).then((r) => r.blob());
-    form.append('image', blob, name);
+    const blob: Blob = file.webFile ? file.webFile : await fetch(file.uri).then((r) => r.blob());
+    form.append('file', blob, file.name);
   } else {
-    form.append('image', { uri: asset.uri, name, type } as unknown as Blob);
+    form.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
   }
   return form;
+}
+
+function formFromAsset(asset: ImagePicker.ImagePickerAsset): Promise<FormData> {
+  return formFromFile({ uri: asset.uri, name: asset.fileName || 'kyc.jpg', type: asset.mimeType || 'image/jpeg' });
 }
 
 export default function KycScreen() {
@@ -132,20 +142,9 @@ export default function KycScreen() {
     submit.mutate();
   };
 
-  const pick = async (side: KycSide) => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('AI Markets', t('kyc.err.permission'));
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.85,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
+  const uploadForm = async (side: KycSide, form: FormData) => {
     setUploading(side);
     try {
-      const form = await formFromAsset(result.assets[0]);
       const res = await kycApi.uploadDocument(side, form);
       if (res.previewUrl) setPreviews((m) => ({ ...m, [side]: res.previewUrl! }));
       else {
@@ -158,6 +157,38 @@ export default function KycScreen() {
     } finally {
       setUploading(null);
     }
+  };
+
+  const pickLicensePdf = async () => {
+    const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
+    if (result.canceled || !result.assets?.[0]) return;
+    const a = result.assets[0];
+    const isPdf = a.mimeType === 'application/pdf' || /\.pdf$/i.test(a.name || '');
+    if (!isPdf) {
+      Alert.alert('AI Markets', t('kyc.file.mustPdf'));
+      return;
+    }
+    if (a.size && a.size > LICENSE_MAX_BYTES) {
+      Alert.alert('AI Markets', t('kyc.file.tooLarge'));
+      return;
+    }
+    const form = await formFromFile({ uri: a.uri, name: a.name || 'license.pdf', type: 'application/pdf', webFile: a.file });
+    await uploadForm('license', form);
+  };
+
+  const pick = async (side: KycSide) => {
+    if (side === 'license') return pickLicensePdf();
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('AI Markets', t('kyc.err.permission'));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    await uploadForm(side, await formFromAsset(result.assets[0]));
   };
 
   if (!isAuthenticated) {
@@ -306,7 +337,32 @@ export default function KycScreen() {
         {(isOrg ? ORG_SIDES : SIDES).map((side) => (
           <View key={side} style={[styles.card, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>{t(`kyc.side.${side}`)}</Text>
-            {previews[side] ? (
+            {side === 'license' ? (
+              k?.hasLicense && licenseFileOf(k) ? (
+                <View style={[styles.fileCard, { borderColor: colors.border }]}>
+                  <View style={styles.fileIcon}>
+                    <Text style={styles.fileIconText}>PDF</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ color: colors.text, fontWeight: '600' }}>
+                      {licenseFileOf(k)!.name}
+                    </Text>
+                    {licenseFileOf(k)!.size ? (
+                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{fileSize(licenseFileOf(k)!.size)}</Text>
+                    ) : null}
+                  </View>
+                  {previews.license ? (
+                    <Pressable onPress={() => void Linking.openURL(previews.license!)} hitSlop={8}>
+                      <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('kyc.file.view')}</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : (
+                <View style={[styles.ph, { borderColor: colors.border, height: 72 }]}>
+                  <Text style={{ color: colors.textSecondary }}>{t('kyc.file.none')}</Text>
+                </View>
+              )
+            ) : previews[side] ? (
               <Image source={{ uri: previews[side] }} style={styles.preview} />
             ) : (
               <View style={[styles.ph, { borderColor: colors.border }]}>
@@ -315,11 +371,14 @@ export default function KycScreen() {
             )}
             {canEdit ? (
               <Button
-                title={uploading === side ? t('kyc.sending') : t('kyc.upload')}
+                title={uploading === side ? t('kyc.sending') : t(side === 'license' ? 'kyc.file.choose' : 'kyc.upload')}
                 variant="outline"
                 loading={uploading === side}
                 onPress={() => void pick(side)}
               />
+            ) : null}
+            {canEdit && side === 'license' ? (
+              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{t('kyc.file.pdfHint')}</Text>
             ) : null}
           </View>
         ))}
@@ -363,6 +422,9 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 14, padding: 12, gap: 10 },
   summaryRow: { gap: 2 },
   preview: { width: '100%', height: 160, borderRadius: 10 },
+  fileCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 10, padding: 12 },
+  fileIcon: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#b42318', alignItems: 'center', justifyContent: 'center' },
+  fileIconText: { color: '#fff', fontWeight: '800', fontSize: 11 },
   ph: {
     height: 120,
     borderWidth: 1,
