@@ -27,9 +27,6 @@ import type {
   WorkJobBid,
   ContentEpisode,
   ContentUnlock,
-  PaypalConfig,
-  PaypalCreateOrderResult,
-  PaypalFunding,
   PlaygroundRunResult,
   GameSessionInfo,
   GameHeartbeat,
@@ -202,11 +199,6 @@ export const walletApi = {
     signedTransaction?: string;
     packageName?: string;
   }) => apiClient.post<{ success: boolean; duplicate?: boolean; wallet?: WalletTx }>('/iap/verify', body),
-  paypalConfig: () => apiClient.get<PaypalConfig>('/paypal/config'),
-  paypalCreateOrder: (amount: number, currency: string, fundingSource?: PaypalFunding) =>
-    apiClient.post<PaypalCreateOrderResult>('/paypal/create-order', { amount, currency, fundingSource }),
-  paypalCaptureOrder: (orderId: string) =>
-    apiClient.post<{ success: boolean; status: string; wallet?: WalletTx }>('/paypal/capture-order', { orderId }),
 };
 
 export const kycApi = {

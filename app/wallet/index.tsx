@@ -160,13 +160,11 @@ export default function WalletScreen() {
                 ? Platform.OS === 'ios'
                   ? t('wallet.method.iapIos')
                   : t('wallet.method.iapAndroid')
-                : item.paymentMethod === 'paypal' || note.includes('paypal')
-                  ? t('wallet.method.paypal')
-                  : item.paymentMethod === 'gpay'
-                    ? t('wallet.method.gpayVn')
-                    : debit
-                      ? t('wallet.type.debit')
-                      : t('wallet.type.deposit');
+                : item.paymentMethod === 'gpay'
+                  ? t('wallet.method.gpayVn')
+                  : debit
+                    ? t('wallet.type.debit')
+                    : t('wallet.type.deposit');
             return (
               <View
                 key={item.id}

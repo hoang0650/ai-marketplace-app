@@ -780,7 +780,6 @@ export const zh: Record<string, string> = {
   'wallet.topup.snapConfirm': '商店仅出售 $5 / $10 / $20 / $50 / $100 套餐。是否充值 {pack}？',
   'wallet.method.apple': 'Apple Pay',
   'wallet.method.gpay': 'Google Pay',
-  'wallet.method.paypal': 'PayPal',
   'wallet.method.iapIos': 'App Store',
   'wallet.method.iapAndroid': 'Google Play',
   'wallet.type.deposit': '充值',
