@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { IapTopup } from '@/components/wallet/IapTopup';
+import { BankTransferInfo } from '@/components/wallet/BankTransferInfo';
 import { displayFont } from '@/constants/fonts';
 import { formatMoney, formatDate } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
@@ -73,6 +74,8 @@ export default function WalletScreen() {
 
         {/* Store rules: digital wallet credit in the app goes through App Store / Google Play only. */}
         <IapTopup />
+
+        <BankTransferInfo />
 
         {isCreator ? (
           <View style={{ marginTop: 28 }}>
