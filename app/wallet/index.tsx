@@ -18,6 +18,7 @@ import { IapTopup } from '@/components/wallet/IapTopup';
 import { displayFont } from '@/constants/fonts';
 import { formatMoney, formatDate } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
+import { GPAY_ENABLED } from '@/lib/features';
 
 export default function WalletScreen() {
   const qc = useQueryClient();
@@ -161,7 +162,7 @@ export default function WalletScreen() {
                   ? t('wallet.method.iapIos')
                   : t('wallet.method.iapAndroid')
                 : item.paymentMethod === 'gpay'
-                  ? t('wallet.method.gpayVn')
+                  ? t(GPAY_ENABLED ? 'wallet.method.gpayVn' : 'wallet.method.bankTransfer')
                   : debit
                     ? t('wallet.type.debit')
                     : t('wallet.type.deposit');
