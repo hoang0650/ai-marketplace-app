@@ -4,6 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useQuery } from '@tanstack/react-query';
 import { walletApi } from '@/api';
 import { useTheme } from '@/hooks/useT';
+import { GPAY_ENABLED } from '@/lib/features';
 
 /** Optional bank-transfer info (IAP remains the in-app top-up). Full VietQR is on the website. */
 export function BankTransferInfo() {
@@ -32,9 +33,27 @@ export function BankTransferInfo() {
       <Text style={{ color: colors.textSecondary, marginTop: 8, fontSize: 12 }}>
         Sau khi chuyển khoản, vui lòng giữ biên lai. Ví được cộng trong vài phút đến vài giờ làm việc sau khi chúng tôi xác nhận.
       </Text>
-      <Pressable onPress={() => Linking.openURL('https://aimarkets.vn/wallet')} style={{ marginTop: 10 }}>
-        <Text style={{ color: '#c9a961', fontWeight: '600' }}>Mở ví trên web →</Text>
-      </Pressable>
+      {GPAY_ENABLED ? (
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+          {[
+            { k: 'vietqr', title: 'Chuyển khoản VietQR', sub: 'Quét mã, admin xác nhận', url: 'https://aimarkets.vn/wallet', tint: '#d6293e' },
+            { k: 'gpay', title: 'GPay', sub: 'Cổng thanh toán, cộng ví tự động', url: 'https://aimarkets.vn/wallet?method=gpay', tint: '#1d4ed8' },
+          ].map((m) => (
+            <Pressable
+              key={m.k}
+              onPress={() => Linking.openURL(m.url)}
+              style={{ flex: 1, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border }}
+            >
+              <Text style={{ color: m.tint, fontWeight: '700' }}>{m.title}</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>{m.sub}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : (
+        <Pressable onPress={() => Linking.openURL('https://aimarkets.vn/wallet')} style={{ marginTop: 10 }}>
+          <Text style={{ color: '#c9a961', fontWeight: '600' }}>Mở ví trên web →</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
