@@ -200,6 +200,14 @@ export const walletApi = {
     packageName?: string;
   }) => apiClient.post<{ success: boolean; duplicate?: boolean; wallet?: WalletTx }>('/iap/verify', body),
 };
+  bankTransferConfig: () => apiClient.get<{
+    enabled: boolean;
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+    vndPerUsd: number;
+  }>('/wallet/bank-transfer/config'),
+};
 
 export const kycApi = {
   me: () => apiClient.get<KycProfile>('/kyc/me'),
