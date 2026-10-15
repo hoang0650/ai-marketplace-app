@@ -430,7 +430,7 @@ export const chatApi = {
     imageUrl?: string;
   }) => apiClient.post<ChatConversation>('/chat/conversations', body),
   messages: (id: string) => apiClient.get<ChatMessage[]>(`/chat/conversations/${id}/messages`),
-  send: (id: string, body: { body?: string; imageUrl?: string }) =>
+  send: (id: string, body: { body?: string; imageUrl?: string; attachmentIds?: string[] }) =>
     apiClient.post<ChatMessage>(`/chat/conversations/${id}/messages`, body),
   uploadImage: (form: FormData) =>
     apiClient.uploadForm<{ ok: boolean; url: string }>('/uploads/image', form),
@@ -537,7 +537,7 @@ export const hireApi = {
   cancel: (id: string) => apiClient.post<HireProject>(`/hire/projects/${id}/cancel`, {}),
   accept: (id: string, milestones: HireMilestoneDraft[]) =>
     apiClient.post<HireProject>(`/hire/projects/${id}/accept`, { milestones }),
-  submit: (id: string, body: { builderProjectId?: string; demoUrl?: string; note?: string }) =>
+  submit: (id: string, body: { builderProjectId?: string; demoUrl?: string; note?: string; attachmentIds?: string[] }) =>
     apiClient.post<HireProject>(`/hire/projects/${id}/submit`, body),
   approve: (id: string) => apiClient.post<HireProject>(`/hire/projects/${id}/approve`, {}, 60_000),
   revision: (id: string, note: string) => apiClient.post<HireProject>(`/hire/projects/${id}/revision`, { note }),
@@ -546,7 +546,8 @@ export const hireApi = {
   /** Fixed-price service package split into phases; charged per phase only on approval. */
   startPackage: (productId: string, brief?: string) =>
     apiClient.post<HireProject & { existing?: boolean }>('/hire/packages', { productId, brief }),
-  message: (id: string, body: string) => apiClient.post<HireProject>(`/hire/projects/${id}/messages`, { body }),
+  message: (id: string, body: string, attachmentIds?: string[]) =>
+    apiClient.post<HireProject>(`/hire/projects/${id}/messages`, { body, ...(attachmentIds?.length ? { attachmentIds } : {}) }),
   complain: (id: string, note: string) => apiClient.post<HireProject>(`/hire/projects/${id}/complaint`, { note }),
 };
 

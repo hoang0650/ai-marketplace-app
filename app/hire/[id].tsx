@@ -4,7 +4,7 @@ import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { builderApi, chatApi, hireApi, walletApi } from '@/api';
-import type { HireMilestone, HireProject, HireTerminateReason } from '@/api/types';
+import type { HireMilestone, HireProject, HireTerminateReason , FileAttachment } from '@/api/types';
 import { href } from '@/lib/href';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, useT } from '@/hooks/useT';
@@ -16,6 +16,8 @@ import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { formatDate, formatMoney } from '@/utils/format';
 import { ApiError, getErrorMessage } from '@/lib/errors';
 import { categoryLabel } from '@/constants/categories';
+import { pickAndUpload, fileSize } from '@/lib/attachments';
+import { Attachments } from '@/components/chat/Attachments';
 import { hireStatusColor, rowsTotal, splitMilestones, toDrafts, type MilestoneRow } from '@/lib/hire';
 
 const TERMINATE_REASONS: HireTerminateReason[] = ['not_as_requested', 'late', 'other'];
@@ -37,6 +39,9 @@ export default function HireProjectScreenRoute() {
 function HireProjectScreen() {
   const { id, started } = useLocalSearchParams<{ id: string; started?: string }>();
   const [msgBody, setMsgBody] = useState('');
+  const [msgFiles, setMsgFiles] = useState<FileAttachment[]>([]);
+  const [demoFiles, setDemoFiles] = useState<FileAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [complaintNote, setComplaintNote] = useState('');
   const [showComplaint, setShowComplaint] = useState(false);
   const router = useRouter();
@@ -187,6 +192,27 @@ function HireProjectScreen() {
     if (!rowsMatch || !drafts) return;
     void run(() => hireApi.accept(p.id, drafts));
   };
+  const attach = async (kind: 'image' | 'file', target: 'msg' | 'demo') => {
+    setUploading(true);
+    try {
+      const files = await pickAndUpload(kind, 'hire', p.id);
+      (target === 'msg' ? setMsgFiles : setDemoFiles)((l) => [...l, ...files]);
+    } catch (err) {
+      Alert.alert(t('chat.attachFile'), err instanceof ApiError && err.code.startsWith('FILE_') ? `${err.message}: ${t(err.code === 'FILE_TOO_LARGE' ? 'attach.err.tooLarge' : 'attach.err.type')}` : getErrorMessage(err, language));
+    } finally {
+      setUploading(false);
+    }
+  };
+  const pendingRow = (files: FileAttachment[], drop: (id: string) => void) =>
+    files.length ? (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+        {files.map((f) => (
+          <Pressable key={f.id} onPress={() => drop(f.id)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(127,127,127,0.16)' }}>
+            <Text style={{ color: colors.text, fontSize: 12 }}>{f.name} · {fileSize(f.size)} ×</Text>
+          </Pressable>
+        ))}
+      </View>
+    ) : null;
   const submitDemo = () => {
     void run(
       () =>
@@ -194,10 +220,12 @@ function HireProjectScreen() {
           builderProjectId: p.demoKind ? pickedBuilderId || undefined : undefined,
           demoUrl: demoUrl.trim() || undefined,
           note: demoNote.trim(),
+          attachmentIds: demoFiles.map((f) => f.id),
         }),
       () => {
         setDemoUrl('');
         setDemoNote('');
+        setDemoFiles([]);
       },
     );
   };
@@ -458,6 +486,12 @@ function HireProjectScreen() {
                   </Text>
                 ) : null}
                 {m.demoNote ? <Text style={[muted, { fontSize: 13, marginTop: 4 }]}>{m.demoNote}</Text> : null}
+                {m.files?.length ? (
+                  <View style={{ marginTop: 6 }}>
+                    <Text style={[muted, { fontSize: 11 }]}>{t('attach.deliverables')}</Text>
+                    <Attachments items={m.files} />
+                  </View>
+                ) : null}
                 {m.demoUrl ? (
                   <Pressable onPress={() => void Linking.openURL(m.demoUrl)}>
                     <Text style={{ color: colors.tint, marginTop: 4 }} numberOfLines={1}>
@@ -539,6 +573,11 @@ function HireProjectScreen() {
                   style={{ minHeight: 96 }}
                   maxLength={4000}
                 />
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Button title={t('attach.addDeliverables')} variant="outline" disabled={uploading} onPress={() => void attach('file', 'demo')} />
+                  <Button title={t('chat.attach')} variant="outline" disabled={uploading} onPress={() => void attach('image', 'demo')} />
+                </View>
+                {pendingRow(demoFiles, (id) => setDemoFiles((l) => l.filter((f) => f.id !== id)))}
                 <Button
                   title={t('hire.demo.submit')}
                   loading={busy}
@@ -685,7 +724,8 @@ function HireProjectScreen() {
             (p.messages || []).map((m) => (
               <View key={m.id} style={{ alignSelf: m.actor === role ? 'flex-end' : 'flex-start', maxWidth: '85%', backgroundColor: m.actor === role ? 'rgba(201,169,97,0.18)' : colors.background, borderRadius: 12, padding: 8, marginBottom: 6 }}>
                 <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{(m.actor === 'buyer' ? p.buyerName : p.sellerName) || m.actor} · {formatDate(m.at, language)}</Text>
-                <Text style={{ color: colors.text }}>{m.body}</Text>
+                <Attachments items={m.attachments} />
+                {m.body ? <Text style={{ color: colors.text }}>{m.body}</Text> : null}
               </View>
             ))
           ) : (
@@ -693,12 +733,20 @@ function HireProjectScreen() {
           )}
           {role ? (
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, alignItems: 'center' }}>
+              <Pressable onPress={() => void attach('file', 'msg')} disabled={uploading} accessibilityRole="button" accessibilityLabel={t('chat.attachFile')} style={{ padding: 6 }}>
+                {uploading ? <ActivityIndicator color={colors.tint} /> : <Text style={{ fontSize: 20 }}>📎</Text>}
+              </Pressable>
               <View style={{ flex: 1 }}>
                 <Input value={msgBody} onChangeText={setMsgBody} placeholder={t('hire.chat.ph')} />
               </View>
-              <Button title={t('hire.chat.send')} disabled={busy || !msgBody.trim()} onPress={() => void run(() => hireApi.message(p.id, msgBody.trim()), () => setMsgBody(''))} />
+              <Button
+                title={t('hire.chat.send')}
+                disabled={busy || uploading || (!msgBody.trim() && !msgFiles.length)}
+                onPress={() => void run(() => hireApi.message(p.id, msgBody.trim(), msgFiles.map((f) => f.id)), () => { setMsgBody(''); setMsgFiles([]); })}
+              />
             </View>
           ) : null}
+          {pendingRow(msgFiles, (id) => setMsgFiles((l) => l.filter((f) => f.id !== id)))}
         </View>
 
         {role === 'buyer' && ['active', 'completed', 'terminated'].includes(p.status) ? (
