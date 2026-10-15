@@ -51,7 +51,7 @@ async function pick(kind: 'image' | 'file'): Promise<Picked[]> {
 }
 
 /** Pick images or documents and upload them into the scope's private storage. */
-export async function pickAndUpload(kind: 'image' | 'file', scope: 'chat' | 'hire', scopeId: string): Promise<FileAttachment[]> {
+export async function pickAndUpload(kind: 'image' | 'file', scope: 'chat' | 'hire' | 'complaint', scopeId: string): Promise<FileAttachment[]> {
   const items = await pick(kind);
   const out: FileAttachment[] = [];
   for (const it of items.slice(0, 10)) {
