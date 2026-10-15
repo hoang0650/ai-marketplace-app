@@ -90,10 +90,10 @@ function qs(params: Record<string, string | number | boolean | undefined>) {
   return s ? `?${s}` : '';
 }
 
-function newIdempotencyKey(): string {
+export function newIdempotencyKey(prefix = 'rent'): string {
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
-  if (c?.randomUUID) return `rent-${c.randomUUID()}`;
-  return `rent-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  if (c?.randomUUID) return `${prefix}-${c.randomUUID()}`;
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 export type ProductKind = 'DIGITAL' | 'PHYSICAL';
@@ -182,16 +182,22 @@ export const billingApi = {
     licenseTerm?: string,
     salesChannel?: 'WEB' | 'APP_STORE' | 'GOOGLE_PLAY',
     couponCode?: string,
+    /** Same key on a retry = same order; the API never charges the wallet twice. */
+    idempotencyKey?: string,
   ) =>
-    apiClient.post<CheckoutResult>('/billing/checkout', {
-      productId,
-      quantity,
-      provider: 'wallet',
-      licenseTerm,
-      salesChannel,
-      couponCode,
-      // Last-click referral kept by affiliateClickStore; the API checks window and self-referral.
-      affiliateClickId: await affiliateClickStore.current(),
+    apiClient.request<CheckoutResult>('/billing/checkout', {
+      method: 'POST',
+      ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
+      body: {
+        productId,
+        quantity,
+        provider: 'wallet',
+        licenseTerm,
+        salesChannel,
+        couponCode,
+        // Last-click referral kept by affiliateClickStore; the API checks window and self-referral.
+        affiliateClickId: await affiliateClickStore.current(),
+      },
     }),
 };
 
