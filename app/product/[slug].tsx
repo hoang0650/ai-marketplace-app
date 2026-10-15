@@ -415,6 +415,14 @@ export default function ProductScreen() {
       else scrollRef.current?.scrollTo({ y: Math.max(0, hireOffset.current - 12), animated: true });
       return;
     }
+    // Professional services: open the phase workspace (Đề án / Quy chế) — paid per approved phase.
+    if (isHireRequestCategory(p.category) && !isOwner) {
+      void hireApi
+        .startPackage(p.id)
+        .then((proj) => router.push(href(`/hire/${proj.id}${proj.existing ? '' : '?started=1'}`)))
+        .catch((err) => Alert.alert('', getErrorMessage(err, language)));
+      return;
+    }
     // Generic hire-agent listing without a launchable catalog entry (kept as before).
     if (isHireAgentCategory(p.category, p.slug)) {
       router.push(href('/agents'));

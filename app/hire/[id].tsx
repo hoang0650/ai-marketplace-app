@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { WORK_BOARD_ENABLED } from '@/constants/features';
 import { WebView } from 'react-native-webview';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { builderApi, chatApi, hireApi, walletApi } from '@/api';
@@ -32,12 +31,14 @@ function confirmAsync(message: string, okLabel: string, cancelLabel: string, des
 
 /** Legacy Hire projects are shut down with Work: the screen redirects home. */
 export default function HireProjectScreenRoute() {
-  if (!WORK_BOARD_ENABLED) return <Redirect href="/" />;
   return <HireProjectScreen />;
 }
 
 function HireProjectScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, started } = useLocalSearchParams<{ id: string; started?: string }>();
+  const [msgBody, setMsgBody] = useState('');
+  const [complaintNote, setComplaintNote] = useState('');
+  const [showComplaint, setShowComplaint] = useState(false);
   const router = useRouter();
   const qc = useQueryClient();
   const { colors } = useTheme();
@@ -243,6 +244,12 @@ function HireProjectScreen() {
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} tintColor={colors.tint} />}
       >
+        {started === '1' ? (
+          <View style={[card, { backgroundColor: 'rgba(47,143,91,0.12)', borderColor: 'rgba(47,143,91,0.4)' }]}>
+            <Text style={{ color: colors.success, fontWeight: '800' }}>✓ {t('hire.pkg.startedTitle')}</Text>
+            <Text style={muted}>{t('hire.pkg.startedBody')}</Text>
+          </View>
+        ) : null}
         <View style={card}>
           <View style={styles.row}>
             <Text style={[styles.cat, { color: colors.tint }]} numberOfLines={1}>
@@ -669,6 +676,50 @@ function HireProjectScreen() {
                 {e.note ? <Text style={[muted, { fontSize: 13 }]}>{e.note}</Text> : null}
               </View>
             ))}
+          </View>
+        ) : null}
+
+        <View style={card}>
+          <Text style={h}>{t('hire.chat.title')}</Text>
+          {(p.messages || []).length ? (
+            (p.messages || []).map((m) => (
+              <View key={m.id} style={{ alignSelf: m.actor === role ? 'flex-end' : 'flex-start', maxWidth: '85%', backgroundColor: m.actor === role ? 'rgba(201,169,97,0.18)' : colors.background, borderRadius: 12, padding: 8, marginBottom: 6 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 11 }}>{(m.actor === 'buyer' ? p.buyerName : p.sellerName) || m.actor} · {formatDate(m.at, language)}</Text>
+                <Text style={{ color: colors.text }}>{m.body}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={muted}>{t('hire.chat.empty')}</Text>
+          )}
+          {role ? (
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, alignItems: 'center' }}>
+              <View style={{ flex: 1 }}>
+                <Input value={msgBody} onChangeText={setMsgBody} placeholder={t('hire.chat.ph')} />
+              </View>
+              <Button title={t('hire.chat.send')} disabled={busy || !msgBody.trim()} onPress={() => void run(() => hireApi.message(p.id, msgBody.trim()), () => setMsgBody(''))} />
+            </View>
+          ) : null}
+        </View>
+
+        {role === 'buyer' && ['active', 'completed', 'terminated'].includes(p.status) ? (
+          <View style={card}>
+            {showComplaint ? (
+              <>
+                <Text style={h}>{t('hire.complaint.title')}</Text>
+                <Text style={[muted, { fontSize: 12 }]}>{t('hire.complaint.lead')}</Text>
+                <Input value={complaintNote} onChangeText={setComplaintNote} placeholder={t('hire.complaint.ph')} multiline />
+                <Button
+                  title={t('hire.complaint.submit')}
+                  variant="outline"
+                  disabled={busy || complaintNote.trim().length < 8}
+                  onPress={() => void run(() => hireApi.complain(p.id, complaintNote.trim()), () => { setComplaintNote(''); setShowComplaint(false); })}
+                  style={{ marginTop: 8 }}
+                />
+              </>
+            ) : (
+              <Button title={`⚠ ${t('hire.complaint.btn')}`} variant="outline" onPress={() => setShowComplaint(true)} />
+            )}
+            {p.complaintId ? <Text style={{ color: colors.warning ?? colors.tint, marginTop: 8 }}>{t('hire.complaint.open')}</Text> : null}
           </View>
         ) : null}
 
