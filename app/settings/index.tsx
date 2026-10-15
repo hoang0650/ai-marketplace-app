@@ -5,6 +5,8 @@ import { useT, useTheme } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { previewSound, previewVoice } from '@/services/sound';
 import { LANGS } from '@/i18n/messages';
+import { authApi } from '@/api/auth';
+import { useAuth } from '@/hooks/useAuth';
 import type { ThemeMode } from '@/theme/tokens';
 
 type Colors = ReturnType<typeof useTheme>['colors'];
@@ -88,6 +90,14 @@ export default function SettingsScreen() {
   const setSoundEnabled = useSettingsStore((s) => s.setSoundEnabled);
   const voiceEnabled = useSettingsStore((s) => s.voiceEnabled);
   const setVoiceEnabled = useSettingsStore((s) => s.setVoiceEnabled);
+  const { user, isAuthenticated } = useAuth();
+  const [loginMail, setLoginMail] = React.useState<boolean>(
+    (user as { preferences?: { emailLoginAlerts?: boolean } } | null)?.preferences?.emailLoginAlerts !== false,
+  );
+  const toggleLoginMail = (on: boolean) => {
+    setLoginMail(on);
+    authApi.setEmailLoginAlerts(on).catch(() => setLoginMail(!on));
+  };
 
   return (
     <Screen>
@@ -118,6 +128,12 @@ export default function SettingsScreen() {
         value={voiceEnabled}
         onChange={(v) => void setVoiceEnabled(v)}
       />
+      {isAuthenticated ? (
+        <>
+          <Text style={{ color: colors.textSecondary, marginTop: 16, fontWeight: '800' }}>{t('settings.email')}</Text>
+          <Toggle colors={colors} label={t('settings.loginMail')} hint={t('settings.loginMailHint')} value={loginMail} onChange={toggleLoginMail} />
+        </>
+      ) : null}
       <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
         <PreviewButton colors={colors} label={t('settings.soundTestChime')} enabled={soundEnabled} onPress={() => previewSound()} />
         <PreviewButton colors={colors} label={t('settings.soundTestVoice')} enabled={voiceEnabled} onPress={() => previewVoice()} />

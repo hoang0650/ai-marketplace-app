@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, View, Linking } from 'react-native';
+import { Platform, Pressable, Text, View, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useQuery } from '@tanstack/react-query';
 import { walletApi } from '@/api';
@@ -9,7 +9,11 @@ import { GPAY_ENABLED } from '@/lib/features';
 /** Optional bank-transfer info (IAP remains the in-app top-up). Full VietQR is on the website. */
 export function BankTransferInfo() {
   const { colors } = useTheme();
-  const q = useQuery({ queryKey: ['bank-transfer-config'], queryFn: () => walletApi.bankTransferConfig() });
+  // App Store 3.1.1 / Google Play Payments: native builds must not point users to an external
+  // payment path for digital wallet credit. VietQR stays on web; native uses IAP only.
+  const native = Platform.OS === 'ios' || Platform.OS === 'android';
+  const q = useQuery({ queryKey: ['bank-transfer-config'], queryFn: () => walletApi.bankTransferConfig(), enabled: !native });
+  if (native) return null;
   const c = q.data;
   if (!c?.enabled) return null;
   const copy = async (v: string) => {
@@ -20,7 +24,7 @@ export function BankTransferInfo() {
     }
   };
   return (
-    <View style={{ marginTop: 20, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card }}>
+    <View style={{ marginTop: 20, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardBackground }}>
       <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>Chuyển khoản ngân hàng (VietQR)</Text>
       <Text style={{ color: colors.textSecondary, marginTop: 6, fontSize: 13, lineHeight: 19 }}>
         Trong app vui lòng nạp qua IAP ở trên. Hoặc chuyển khoản qua website aimarkets.vn (ví) để có mã VietQR + nội dung đối soát.

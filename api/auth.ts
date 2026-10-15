@@ -14,6 +14,11 @@ export const authApi = {
     googleSignupToken?: string;
   }) => apiClient.post<AuthResponse>('/auth/register', data),
   me: () => apiClient.get<User>('/auth/me'),
+  /** Always resolves the same way (no account enumeration); emails a 30-minute single-use link. */
+  forgotPassword: (email: string) => apiClient.post<{ ok: boolean }>('/auth/forgot-password', { email }),
+  resetPassword: (token: string, newPassword: string) =>
+    apiClient.post<{ ok: boolean }>('/auth/reset-password', { token, newPassword, confirmPassword: newPassword }),
+  setEmailLoginAlerts: (on: boolean) => apiClient.patch<User>('/auth/me', { preferences: { emailLoginAlerts: on } }),
   patchMe: (data: Partial<Pick<User, 'name' | 'bio' | 'avatarUrl'>>) => apiClient.patch<User>('/auth/me', data),
   getGoogleConfig: async (): Promise<{
     enabled: boolean;
