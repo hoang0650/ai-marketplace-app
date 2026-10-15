@@ -86,6 +86,25 @@ function qs(params: Record<string, string | number | boolean | undefined>) {
   return s ? `?${s}` : '';
 }
 
+function newIdempotencyKey(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return `rent-${c.randomUUID()}`;
+  return `rent-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+export type ProductKind = 'DIGITAL' | 'PHYSICAL';
+export interface ProductKindRate {
+  vat: number;
+  pit: number;
+  total: number;
+  withheldByPlatform: boolean;
+}
+export interface ProductKindRates {
+  sellerType: string;
+  sellerTypeDeclared: boolean;
+  rates: Record<ProductKind, ProductKindRate>;
+}
+
 export const productsApi = {
   list: async ({
     includeHidden,
@@ -199,7 +218,6 @@ export const walletApi = {
     signedTransaction?: string;
     packageName?: string;
   }) => apiClient.post<{ success: boolean; duplicate?: boolean; wallet?: WalletTx }>('/iap/verify', body),
-};
   bankTransferConfig: () => apiClient.get<{
     enabled: boolean;
     bankName: string;
@@ -276,6 +294,8 @@ export const sellersApi = {
   earnings: () => apiClient.get<SellerEarnings>('/sellers/me/earnings'),
   payouts: () => apiClient.get<SellerPayout[]>('/sellers/me/payouts'),
   taxProfile: () => apiClient.get<Record<string, unknown>>('/sellers/me/tax-profile'),
+  /** Withheld rate per product kind for this seller's type (Sản phẩm số 7% / Hàng hóa 1.5% for individuals). */
+  productKindRates: () => apiClient.get<ProductKindRates>('/sellers/me/product-kind-rates'),
 };
 
 export const dashboardApi = {
@@ -464,8 +484,19 @@ export const agentPlansApi = {
   pricing: () => apiClient.get<AgentPricing[]>('/agents/pricing'),
   list: () => apiClient.get<AgentSubscriptionStatus[]>('/agents/subscriptions'),
   one: (agentId: AgentGatewayId) => apiClient.get<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`),
-  subscribe: (agentId: AgentGatewayId) =>
-    apiClient.post<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`, {}),
+  /** One Idempotency-Key per tap: a retried request never charges the wallet twice. */
+  subscribe: (agentId: AgentGatewayId, idempotencyKey: string = newIdempotencyKey()) =>
+    apiClient.request<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`, {
+      method: 'POST',
+      body: {},
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }),
+  /** Self-refund a rental whose workspace could not be launched (server enforces ownership + 30-min window). */
+  refund: (agentId: AgentGatewayId, walletTxId: string, reason = '') =>
+    apiClient.post<{ refunded: boolean; alreadyRefunded?: boolean; amount?: number; currency?: string }>(
+      `/agents/subscriptions/${agentId}/refund`,
+      { walletTxId, reason: reason.slice(0, 200) },
+    ),
   setAutoRenew: (agentId: AgentGatewayId, autoRenew: boolean) =>
     apiClient.request<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`, {
       method: 'PATCH',
@@ -552,9 +583,6 @@ export const workApi = {
 
 /** Typed gaps — backend has no consumer endpoint yet. */
 export const missingApi = {
-  forgotPassword: async (_email: string): Promise<never> => {
-    throw new Error('FORGOT_PASSWORD_NOT_AVAILABLE');
-  },
   registerDevice: async (_token: string): Promise<{ ok: false; reason: string }> => {
     return { ok: false, reason: 'POST /devices is not implemented on ai-marketplace-api' };
   },

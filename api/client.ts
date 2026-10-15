@@ -60,7 +60,7 @@ async function tryRefreshAccessToken(): Promise<boolean> {
 class ApiClient {
   async request<T>(
     endpoint: string,
-    options: { method?: Method; body?: unknown; timeoutMs?: number } = {},
+    options: { method?: Method; body?: unknown; timeoutMs?: number; headers?: Record<string, string> } = {},
     allowRefresh = true,
   ): Promise<T> {
     const { method = 'GET', body, timeoutMs = API_CONFIG.TIMEOUT } = options;
@@ -75,6 +75,7 @@ class ApiClient {
           Accept: 'application/json',
           ...(isForm ? {} : { 'Content-Type': 'application/json' }),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(options.headers || {}),
         },
         body: body == null ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
         signal: controller.signal,

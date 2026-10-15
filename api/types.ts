@@ -133,6 +133,9 @@ export interface Product {
   sellerSlug?: string;
   sellerName?: string;
   creatorId?: string;
+  /** Seller declaration; drives withheld tax. */
+  productKind?: 'DIGITAL' | 'PHYSICAL';
+  productKindDefaultedAt?: string | null;
   creatorSlug?: string;
   creatorName?: string;
   soldByPlatform?: boolean;
