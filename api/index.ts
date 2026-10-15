@@ -289,6 +289,8 @@ export const complaintsApi = {
   }) => apiClient.post<Complaint>('/complaints', data),
   sellerRespond: (id: string, body: string) => apiClient.post<Complaint>(`/complaints/${id}/seller-response`, { body }),
   appeal: (id: string, reason: string) => apiClient.post<Complaint>(`/complaints/${id}/appeal`, { reason }),
+  message: (id: string, body: string, attachmentIds: string[] = []) =>
+    apiClient.post<Complaint>(`/complaints/${id}/messages`, { body, attachmentIds }),
 };
 
 export const legalApi = {

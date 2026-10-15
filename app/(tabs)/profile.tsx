@@ -86,7 +86,9 @@ export default function ProfileScreen() {
           <MenuRow icon={Cpu} label={t('gpu.rent.title')} onPress={() => router.push(href('/gpu'))} />
           <MenuRow icon={Sparkles} label={t('builder.title')} onPress={() => router.push(href('/builder'))} />
           <MenuRow icon={CreditCard} label={t('profile.billing')} onPress={() => router.push('/wallet')} />
-          <MenuRow icon={Receipt} label={t('profile.complaints')} onPress={() => router.push(href('/protection'))} />
+          <MenuRow icon={Receipt} label={t('bhub.complaints')} onPress={() => router.push(href('/complaint'))} />
+          <MenuRow icon={Wallet} label={t('bhub.refunds')} onPress={() => router.push(href('/refunds'))} />
+          <MenuRow icon={Briefcase} label={t('bhub.projects')} onPress={() => router.push(href('/hire'))} />
           <MenuRow icon={Trash2} label={t('del.title')} hint={t('del.menuHint')} onPress={() => router.push(href('/account/delete'))} last />
         </MenuGroup>
 

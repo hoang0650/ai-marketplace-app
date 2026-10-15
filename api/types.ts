@@ -513,7 +513,17 @@ export interface Review {
   createdAt: string;
 }
 
+export interface ComplaintMessage {
+  id: string;
+  authorId: string;
+  role: 'complainant' | 'seller' | 'admin';
+  body: string;
+  attachments?: FileAttachment[];
+  at: string | null;
+}
+
 export interface Complaint {
+  messages?: ComplaintMessage[];
   id: string;
   caseRef: string;
   kind: string;
