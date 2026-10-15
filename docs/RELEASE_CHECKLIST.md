@@ -1,4 +1,4 @@
-# AI Markets app — store release checklist (v1.1.0)
+# AI Markets app — store release checklist (v1.2.0)
 
 Do **not** submit from CI; a human submits after review.
 
@@ -15,7 +15,7 @@ npx expo-doctor                          # dependency/version sanity
 ## 2. Config to verify
 | Item | Value |
 |---|---|
-| version (app.json) | 1.1.0 (build numbers auto-increment remotely: `appVersionSource: remote`, `autoIncrement: true`) |
+| version (app.json) | 1.2.0 (build numbers auto-increment remotely: `appVersionSource: remote`, `autoIncrement: true`) |
 | iOS bundleIdentifier | app.phgroup.ai-market-vn |
 | Android package | app.phgroup.ai_market_vn |
 | Icons | assets/images/icon.png (1024², no alpha for iOS), adaptive-icon.png, splash-icon.png |
@@ -66,3 +66,15 @@ npx --yes eas-cli@latest submit --platform ios --profile production --latest
 | Launch notice + auto-refund on launch failure | ✅ | `components/agents/LaunchNoticeModal.tsx`; refund via `POST /agents/subscriptions/:kind/refund`, rent keeps its Idempotency-Key |
 | Admin community moderation (approve / reject / close cycle) | web only | admin tool, not exposed in the app |
 | Webhook flow diagram + developer docs on the compute page | web only | link to aimarkets.vn/docs |
+
+## 1.2.0 — "Tiếp tục trên điện thoại" (cross-device handoff)
+- New native module **expo-camera** (QR scan) → needs a new native build; an OTA/JS-only update is NOT enough.
+- iOS camera permission string (Vietnamese) comes from the `expo-camera` plugin in app.json; Android `recordAudioAndroid: false` (no mic permission added).
+- App Review notes: camera is used only to scan the pairing QR shown on aimarkets.vn; manual 8-character code entry works without camera.
+- Smoke test before submit (two devices, same account):
+  1. Web: Builder project → "Tiếp tục trên điện thoại" → QR + code.
+  2. App: Tài khoản → Thiết bị đã kết nối → Quét mã tiếp tục → scan (or type code) → the project opens in the app builder.
+  3. Send a prompt on web → the app shows "Thiết bị khác … đang tạo" and refreshes when done (and vice versa).
+  4. Web /account/devices lists the phone; Revoke → app sync stops; code from another account → "thuộc tài khoản khác".
+  5. Deep link `aimarkets://handoff/<CODE>` opens the claim screen.
+- Universal links for https://aimarkets.vn/handoff/* are NOT active yet (no apple-app-site-association / assetlinks.json served); the https page offers "Mở trong app" instead.

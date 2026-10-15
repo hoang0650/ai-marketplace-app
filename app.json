@@ -2,7 +2,7 @@
   "expo": {
     "name": "AI Markets",
     "slug": "ai-markets",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "aimarkets",
@@ -113,6 +113,13 @@
         "expo-screen-orientation",
         {
           "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "AI Markets dùng camera để quét mã QR “Tiếp tục trên điện thoại” từ máy tính.",
+          "recordAudioAndroid": false
         }
       ]
     ],
