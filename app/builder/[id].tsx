@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useT } from '@/hooks/useT';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { GitPanel } from '@/components/builder/GitPanel';
+import { useSync } from '@/hooks/useSync';
 
 const BG = '#0b0f17';
 const BAR = '#0c121c';
@@ -64,6 +65,18 @@ export default function BuilderStudioScreen() {
   }, [project, providers.data, activeKeys, provider]);
 
   const canBuild = activeKeys.some((k) => k.provider === provider);
+
+  // Cross-device sync: the server is the source of truth; refetch when another device changes this project.
+  const [remoteGenerating, setRemoteGenerating] = useState(false);
+  useSync((e) => {
+    if (e.self) return;
+    if (e.type === 'project.generating' && e.data?.id === String(id)) setRemoteGenerating(e.data?.state === 'start');
+    const changed = e.type === 'project.updated' && e.data?.id === String(id) && e.data?.version !== project?.version;
+    if ((changed || e.type === 'reset') && !busy) {
+      if (changed) setRemoteGenerating(false);
+      void qc.invalidateQueries({ queryKey: ['builder-project', id] });
+    }
+  });
 
   const run = async (text: string, fixError = '') => {
     if (!project || busy || !canBuild) return;
@@ -164,6 +177,7 @@ export default function BuilderStudioScreen() {
         ))}
       </View>
 
+      {remoteGenerating && !busy ? <Text style={styles.remote}>{t('handoff.app.remoteGenerating')}</Text> : null}
       {error ? <Text style={styles.err}>{error}</Text> : null}
       {previewError && tab !== 'code' ? (
         <View style={styles.previewErr}>
@@ -310,6 +324,7 @@ export default function BuilderStudioScreen() {
 }
 
 const styles = StyleSheet.create({
+  remote: { color: ACCENT, fontSize: 12, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(61,255,176,0.08)' },
   bg: { flex: 1, backgroundColor: BG },
   fill: { flex: 1, backgroundColor: BG },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
