@@ -68,11 +68,10 @@ function AgentCard({ agent }: { agent: MarketplaceAgent }) {
 export default function AgentMarketplaceScreen() {
   const { colors } = useTheme();
   const { t } = useT();
-  const [tab, setTab] = useState<'public' | 'internal' | 'vote'>('public');
+  const [tab, setTab] = useState<'public' | 'vote'>('public');
   const vote = useVoteBoard();
   const community = vote.data?.listed || [];
   const publicCount = useMemo(() => listMarketplaceAgents('public').length, []);
-  const internalCount = useMemo(() => listMarketplaceAgents('internal').length, []);
   const agents = useMemo(() => (tab === 'vote' ? [] : listMarketplaceAgents(tab)), [tab]);
 
   return (
@@ -86,11 +85,6 @@ export default function AgentMarketplaceScreen() {
             label={t('cvote.tabPublic', { n: publicCount + community.length })}
             active={tab === 'public'}
             onPress={() => setTab('public')}
-          />
-          <Chip
-            label={`${t('agents.tabInternal')} (${internalCount})`}
-            active={tab === 'internal'}
-            onPress={() => setTab('internal')}
           />
           <Chip
             label={t('cvote.tab', { n: vote.data?.leaderboard?.length || 0 })}
