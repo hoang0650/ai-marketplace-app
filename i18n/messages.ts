@@ -1,4 +1,5 @@
 import { zh } from './messages.zh';
+import { FEATURE_MESSAGES } from './messages.features';
 
 export type Lang = 'vi' | 'en' | 'zh';
 
@@ -3476,6 +3477,10 @@ const en: Dict = {
   'hire.open': 'Open project',
   'hire.term.confirmTitle': 'Terminate project',
 };
+
+Object.assign(vi, FEATURE_MESSAGES.vi);
+Object.assign(en, FEATURE_MESSAGES.en);
+Object.assign(zh, FEATURE_MESSAGES.zh);
 
 type NotificationText = { title: string; body: string; key?: string; params?: Record<string, string | number> };
 

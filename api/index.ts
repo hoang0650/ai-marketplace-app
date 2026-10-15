@@ -2,6 +2,10 @@ import { Platform } from 'react-native';
 import { apiClient } from './client';
 import { affiliateClickStore } from './affiliate';
 import type {
+  CommunityAgent,
+  ComputeNode,
+  ComputeProductOption,
+  VoteBoard,
   CategoryMeta,
   CheckoutResult,
   Complaint,
@@ -493,7 +497,7 @@ export const agentPlansApi = {
     }),
   /** Self-refund a rental whose workspace could not be launched (server enforces ownership + 30-min window). */
   refund: (agentId: AgentGatewayId, walletTxId: string, reason = '') =>
-    apiClient.post<{ refunded: boolean; alreadyRefunded?: boolean; amount?: number; currency?: string }>(
+    apiClient.post<{ refunded: boolean; alreadyRefunded?: boolean; feeVnd?: number; amount?: number; currency?: string }>(
       `/agents/subscriptions/${agentId}/refund`,
       { walletTxId, reason: reason.slice(0, 200) },
     ),
@@ -586,4 +590,25 @@ export const missingApi = {
   registerDevice: async (_token: string): Promise<{ ok: false; reason: string }> => {
     return { ok: false, reason: 'POST /devices is not implemented on ai-marketplace-api' };
   },
+};
+
+/** Community agents: nominate a GitHub repo, vote, leaderboard, voted & listed. */
+export const communityAgentsApi = {
+  board: () => apiClient.get<VoteBoard>('/community-agents'),
+  submit: (repoUrl: string) => apiClient.post<{ agent: CommunityAgent }>('/community-agents', { repoUrl }),
+  vote: (id: string) => apiClient.post<{ voteCount: number }>(`/community-agents/${id}/vote`, {}),
+  unvote: (id: string) => apiClient.delete<{ voteCount: number }>(`/community-agents/${id}/vote`),
+};
+
+export type ComputeNodeBody = Record<string, unknown>;
+
+/** Seller compute / game-server nodes (same endpoints as the web Sell → Compute page). */
+export const sellerComputeApi = {
+  listNodes: () => apiClient.get<ComputeNode[]>('/seller/compute/nodes'),
+  listProducts: () => apiClient.get<ComputeProductOption[]>('/seller/compute/products'),
+  registerNode: (body: ComputeNodeBody) => apiClient.post<ComputeNode>('/seller/compute/nodes', body),
+  updateNode: (id: string, body: ComputeNodeBody) => apiClient.patch<ComputeNode>(`/seller/compute/nodes/${id}`, body),
+  deleteNode: (id: string) => apiClient.delete<{ ok: boolean }>(`/seller/compute/nodes/${id}`),
+  pingNode: (id: string) =>
+    apiClient.post<{ ok: boolean; via?: string; message?: string; status?: number }>(`/seller/compute/nodes/${id}/ping`, {}),
 };

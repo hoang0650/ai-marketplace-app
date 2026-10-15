@@ -923,6 +923,11 @@ export interface AgentSubscriptionStatus {
   retentionDays: number;
   fee: AgentFee;
   charged?: boolean;
+  /** Same Idempotency-Key replayed: no new charge. */
+  duplicate?: boolean;
+  /** Wallet transaction of this charge (needed for a launch-failure refund). */
+  walletTxId?: string | null;
+  chargedVnd?: number;
 }
 
 /** Shared gateway surface — launch, device pairing, and temporary SSH. */
@@ -1187,4 +1192,108 @@ export interface WorkListingFee {
   vnd: number;
   amount: number;
   currency: string;
+}
+
+/** What a Launch that rented the agent charged (shown in the launch notice). */
+export interface AgentRentalReceipt {
+  charged: boolean;
+  duplicate: boolean;
+  walletTxId: string | null;
+  chargedVnd: number;
+  periodDays: number;
+  paidUntil: string | null;
+  autoRenew: boolean;
+}
+
+export interface AgentRentalRefund {
+  refunded: boolean;
+  alreadyRefunded?: boolean;
+  feeVnd?: number;
+  /** The refund call itself failed: support must reverse the charge manually. */
+  failed?: boolean;
+}
+
+export type CommunityAgentStatus = 'voting' | 'pending_listing' | 'listed' | 'rejected';
+
+export interface CommunityAgent {
+  _id: string;
+  fullName: string;
+  name: string;
+  description: string;
+  stars: number;
+  avatarUrl: string;
+  htmlUrl: string;
+  language?: string;
+  license?: string;
+  submitter: string;
+  submitterName?: string;
+  status: CommunityAgentStatus;
+  voteCount: number;
+  submittedAt: string;
+  listedAt?: string | null;
+  rank?: number;
+  votedByMe?: boolean;
+  mine?: boolean;
+}
+
+export interface VoteBoard {
+  cycle: {
+    period: 'monthly' | 'weekly';
+    key: string;
+    startsAt: string;
+    endsAt: string;
+  };
+  leaderboard: CommunityAgent[];
+  pending: CommunityAgent[];
+  listed: CommunityAgent[];
+  loggedIn?: boolean;
+}
+
+
+export interface ComputeNodeConfig {
+  webhookUrl: string;
+  hasWebhookSecret: boolean;
+  streamHost: string;
+  streamPort: number;
+  streamPath: string;
+  streamKind: string;
+  streamTls: boolean;
+  iframeUrl: string;
+  healthUrl: string;
+  gpu: string;
+  mobileStream: { iframeUrl: string; host: string; port: number; path: string } | null;
+}
+
+export interface ComputeNode {
+  id: string;
+  productSlug?: string;
+  productName?: string;
+  name: string;
+  kind: 'compute' | 'game';
+  provider: string;
+  status: string;
+  external: boolean;
+  hosting?: 'external' | 'aimarkets' | 'lab';
+  region: string;
+  webhookUrl: boolean;
+  hasStream: boolean;
+  devices?: StreamDevice[];
+  maxConcurrent: number;
+  createdAt: string;
+  updatedAt: string;
+  category?: string;
+  /** Owner-only settings; the webhook secret itself is never returned. */
+  config?: ComputeNodeConfig;
+}
+
+/** Seller's own product as offered by the compute node picker. */
+export interface ComputeProductOption {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  published: boolean;
+  moderationStatus: string;
+  eligible: boolean;
+  reason: '' | 'NOT_COMPUTE_CATEGORY' | 'NOT_PUBLISHED';
 }
