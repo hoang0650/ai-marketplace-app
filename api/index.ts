@@ -618,3 +618,17 @@ export const sellerComputeApi = {
   pingNode: (id: string) =>
     apiClient.post<{ ok: boolean; via?: string; message?: string; status?: number }>(`/seller/compute/nodes/${id}/ping`, {}),
 };
+
+export interface LicensedItem {
+  productId: string; slug: string; name: string; category: string; coverUrl: string | null;
+  sellerName: string; term: string; expiresAt: string | null;
+}
+export interface LicensedDataset extends LicensedItem { fileCount: number; totalBytes: number; importedDatasetId: string | null }
+export interface LicensedVoice extends LicensedItem { voiceSource?: string; voiceModes?: string[]; sampleUrl?: string | null; ready?: boolean }
+
+/** Marketplace items the caller holds an active license for that can be used in training / voice tools. */
+export const trainingApi = {
+  licensed: () => apiClient.get<{ datasets: LicensedDataset[]; voices: LicensedVoice[] }>('/training-datasets/licensed'),
+  importLicensed: (productId: string) =>
+    apiClient.post<{ dataset: { id: string } }>(`/training-datasets/licensed/${encodeURIComponent(productId)}/import`, {}, 300000),
+};
