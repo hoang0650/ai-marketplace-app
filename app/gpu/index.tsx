@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { gpuRentalApi } from '@/api';
+import { gpuRentalApi, walletApi } from '@/api';
 import type { GpuOffer, GpuRental } from '@/api/types';
 import { ApiError, getErrorMessage } from '@/lib/errors';
 import { href } from '@/lib/href';
@@ -33,6 +33,8 @@ export default function GpuRentScreen() {
   const { offer: presetOffer } = useLocalSearchParams<{ offer?: string }>();
 
   const offers = useQuery({ queryKey: ['gpu-offers'], queryFn: gpuRentalApi.offers, enabled: isAuthenticated });
+  // Same number as the Wallet screen; the offers call fails while GPU rental is disabled, which used to show $0.
+  const wallet = useQuery({ queryKey: ['wallet-summary'], queryFn: () => walletApi.summary(), enabled: isAuthenticated });
 
   useEffect(() => {
     if (!presetOffer || selected) return;
@@ -66,6 +68,7 @@ export default function GpuRentScreen() {
   const refreshAll = () => {
     void qc.invalidateQueries({ queryKey: ['gpu-rentals'] });
     void qc.invalidateQueries({ queryKey: ['gpu-offers'] });
+    void qc.invalidateQueries({ queryKey: ['wallet-summary'] });
   };
 
   const create = useMutation({
@@ -92,7 +95,7 @@ export default function GpuRentScreen() {
   if (!isAuthenticated) return <LoginPrompt />;
 
   const limits = offers.data?.limits;
-  const available = offers.data?.wallet.available ?? 0;
+  const available = wallet.data?.available ?? offers.data?.wallet?.available ?? 0;
   const prepayHours = limits?.minPrepayHours ?? 1;
   const canAfford = selected ? available + 1e-9 >= selected.pricePerHour * prepayHours : false;
 
