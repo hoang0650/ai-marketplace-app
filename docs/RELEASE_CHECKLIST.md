@@ -53,3 +53,16 @@ npx --yes eas-cli@latest submit --platform ios --profile production --latest
 - Rent an agent twice quickly → only one charge (Idempotency-Key).
 - Complaint create → confirmation notification; refund appears in wallet.
 - IAP sandbox top-up credits wallet once.
+- Agent Marketplace → Vote tab: nominate a GitHub repo (signed in), vote / unvote toggles the count, leaderboard shows #1 highlighted, Pending and "Voted & Listed" sections render; signed out shows "Sign in to nominate".
+- Agent Marketplace → Public: approved community agents appear as Community cards (badge, stars, votes, "Coming soon", GitHub ↗ opens the repo).
+- Seller centre → Compute nodes: only published gpu-compute / game-server products are selectable; hosting External vs AI Markets GPU; webhook URL must be https; "Generate" creates a whsec_ secret shown once with Copy (hidden after save; edit keeps the stored secret when left blank); node list Ping / Edit / Remove (confirm).
+- Launch an agent without a plan → rent confirm → launch notice (charged amount, paid-until, auto-renew, Open / Setup / Wallet). Force a launch failure on staging → notice says "refunded", wallet shows the reversal; if the refund call fails the notice shows the transaction id for support.
+
+## 7. Feature parity with web (v1.1.0)
+| Feature | App | Notes |
+|---|---|---|
+| Vote tab + community agents in Public | ✅ | `components/agents/CommunityVote.tsx`, `/community-agents` endpoints |
+| Compute node registration | ✅ | `app/seller-center/compute.tsx`, `/seller/compute/*` endpoints |
+| Launch notice + auto-refund on launch failure | ✅ | `components/agents/LaunchNoticeModal.tsx`; refund via `POST /agents/subscriptions/:kind/refund`, rent keeps its Idempotency-Key |
+| Admin community moderation (approve / reject / close cycle) | web only | admin tool, not exposed in the app |
+| Webhook flow diagram + developer docs on the compute page | web only | link to aimarkets.vn/docs |
