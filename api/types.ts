@@ -803,13 +803,24 @@ export interface ChatConversation {
   createdAt: string | null;
 }
 
+export interface FileAttachment {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  kind: 'image' | 'file';
+  url: string;
+  downloadUrl: string;
+}
+
 export interface ChatMessage {
   id: string;
   conversationId: string;
   senderId: string;
-  kind: 'text' | 'image';
+  kind: 'text' | 'image' | 'file';
   body: string;
   imageUrl: string;
+  attachments?: FileAttachment[];
   createdAt: string;
 }
 
@@ -1142,6 +1153,7 @@ export interface HireMilestone {
   previewKind: 'web' | 'app' | null;
   demoUrl: string;
   demoNote: string;
+  files?: FileAttachment[];
   submittedAt: string | null;
   approvedAt: string | null;
   revisionNote: string;
@@ -1178,7 +1190,7 @@ export interface HireProject {
   terminationNote: string;
   complaintId: string | null;
   events: { at: string; actor: string; action: string; note: string }[];
-  messages?: { id: string; at: string; actor: string; body: string; link: string }[];
+  messages?: { id: string; at: string; actor: string; body: string; link: string; attachments?: FileAttachment[] }[];
   origin?: 'quote' | 'package';
   createdAt: string;
   updatedAt: string;

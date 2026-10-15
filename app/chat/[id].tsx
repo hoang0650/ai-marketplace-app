@@ -14,33 +14,21 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image as ImageIcon, Send } from 'lucide-react-native';
+import { Image as ImageIcon, Paperclip, Send } from 'lucide-react-native';
+import { pickAndUpload } from '@/lib/attachments';
+import { Attachments } from '@/components/chat/Attachments';
 import { href } from '@/lib/href';
 import { WORK_BOARD_ENABLED } from '@/constants/features';
 import { chatApi } from '@/api';
 import type { ChatMessage } from '@/api/types';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useT';
-import { useT } from '@/hooks/useT';
+import { useTheme , useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { getErrorMessage, ApiError } from '@/lib/errors';
 import { containsBlockedLink } from '@/lib/chat-security';
 import { formatDate } from '@/utils/format';
 import { playSound } from '@/services/sound';
 import type { Lang } from '@/i18n/messages';
-
-async function formFromAsset(asset: ImagePicker.ImagePickerAsset): Promise<FormData> {
-  const form = new FormData();
-  const name = asset.fileName || 'chat.jpg';
-  const type = asset.mimeType || 'image/jpeg';
-  if (Platform.OS === 'web') {
-    const blob = await fetch(asset.uri).then((r) => r.blob());
-    form.append('image', blob, name);
-  } else {
-    form.append('image', { uri: asset.uri, name, type } as unknown as Blob);
-  }
-  return form;
-}
 
 export default function ChatThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -78,19 +66,12 @@ export default function ChatThreadScreen() {
   });
 
   const upload = useMutation({
-    mutationFn: async () => {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) throw new ApiError(403, 'PHOTOS', t('chat.needPhotos'));
-      const picked = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.85,
-      });
-      if (picked.canceled || !picked.assets?.[0]) return null;
-      const form = await formFromAsset(picked.assets[0]);
-      const up = await chatApi.uploadImage(form);
+    mutationFn: async (kind: 'image' | 'file') => {
       const caption = draft.trim();
       if (caption && containsBlockedLink(caption)) throw new ApiError(400, 'LINKS_NOT_ALLOWED', t('chat.noLinks'));
-      return chatApi.send(conversationId, { imageUrl: up.url, body: caption || undefined });
+      const files = await pickAndUpload(kind, 'chat', conversationId);
+      if (!files.length) return null;
+      return chatApi.send(conversationId, { attachmentIds: files.map((f) => f.id), body: caption || undefined });
     },
     onSuccess: (msg) => {
       if (!msg) return;
@@ -190,13 +171,22 @@ export default function ChatThreadScreen() {
           }}
         >
           <Pressable
-            onPress={() => upload.mutate()}
+            onPress={() => upload.mutate('image')}
             disabled={busy}
             accessibilityRole="button"
             accessibilityLabel={t('chat.attach')}
-            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 36, height: 44, alignItems: 'center', justifyContent: 'center' }}
           >
             <ImageIcon size={22} color={colors.text} />
+          </Pressable>
+          <Pressable
+            onPress={() => upload.mutate('file')}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={t('chat.attachFile')}
+            style={{ width: 36, height: 44, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Paperclip size={21} color={colors.text} />
           </Pressable>
           <TextInput
             value={draft}
@@ -251,6 +241,7 @@ function Bubble({ item, mine }: { item: ChatMessage; mine: boolean }) {
       {item.kind === 'image' && item.imageUrl ? (
         <Image source={{ uri: item.imageUrl }} style={{ width: 220, height: 220, borderRadius: 10, marginBottom: item.body ? 8 : 0 }} contentFit="cover" />
       ) : null}
+      <Attachments items={item.attachments} dark={mine} />
       {item.body ? <Text style={{ color: mine ? '#f2efe8' : colors.text, lineHeight: 20 }}>{item.body}</Text> : null}
       <Text style={{ color: mine ? '#c9a961' : colors.textSecondary, fontSize: 11, marginTop: 6 }}>
         {formatDate(item.createdAt, language)}
@@ -265,6 +256,8 @@ function mapChatError(err: unknown, t: (k: string) => string, language: Lang): s
     if (err.code === 'IMAGE_HOST_NOT_ALLOWED') return t('chat.imageOnlyHost');
     if (err.code === 'CHAT_SELF') return t('chat.self');
     if (err.code === 'PHOTOS') return t('chat.needPhotos');
+    if (err.code === 'FILE_TOO_LARGE') return `${err.message}: ${t('attach.err.tooLarge')}`;
+    if (err.code === 'FILE_TYPE_NOT_ALLOWED' || err.code === 'FILE_CONTENT_MISMATCH') return `${err.message}: ${t('attach.err.type')}`;
   }
   return getErrorMessage(err, language);
 }
