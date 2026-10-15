@@ -543,6 +543,11 @@ export const hireApi = {
   revision: (id: string, note: string) => apiClient.post<HireProject>(`/hire/projects/${id}/revision`, { note }),
   terminate: (id: string, reason: HireTerminateReason, note: string) =>
     apiClient.post<HireProject>(`/hire/projects/${id}/terminate`, { reason, note }),
+  /** Fixed-price service package split into phases; charged per phase only on approval. */
+  startPackage: (productId: string, brief?: string) =>
+    apiClient.post<HireProject & { existing?: boolean }>('/hire/packages', { productId, brief }),
+  message: (id: string, body: string) => apiClient.post<HireProject>(`/hire/projects/${id}/messages`, { body }),
+  complain: (id: string, note: string) => apiClient.post<HireProject>(`/hire/projects/${id}/complaint`, { note }),
 };
 
 export const workApi = {

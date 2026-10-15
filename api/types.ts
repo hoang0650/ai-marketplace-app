@@ -1178,6 +1178,8 @@ export interface HireProject {
   terminationNote: string;
   complaintId: string | null;
   events: { at: string; actor: string; action: string; note: string }[];
+  messages?: { id: string; at: string; actor: string; body: string; link: string }[];
+  origin?: 'quote' | 'package';
   createdAt: string;
   updatedAt: string;
 }
