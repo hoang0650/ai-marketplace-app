@@ -6,6 +6,7 @@ import {
   BarChart3,
   Briefcase,
   Cpu,
+  Clapperboard,
   CreditCard,
   FileText,
   Heart,
@@ -83,6 +84,7 @@ export default function ProfileScreen() {
           <MenuRow icon={IdCard} label={t('kyc.title')} onPress={() => router.push(href('/kyc'))} />
           <MenuRow icon={Smartphone} label={t('devices.title')} onPress={() => router.push(href('/account/devices'))} />
           <MenuRow icon={Activity} label={t('usage.title')} onPress={() => router.push('/usage')} />
+          <MenuRow icon={Clapperboard} label="AI Studio · Làm phim AI" onPress={() => router.push(href('/studio'))} />
           <MenuRow icon={Cpu} label={t('gpu.rent.title')} onPress={() => router.push(href('/gpu'))} />
           <MenuRow icon={Sparkles} label={t('builder.title')} onPress={() => router.push(href('/builder'))} />
           <MenuRow icon={CreditCard} label={t('profile.billing')} onPress={() => router.push('/wallet')} />
