@@ -224,6 +224,16 @@ export default function HomeScreen() {
           <>
             {empty ? <EmptyState title={t('common.empty')} hint={t('home.emptyHint')} /> : null}
 
+            <Pressable testID="home-studio" onPress={() => router.push(href('/studio'))}
+              style={{ marginHorizontal: 16, marginTop: 12, borderRadius: 16, padding: 16, backgroundColor: '#111111', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Text style={{ fontSize: 30 }}>🎬</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#c9a961', fontWeight: '800', fontSize: 16 }}>AI Studio · Làm phim AI</Text>
+                <Text style={{ color: '#f2efe8', marginTop: 2, fontSize: 13 }}>Phim, video, avatar và giọng nói trên GPU RTX 5090 · 🎁 Miễn phí giai đoạn đầu</Text>
+              </View>
+              <Text style={{ color: '#c9a961', fontSize: 20 }}>›</Text>
+            </Pressable>
+
             {feed?.newArrivals.length ? (
               <View style={styles.section}>
                 <SectionHeader title={t('home.suggest')} action={t('common.seeAll')} onPress={() => router.push('/(tabs)/explore')} />
