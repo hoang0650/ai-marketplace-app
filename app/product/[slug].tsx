@@ -25,6 +25,7 @@ import { ProductWorkspace } from '@/components/product/ProductWorkspace';
 import { DownloadLicensePanel } from '@/components/content/DownloadLicensePanel';
 import { WishButton } from '@/components/content/WishButton';
 import { ContentShield } from '@/components/content/ContentShield';
+import { StoryReader } from '@/components/content/StoryReader';
 import { AnalyticsService } from '@/lib/analytics';
 import { findActiveLicense, findExpiredLicense, findPaidOrder, productCtaKey, productPriceCaptionKey } from '@/lib/access';
 import {
@@ -40,6 +41,7 @@ import {
   isPlaygroundCategory,
   isTemplateCategory,
   isVoiceCategory,
+  isStoryCategory,
   categoryLabel,
 } from '@/constants/categories';
 import { HIRE_QUOTE_FLOW_ENABLED } from '@/constants/features';
@@ -116,6 +118,7 @@ export default function ProductScreen() {
     queryFn: ordersApi.list,
     enabled: isAuthenticated,
   });
+  const [readerOpen, setReaderOpen] = useState(false);
   const [playUrl, setPlayUrl] = useState('');
   const [playKind, setPlayKind] = useState('');
   const [playMime, setPlayMime] = useState('');
@@ -376,6 +379,10 @@ export default function ProductScreen() {
     }
     if (isComputeStreamCategory(p.category)) {
       openStream();
+      return;
+    }
+    if (isStoryCategory(p.category)) {
+      setReaderOpen(true);
       return;
     }
     if (isContentCategory(p.category)) {
@@ -642,6 +649,26 @@ export default function ProductScreen() {
               }}
             >
               <Text style={section(colors.text)}>{t('content.play')}</Text>
+              {isStoryCategory(p.category) ? (
+                <>
+                  <Button title={canPlay ? '📖 Đọc truyện' : '📖 Đọc thử / Mục lục'} onPress={() => setReaderOpen(true)} style={{ marginBottom: 12 }} />
+                  <StoryReader
+                    visible={readerOpen}
+                    slug={p.slug}
+                    title={p.name}
+                    coverUrl={p.coverUrl}
+                    synopsis={String((p.contentMeta as { synopsis?: string } | undefined)?.synopsis || p.description || '')}
+                    episodes={episodeList.data || []}
+                    canPlay={canPlay}
+                    isAuthenticated={isAuthenticated}
+                    licenseKey={activeLicense?.licenseKey}
+                    priceLabel={priceLabel}
+                    onClose={() => setReaderOpen(false)}
+                    onUnlock={() => { setReaderOpen(false); router.push(href(`/checkout/${p.id}${licensed ? `?term=${selectedTerm}` : ''}`)); }}
+                    onLogin={() => { setReaderOpen(false); router.push('/auth/login'); }}
+                  />
+                </>
+              ) : null}
               {!canPlay ? (
                 <Text style={{ color: colors.textSecondary, marginBottom: 8, lineHeight: 20 }}>{t('content.paywall')}</Text>
               ) : (
