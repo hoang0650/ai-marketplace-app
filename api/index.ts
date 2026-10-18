@@ -375,6 +375,8 @@ export const builderApi = {
   update: (id: string, body: { name?: string; provider?: string; model?: string }) =>
     apiClient.patch<{ project: BuilderProject }>(`/builder/projects/${id}`, body),
   remove: (id: string) => apiClient.delete<{ success: boolean }>(`/builder/projects/${id}`),
+  saveFile: (id: string, path: string, content: string) =>
+    apiClient.put<{ project: BuilderProject }>(`/builder/projects/${id}/files`, { path, content }),
   generate: (id: string, body: { prompt: string; previewError?: string; provider?: string; model?: string }) =>
     apiClient.post<BuilderGenerateResult>(`/builder/projects/${id}/generate`, { ...body, stream: false }, BUILDER_GENERATE_TIMEOUT_MS),
   saveKey: (provider: string, body: { apiKey: string; baseUrl?: string; model?: string }) =>
