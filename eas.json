@@ -45,8 +45,11 @@
   "submit": {
     "production": {
       "android": {
-        "track": "app.phgroup.ai-markets-vn",
+        "track": "app.phgroup.ai_market_vn",
         "releaseStatus": "completed"
+      },
+      "ios": {
+        "ascAppId": "6822239570"
       }
     }
   }

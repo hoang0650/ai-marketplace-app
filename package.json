@@ -13,6 +13,8 @@
     "build:android": "npx.cmd --yes eas-cli@latest build --platform android --profile production",
     "build:android:preview": "npx.cmd --yes eas-cli@latest build --platform android --profile preview",
     "build:ios": "npx.cmd --yes eas-cli@latest build --platform ios --profile production",
+    "submit:android": "npx.cmd --yes eas-cli@latest submit --platform android --profile production --latest",
+    "submit:ios": "npx.cmd --yes eas-cli@latest submit --platform ios --profile production",
     "lint": "npx.cmd expo lint",
     "test": "npx.cmd jest --passWithNoTests",
     "typecheck": "npx.cmd tsc --noEmit"
