@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -13,6 +13,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useT } from '@/hooks/useT';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { GitPanel } from '@/components/builder/GitPanel';
+import { useSync } from '@/hooks/useSync';
+import { CodeEditorView } from '@/components/builder/CodeEditorView';
 
 const BG = '#0b0f17';
 const BAR = '#0c121c';
@@ -21,7 +23,13 @@ const ACCENT = '#3dffb0';
 const TEXT = '#e5e7eb';
 const MUTED = 'rgba(229,231,235,0.6)';
 
-type Tab = 'preview' | 'chat' | 'code' | 'git';
+type Tab = 'preview' | 'chat' | 'code' | 'files' | 'git';
+const BOTTOM_TABS: { id: Tab; icon: string; label: string }[] = [
+  { id: 'chat', icon: '✦', label: 'builder.m.tab.chat' },
+  { id: 'code', icon: '</>', label: 'builder.tab.code' },
+  { id: 'preview', icon: '▶', label: 'builder.tab.preview' },
+  { id: 'files', icon: '🗂', label: 'builder.m.tab.files' },
+];
 
 export default function BuilderStudioScreen() {
   useKeepAwake();
@@ -47,7 +55,33 @@ export default function BuilderStudioScreen() {
   const [nonce, setNonce] = useState(0);
   const [openFile, setOpenFile] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [codeDirty, setCodeDirty] = useState(false);
+  const [kbVisible, setKbVisible] = useState(false);
   const started = useRef(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKbVisible(true));
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKbVisible(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  useEffect(() => {
+    if (tab !== 'code' || openFile || !project?.files?.length) return;
+    const first = project.files.find((f) => /(^|\/)(App|index)\.(tsx|jsx|html)$/.test(f.path)) || project.files[0];
+    setOpenFile(first.path);
+  }, [tab, openFile, project?.files]);
+
+  const saveFile = async (path: string, content: string) => {
+    if (!project || busy) return;
+    try {
+      const res = await builderApi.saveFile(project.id, path, content);
+      setProject(res.project);
+      qc.setQueryData(['builder-project', id], { project: res.project });
+      setNonce((n) => n + 1);
+    } catch (e) {
+      setError(getErrorMessage(e, language));
+    }
+  };
   const chatRef = useRef<ScrollView>(null);
 
   const providers = useQuery({ queryKey: ['builder-providers'], queryFn: builderApi.providers, enabled: isAuthenticated });
@@ -64,6 +98,18 @@ export default function BuilderStudioScreen() {
   }, [project, providers.data, activeKeys, provider]);
 
   const canBuild = activeKeys.some((k) => k.provider === provider);
+
+  // Cross-device sync: the server is the source of truth; refetch when another device changes this project.
+  const [remoteGenerating, setRemoteGenerating] = useState(false);
+  useSync((e) => {
+    if (e.self) return;
+    if (e.type === 'project.generating' && e.data?.id === String(id)) setRemoteGenerating(e.data?.state === 'start');
+    const changed = e.type === 'project.updated' && e.data?.id === String(id) && e.data?.version !== project?.version;
+    if ((changed || e.type === 'reset') && !busy) {
+      if (changed) setRemoteGenerating(false);
+      void qc.invalidateQueries({ queryKey: ['builder-project', id] });
+    }
+  });
 
   const run = async (text: string, fixError = '') => {
     if (!project || busy || !canBuild) return;
@@ -113,7 +159,11 @@ export default function BuilderStudioScreen() {
   if (!isAuthenticated) return <LoginPrompt />;
 
   const uri = project ? `${project.previewUrl}?v=${project.version}-${nonce}` : '';
-  const file = project?.files?.find((f) => f.path === openFile);
+  const editorFiles = useMemo(() => (project?.files || []).map((f) => ({ path: f.path, content: f.content })), [project?.files]);
+  const editorLabels = useMemo(
+    () => ({ saved: t('builder.m.saved'), unsaved: t('builder.m.unsaved'), ai: t('builder.m.aiWriting'), explorer: t('builder.m.explorer'), pick: t('builder.m.pickFile') }),
+    [t],
+  );
   const full = expanded && tab === 'preview' && !!project;
 
   return (
@@ -131,18 +181,21 @@ export default function BuilderStudioScreen() {
       ) : (
         <>
       <View style={[styles.bar, { paddingTop: Math.max(insets.top, 8) }]}>
-        <Pressable onPress={leave} hitSlop={12}>
+        <Pressable onPress={leave} hitSlop={8} style={styles.barHit}>
           <Text style={styles.barBtn}>← {t('common.back')}</Text>
         </Pressable>
         <Text style={styles.barTitle} numberOfLines={1}>
           {project?.name || t('builder.title')}
         </Text>
         {tab === 'preview' && project ? (
-          <Pressable onPress={() => setExpanded(true)} hitSlop={12}>
+          <Pressable onPress={() => setExpanded(true)} hitSlop={8} style={styles.barHit}>
             <Text style={styles.barBtn}>{t('builder.expand')}</Text>
           </Pressable>
         ) : null}
-        <Pressable onPress={() => setNonce((n) => n + 1)} hitSlop={12}>
+        <Pressable onPress={() => setTab(tab === 'git' ? 'chat' : 'git')} hitSlop={8} style={styles.barHit} accessibilityLabel={t('builder.tab.git')}>
+          <Text style={[styles.barBtn, tab === 'git' && { color: TEXT }]}>⎇</Text>
+        </Pressable>
+        <Pressable onPress={() => setNonce((n) => n + 1)} hitSlop={8} style={styles.barHit}>
           <Text style={styles.barBtn}>↻</Text>
         </Pressable>
       </View>
@@ -156,16 +209,10 @@ export default function BuilderStudioScreen() {
         </Pressable>
       ) : null}
 
-      <View style={styles.tabs}>
-        {(['preview', 'chat', 'code', 'git'] as Tab[]).map((k) => (
-          <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabOn]}>
-            <Text style={[styles.tabText, tab === k && { color: BG }]}>{t(`builder.tab.${k}`)}</Text>
-          </Pressable>
-        ))}
-      </View>
 
+      {remoteGenerating && !busy ? <Text style={styles.remote}>{t('handoff.app.remoteGenerating')}</Text> : null}
       {error ? <Text style={styles.err}>{error}</Text> : null}
-      {previewError && tab !== 'code' ? (
+      {previewError && tab !== 'code' && tab !== 'files' ? (
         <View style={styles.previewErr}>
           <Text style={{ color: '#fecaca', fontWeight: '700' }}>{t('builder.previewError')}</Text>
           <Text style={styles.mono} numberOfLines={4}>
@@ -189,6 +236,10 @@ export default function BuilderStudioScreen() {
           {detail.isError ? <Text style={styles.err}>{getErrorMessage(detail.error, language)}</Text> : <ActivityIndicator color={ACCENT} />}
         </View>
       ) : tab === 'preview' ? (
+        <View style={styles.fill}>
+        {Platform.OS === 'web' ? (
+          React.createElement('iframe', { key: uri, src: uri, title: project.name, sandbox: 'allow-scripts allow-forms allow-modals allow-popups', style: { border: 0, width: '100%', height: '100%', background: '#fff' } })
+        ) : (
         <WebView
           key={uri}
           source={{ uri }}
@@ -206,6 +257,13 @@ export default function BuilderStudioScreen() {
             }
           }}
         />
+        )}
+          {!full ? (
+            <Pressable onPress={() => setTab('code')} style={styles.fab} accessibilityRole="button" testID="app-fab-code">
+              <Text style={{ color: '#fff', fontWeight: '700' }}>{'</>'} {t('builder.tab.code')}</Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : tab === 'chat' ? (
         <View style={styles.fill}>
           <ScrollView ref={chatRef} contentContainerStyle={{ padding: 12, gap: 10 }}>
@@ -249,7 +307,7 @@ export default function BuilderStudioScreen() {
               ))}
             </ScrollView>
           ) : null}
-          <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+          <View style={[styles.composer, { paddingBottom: 10 }]}>
             <TextInput
               value={prompt}
               onChangeText={setPrompt}
@@ -285,31 +343,74 @@ export default function BuilderStudioScreen() {
             qc.setQueryData(['builder-project', id], { project: next });
           }}
         />
-      ) : (
-        <ScrollView contentContainerStyle={{ padding: 12, gap: 6 }}>
-          {(project.files || []).map((f) => (
-            <View key={f.path}>
-              <Pressable onPress={() => setOpenFile(openFile === f.path ? '' : f.path)} style={styles.fileRow}>
-                <Text style={[styles.mono, { color: TEXT }]}>{f.path}</Text>
-                <Text style={{ color: MUTED, fontSize: 12 }}>{openFile === f.path ? '▾' : '▸'}</Text>
-              </Pressable>
-              {file && openFile === f.path ? (
-                <ScrollView horizontal style={styles.code}>
-                  <Text selectable style={[styles.mono, { color: TEXT }]}>
-                    {file.content}
-                  </Text>
-                </ScrollView>
-              ) : null}
-            </View>
-          ))}
-          <Text style={{ color: MUTED, fontSize: 12, marginTop: 8, lineHeight: 18 }}>{t('builder.codeMobileHint')}</Text>
+      ) : tab === 'files' ? (
+        <ScrollView style={{ backgroundColor: '#181818' }} contentContainerStyle={{ paddingVertical: 6 }} testID="app-files">
+          <Text style={styles.explorerHead}>{t('builder.m.explorer')} · {(project.files || []).length}</Text>
+          {[...(project.files || [])]
+            .sort((a, b) => a.path.localeCompare(b.path))
+            .map((f) => {
+              const depth = f.path.split('/').length - 1;
+              return (
+                <Pressable
+                  key={f.path}
+                  onPress={() => { setOpenFile(f.path); setTab('code'); }}
+                  style={[styles.fileRow, { paddingLeft: 14 + depth * 14 }, openFile === f.path && { backgroundColor: '#37373d' }]}
+                >
+                  <Text style={[styles.mono, { color: '#519aba', width: 22 }]}>{fileIcon(f.path)}</Text>
+                  <Text style={{ color: MUTED, fontSize: 12 }} numberOfLines={1}>{depth ? f.path.split('/').slice(0, -1).join('/') + '/' : ''}</Text>
+                  <Text style={{ color: TEXT, fontSize: 14, flexShrink: 1 }} numberOfLines={1}>{f.path.split('/').pop()}</Text>
+                </Pressable>
+              );
+            })}
         </ScrollView>
+      ) : (
+        <CodeEditorView
+          files={editorFiles}
+          path={openFile}
+          version={project.version}
+          generating={busy}
+          labels={editorLabels}
+          onSave={(p, c) => void saveFile(p, c)}
+          onDirty={setCodeDirty}
+          onPreview={() => setTab('preview')}
+        />
       )}
+
+      {!full && !kbVisible ? (
+        <View style={[styles.bottomTabs, { paddingBottom: insets.bottom }]} accessibilityRole="tablist">
+          {BOTTOM_TABS.map((b) => {
+            const on = tab === b.id;
+            return (
+              <Pressable key={b.id} onPress={() => setTab(b.id)} style={styles.bottomTab} accessibilityRole="tab" accessibilityState={{ selected: on }} testID={`app-tab-${b.id}`}>
+                {on ? <View style={styles.bottomTabLine} /> : null}
+                <Text style={[styles.bottomIcon, on && { color: ACCENT }]}>{b.icon}</Text>
+                <Text style={[styles.bottomLabel, on && { color: ACCENT }]}>{t(b.label)}</Text>
+                {(b.id === 'chat' && busy && !on) || (b.id === 'code' && codeDirty && !on) ? <View style={styles.badge} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
 
+function fileIcon(path: string): string {
+  const e = (path.split('.').pop() || '').toLowerCase();
+  return ({ tsx: '⚛', jsx: '⚛', ts: 'TS', js: 'JS', json: '{}', html: '<>', css: '#', md: 'M↓' } as Record<string, string>)[e] || '·';
+}
+
 const styles = StyleSheet.create({
+  barHit: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  bottomTabs: { flexDirection: 'row', backgroundColor: BAR, borderTopWidth: 1, borderTopColor: LINE },
+  bottomTab: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  bottomTabLine: { position: 'absolute', top: 0, left: '25%', right: '25%', height: 2, borderRadius: 2, backgroundColor: ACCENT },
+  bottomIcon: { color: MUTED, fontSize: 17, fontWeight: '700' },
+  bottomLabel: { color: MUTED, fontSize: 11, fontWeight: '700' },
+  badge: { position: 'absolute', top: 9, left: '58%', width: 8, height: 8, borderRadius: 4, backgroundColor: '#3b82f6' },
+  fab: { position: 'absolute', right: 14, bottom: 14, minHeight: 44, paddingHorizontal: 16, borderRadius: 999, backgroundColor: '#0e639c', alignItems: 'center', justifyContent: 'center' },
+  explorerHead: { color: '#bbbbbb', fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', paddingHorizontal: 14, paddingVertical: 12 },
+  remote: { color: ACCENT, fontSize: 12, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(61,255,176,0.08)' },
   bg: { flex: 1, backgroundColor: BG },
   fill: { flex: 1, backgroundColor: BG },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
@@ -340,10 +441,9 @@ const styles = StyleSheet.create({
   bubble: { borderRadius: 12, padding: 10, maxWidth: '92%' },
   bubbleUser: { alignSelf: 'flex-end', backgroundColor: 'rgba(99,102,241,0.25)' },
   bubbleAi: { alignSelf: 'flex-start', borderWidth: 1, borderColor: LINE },
-  chip: { borderWidth: 1, borderColor: LINE, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  chip: { borderWidth: 1, borderColor: LINE, borderRadius: 999, paddingHorizontal: 12, minHeight: 40, justifyContent: 'center' },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 12, paddingTop: 8, borderTopWidth: 1, borderTopColor: LINE, backgroundColor: BAR },
   input: { flex: 1, minHeight: 44, maxHeight: 140, borderWidth: 1, borderColor: LINE, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: TEXT },
   send: { backgroundColor: ACCENT, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
-  fileRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 10, borderWidth: 1, borderColor: LINE, borderRadius: 10 },
-  code: { marginTop: 6, padding: 10, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.4)', maxHeight: 420 },
+  fileRow: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 44, paddingRight: 14 },
 });

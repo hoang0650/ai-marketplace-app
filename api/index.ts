@@ -2,6 +2,10 @@ import { Platform } from 'react-native';
 import { apiClient } from './client';
 import { affiliateClickStore } from './affiliate';
 import type {
+  CommunityAgent,
+  ComputeNode,
+  ComputeProductOption,
+  VoteBoard,
   CategoryMeta,
   CheckoutResult,
   Complaint,
@@ -86,6 +90,25 @@ function qs(params: Record<string, string | number | boolean | undefined>) {
   return s ? `?${s}` : '';
 }
 
+export function newIdempotencyKey(prefix = 'rent'): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return `${prefix}-${c.randomUUID()}`;
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+export type ProductKind = 'DIGITAL' | 'PHYSICAL';
+export interface ProductKindRate {
+  vat: number;
+  pit: number;
+  total: number;
+  withheldByPlatform: boolean;
+}
+export interface ProductKindRates {
+  sellerType: string;
+  sellerTypeDeclared: boolean;
+  rates: Record<ProductKind, ProductKindRate>;
+}
+
 export const productsApi = {
   list: async ({
     includeHidden,
@@ -159,16 +182,22 @@ export const billingApi = {
     licenseTerm?: string,
     salesChannel?: 'WEB' | 'APP_STORE' | 'GOOGLE_PLAY',
     couponCode?: string,
+    /** Same key on a retry = same order; the API never charges the wallet twice. */
+    idempotencyKey?: string,
   ) =>
-    apiClient.post<CheckoutResult>('/billing/checkout', {
-      productId,
-      quantity,
-      provider: 'wallet',
-      licenseTerm,
-      salesChannel,
-      couponCode,
-      // Last-click referral kept by affiliateClickStore; the API checks window and self-referral.
-      affiliateClickId: await affiliateClickStore.current(),
+    apiClient.request<CheckoutResult>('/billing/checkout', {
+      method: 'POST',
+      ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
+      body: {
+        productId,
+        quantity,
+        provider: 'wallet',
+        licenseTerm,
+        salesChannel,
+        couponCode,
+        // Last-click referral kept by affiliateClickStore; the API checks window and self-referral.
+        affiliateClickId: await affiliateClickStore.current(),
+      },
     }),
 };
 
@@ -199,6 +228,13 @@ export const walletApi = {
     signedTransaction?: string;
     packageName?: string;
   }) => apiClient.post<{ success: boolean; duplicate?: boolean; wallet?: WalletTx }>('/iap/verify', body),
+  bankTransferConfig: () => apiClient.get<{
+    enabled: boolean;
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+    vndPerUsd: number;
+  }>('/wallet/bank-transfer/config'),
 };
 
 export const kycApi = {
@@ -253,6 +289,8 @@ export const complaintsApi = {
   }) => apiClient.post<Complaint>('/complaints', data),
   sellerRespond: (id: string, body: string) => apiClient.post<Complaint>(`/complaints/${id}/seller-response`, { body }),
   appeal: (id: string, reason: string) => apiClient.post<Complaint>(`/complaints/${id}/appeal`, { reason }),
+  message: (id: string, body: string, attachmentIds: string[] = []) =>
+    apiClient.post<Complaint>(`/complaints/${id}/messages`, { body, attachmentIds }),
 };
 
 export const legalApi = {
@@ -268,6 +306,8 @@ export const sellersApi = {
   earnings: () => apiClient.get<SellerEarnings>('/sellers/me/earnings'),
   payouts: () => apiClient.get<SellerPayout[]>('/sellers/me/payouts'),
   taxProfile: () => apiClient.get<Record<string, unknown>>('/sellers/me/tax-profile'),
+  /** Withheld rate per product kind for this seller's type (Sản phẩm số 7% / Hàng hóa 1.5% for individuals). */
+  productKindRates: () => apiClient.get<ProductKindRates>('/sellers/me/product-kind-rates'),
 };
 
 export const dashboardApi = {
@@ -335,6 +375,8 @@ export const builderApi = {
   update: (id: string, body: { name?: string; provider?: string; model?: string }) =>
     apiClient.patch<{ project: BuilderProject }>(`/builder/projects/${id}`, body),
   remove: (id: string) => apiClient.delete<{ success: boolean }>(`/builder/projects/${id}`),
+  saveFile: (id: string, path: string, content: string) =>
+    apiClient.put<{ project: BuilderProject }>(`/builder/projects/${id}/files`, { path, content }),
   generate: (id: string, body: { prompt: string; previewError?: string; provider?: string; model?: string }) =>
     apiClient.post<BuilderGenerateResult>(`/builder/projects/${id}/generate`, { ...body, stream: false }, BUILDER_GENERATE_TIMEOUT_MS),
   saveKey: (provider: string, body: { apiKey: string; baseUrl?: string; model?: string }) =>
@@ -392,7 +434,7 @@ export const chatApi = {
     imageUrl?: string;
   }) => apiClient.post<ChatConversation>('/chat/conversations', body),
   messages: (id: string) => apiClient.get<ChatMessage[]>(`/chat/conversations/${id}/messages`),
-  send: (id: string, body: { body?: string; imageUrl?: string }) =>
+  send: (id: string, body: { body?: string; imageUrl?: string; attachmentIds?: string[] }) =>
     apiClient.post<ChatMessage>(`/chat/conversations/${id}/messages`, body),
   uploadImage: (form: FormData) =>
     apiClient.uploadForm<{ ok: boolean; url: string }>('/uploads/image', form),
@@ -456,8 +498,19 @@ export const agentPlansApi = {
   pricing: () => apiClient.get<AgentPricing[]>('/agents/pricing'),
   list: () => apiClient.get<AgentSubscriptionStatus[]>('/agents/subscriptions'),
   one: (agentId: AgentGatewayId) => apiClient.get<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`),
-  subscribe: (agentId: AgentGatewayId) =>
-    apiClient.post<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`, {}),
+  /** One Idempotency-Key per tap: a retried request never charges the wallet twice. */
+  subscribe: (agentId: AgentGatewayId, idempotencyKey: string = newIdempotencyKey()) =>
+    apiClient.request<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`, {
+      method: 'POST',
+      body: {},
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }),
+  /** Self-refund a rental whose workspace could not be launched (server enforces ownership + 30-min window). */
+  refund: (agentId: AgentGatewayId, walletTxId: string, reason = '') =>
+    apiClient.post<{ refunded: boolean; alreadyRefunded?: boolean; feeVnd?: number; amount?: number; currency?: string }>(
+      `/agents/subscriptions/${agentId}/refund`,
+      { walletTxId, reason: reason.slice(0, 200) },
+    ),
   setAutoRenew: (agentId: AgentGatewayId, autoRenew: boolean) =>
     apiClient.request<AgentSubscriptionStatus>(`/agents/subscriptions/${agentId}`, {
       method: 'PATCH',
@@ -488,12 +541,18 @@ export const hireApi = {
   cancel: (id: string) => apiClient.post<HireProject>(`/hire/projects/${id}/cancel`, {}),
   accept: (id: string, milestones: HireMilestoneDraft[]) =>
     apiClient.post<HireProject>(`/hire/projects/${id}/accept`, { milestones }),
-  submit: (id: string, body: { builderProjectId?: string; demoUrl?: string; note?: string }) =>
+  submit: (id: string, body: { builderProjectId?: string; demoUrl?: string; note?: string; attachmentIds?: string[] }) =>
     apiClient.post<HireProject>(`/hire/projects/${id}/submit`, body),
   approve: (id: string) => apiClient.post<HireProject>(`/hire/projects/${id}/approve`, {}, 60_000),
   revision: (id: string, note: string) => apiClient.post<HireProject>(`/hire/projects/${id}/revision`, { note }),
   terminate: (id: string, reason: HireTerminateReason, note: string) =>
     apiClient.post<HireProject>(`/hire/projects/${id}/terminate`, { reason, note }),
+  /** Fixed-price service package split into phases; charged per phase only on approval. */
+  startPackage: (productId: string, brief?: string) =>
+    apiClient.post<HireProject & { existing?: boolean }>('/hire/packages', { productId, brief }),
+  message: (id: string, body: string, attachmentIds?: string[]) =>
+    apiClient.post<HireProject>(`/hire/projects/${id}/messages`, { body, ...(attachmentIds?.length ? { attachmentIds } : {}) }),
+  complain: (id: string, note: string) => apiClient.post<HireProject>(`/hire/projects/${id}/complaint`, { note }),
 };
 
 export const workApi = {
@@ -544,10 +603,42 @@ export const workApi = {
 
 /** Typed gaps — backend has no consumer endpoint yet. */
 export const missingApi = {
-  forgotPassword: async (_email: string): Promise<never> => {
-    throw new Error('FORGOT_PASSWORD_NOT_AVAILABLE');
-  },
   registerDevice: async (_token: string): Promise<{ ok: false; reason: string }> => {
     return { ok: false, reason: 'POST /devices is not implemented on ai-marketplace-api' };
   },
+};
+
+/** Community agents: nominate a GitHub repo, vote, leaderboard, voted & listed. */
+export const communityAgentsApi = {
+  board: () => apiClient.get<VoteBoard>('/community-agents'),
+  submit: (repoUrl: string) => apiClient.post<{ agent: CommunityAgent }>('/community-agents', { repoUrl }),
+  vote: (id: string) => apiClient.post<{ voteCount: number }>(`/community-agents/${id}/vote`, {}),
+  unvote: (id: string) => apiClient.delete<{ voteCount: number }>(`/community-agents/${id}/vote`),
+};
+
+export type ComputeNodeBody = Record<string, unknown>;
+
+/** Seller compute / game-server nodes (same endpoints as the web Sell → Compute page). */
+export const sellerComputeApi = {
+  listNodes: () => apiClient.get<ComputeNode[]>('/seller/compute/nodes'),
+  listProducts: () => apiClient.get<ComputeProductOption[]>('/seller/compute/products'),
+  registerNode: (body: ComputeNodeBody) => apiClient.post<ComputeNode>('/seller/compute/nodes', body),
+  updateNode: (id: string, body: ComputeNodeBody) => apiClient.patch<ComputeNode>(`/seller/compute/nodes/${id}`, body),
+  deleteNode: (id: string) => apiClient.delete<{ ok: boolean }>(`/seller/compute/nodes/${id}`),
+  pingNode: (id: string) =>
+    apiClient.post<{ ok: boolean; via?: string; message?: string; status?: number }>(`/seller/compute/nodes/${id}/ping`, {}),
+};
+
+export interface LicensedItem {
+  productId: string; slug: string; name: string; category: string; coverUrl: string | null;
+  sellerName: string; term: string; expiresAt: string | null;
+}
+export interface LicensedDataset extends LicensedItem { fileCount: number; totalBytes: number; importedDatasetId: string | null }
+export interface LicensedVoice extends LicensedItem { voiceSource?: string; voiceModes?: string[]; sampleUrl?: string | null; ready?: boolean }
+
+/** Marketplace items the caller holds an active license for that can be used in training / voice tools. */
+export const trainingApi = {
+  licensed: () => apiClient.get<{ datasets: LicensedDataset[]; voices: LicensedVoice[] }>('/training-datasets/licensed'),
+  importLicensed: (productId: string) =>
+    apiClient.post<{ dataset: { id: string } }>(`/training-datasets/licensed/${encodeURIComponent(productId)}/import`, {}, 300000),
 };

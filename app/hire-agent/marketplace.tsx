@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';import { Stack, useRouter } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
 import type { MarketplaceAgent } from '@/api/types';
 import { href } from '@/lib/href';
 import {
@@ -17,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { AgentLogo } from '@/components/agents/AgentLogo';
 import { HubBackButton } from '@/components/catalog/HubBackButton';
+import { CommunityAgentCard, CommunityVote, useVoteBoard } from '@/components/agents/CommunityVote';
 
 function AgentCard({ agent }: { agent: MarketplaceAgent }) {
   const router = useRouter();
@@ -66,10 +68,11 @@ function AgentCard({ agent }: { agent: MarketplaceAgent }) {
 export default function AgentMarketplaceScreen() {
   const { colors } = useTheme();
   const { t } = useT();
-  const [tab, setTab] = useState<'public' | 'internal'>('public');
+  const [tab, setTab] = useState<'public' | 'vote'>('public');
+  const vote = useVoteBoard();
+  const community = vote.data?.listed || [];
   const publicCount = useMemo(() => listMarketplaceAgents('public').length, []);
-  const internalCount = useMemo(() => listMarketplaceAgents('internal').length, []);
-  const agents = useMemo(() => listMarketplaceAgents(tab), [tab]);
+  const agents = useMemo(() => (tab === 'vote' ? [] : listMarketplaceAgents(tab)), [tab]);
 
   return (
     <Screen>
@@ -79,24 +82,30 @@ export default function AgentMarketplaceScreen() {
 
         <View style={styles.tabs}>
           <Chip
-            label={`${t('agents.tabPublic')} (${publicCount})`}
+            label={t('cvote.tabPublic', { n: publicCount + community.length })}
             active={tab === 'public'}
             onPress={() => setTab('public')}
           />
           <Chip
-            label={`${t('agents.tabInternal')} (${internalCount})`}
-            active={tab === 'internal'}
-            onPress={() => setTab('internal')}
+            label={t('cvote.tab', { n: vote.data?.leaderboard?.length || 0 })}
+            active={tab === 'vote'}
+            onPress={() => {
+              setTab('vote');
+              void vote.refetch();
+            }}
           />
         </View>
 
-        {agents.length === 0 ? (
+        {tab === 'vote' ? (
+          <CommunityVote board={vote.data} loading={vote.isLoading} />
+        ) : agents.length === 0 && !(tab === 'public' && community.length) ? (
           <Text style={{ color: colors.textSecondary, marginTop: 12 }}>{t('agents.emptyTab')}</Text>
         ) : (
           <View style={{ gap: 12 }}>
             {agents.map((agent) => (
               <AgentCard key={agent.id} agent={agent} />
             ))}
+            {tab === 'public' ? community.map((c) => <CommunityAgentCard key={c._id} agent={c} />) : null}
           </View>
         )}
       </ScrollView>

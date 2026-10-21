@@ -15,6 +15,8 @@ import {
 import type {
   AgentGatewayApi,
   AgentGatewayId,
+  AgentRentalReceipt,
+  AgentRentalRefund,
   AgentSshAccess,
   AgentSubscriptionStatus,
   MarketplaceAgent,
@@ -26,6 +28,7 @@ import { useT } from '@/hooks/useT';
 import { ApiError, getErrorMessage } from '@/lib/errors';
 import { openOpenClawUrl, OpenClawBrowserError } from '@/lib/openClawBrowser';
 import { formatDate, formatMoney } from '@/utils/format';
+import { useLaunchNotice } from '@/stores/launchNoticeStore';
 
 const AGENT_SUBSCRIPTION_REQUIRED = 'AGENT_SUBSCRIPTION_REQUIRED';
 
@@ -223,8 +226,8 @@ export function useAgentLaunch(agent: MarketplaceAgent | null | undefined) {
 
   /** Launch was refused for a missing/expired monthly plan: offer to pay one period from the wallet. */
   const rentPlan = useCallback(
-    async (reason?: string): Promise<boolean> => {
-      if (!agent) return false;
+    async (reason?: string): Promise<AgentRentalReceipt | null> => {
+      if (!agent) return null;
       const kind = agentGatewayKey(agent);
       const brand = agentBrand(agent);
       let plan: AgentSubscriptionStatus | null = null;
@@ -235,7 +238,7 @@ export function useAgentLaunch(agent: MarketplaceAgent | null | undefined) {
       }
       if (!plan) {
         Alert.alert(t(`${base}.title`), reason || t('agents.plan.required', { brand }));
-        return false;
+        return null;
       }
       const ok = await confirmAsync(
         t('agents.plan.title'),
@@ -247,20 +250,49 @@ export function useAgentLaunch(agent: MarketplaceAgent | null | undefined) {
         t('common.cancel'),
         t('agents.plan.rent'),
       );
-      if (!ok) return false;
+      if (!ok) return null;
       try {
+        // One Idempotency-Key per confirmed tap (generated inside subscribe): a retried request never charges twice.
         const next = await agentPlansApi.subscribe(kind);
         qc.setQueryData(['agents', 'plans', kind], next);
-        return next.active;
+        if (!next.active) return null;
+        return {
+          charged: Boolean(next.charged),
+          duplicate: Boolean(next.duplicate),
+          walletTxId: next.walletTxId || null,
+          chargedVnd: next.chargedVnd ?? next.fee?.vnd ?? 0,
+          periodDays: next.fee?.periodDays ?? 30,
+          paidUntil: next.paidUntil,
+          autoRenew: next.autoRenew,
+        };
       } catch (error) {
         Alert.alert(
           t('agents.plan.title'),
           isLowBalance(error) ? t('agents.plan.lowBalance') : getErrorMessage(error as Error, language),
         );
-        return false;
+        return null;
       }
     },
     [agent, base, language, qc, t],
+  );
+
+  const showNotice = useLaunchNotice((s) => s.show);
+  const launchRef = useRef<() => Promise<boolean>>(async () => false);
+
+  /** A rental charge whose workspace did not come up is refunded right away (server checks owner + window). */
+  const refundRental = useCallback(
+    async (rental: AgentRentalReceipt, reason: string): Promise<AgentRentalRefund | undefined> => {
+      if (!agent || !rental.charged || !rental.walletTxId) return undefined;
+      try {
+        const r = await agentPlansApi.refund(agentGatewayKey(agent), rental.walletTxId, reason || 'launch failed');
+        void qc.invalidateQueries({ queryKey: ['agents', 'plans', agentGatewayKey(agent)] });
+        void qc.invalidateQueries({ queryKey: ['wallet'] });
+        return { refunded: Boolean(r?.refunded), alreadyRefunded: r?.alreadyRefunded, feeVnd: r?.feeVnd ?? r?.amount };
+      } catch {
+        return { refunded: false, failed: true };
+      }
+    },
+    [agent, qc],
   );
 
   const launch = useCallback(async (): Promise<boolean> => {
@@ -275,16 +307,41 @@ export function useAgentLaunch(agent: MarketplaceAgent | null | undefined) {
     }
     setOpening(true);
     clearTimers();
+    const brand = agentBrand(agent);
+    let rental: AgentRentalReceipt | null = null;
+    /** After a rental: report failure in the notice (with refund) instead of a bare alert. */
+    const failAfterRental = async (message: string) => {
+      if (!rental) return false;
+      const refund = await refundRental(rental, message);
+      showNotice(
+        { kind: 'error', agentId: agent.id, brand, message, rental, refund },
+        () => void launchRef.current(),
+      );
+      return false;
+    };
     try {
       let res: OpenClawLaunchResult;
       try {
         res = await gatewayApiFor(agent).launch();
       } catch (error) {
         if (!(error instanceof ApiError) || error.code !== AGENT_SUBSCRIPTION_REQUIRED) throw error;
-        if (!(await rentPlan(error.userMessage))) return false;
-        res = await gatewayApiFor(agent).launch();
+        rental = await rentPlan(error.userMessage);
+        if (!rental) return false;
+        try {
+          res = await gatewayApiFor(agent).launch();
+        } catch (launchError) {
+          return await failAfterRental(getErrorMessage(launchError as Error, language) || t(`${base}.urlError`));
+        }
       }
       if (res?.success && res.url) {
+        if (rental) {
+          // The rent confirm already took the user's attention: show what was charged and let them open it.
+          void syncHired('running');
+          showNotice({ kind: 'success', agentId: agent.id, brand, url: res.url, rental });
+          if (res.username && res.password) setCreds({ username: res.username, password: res.password });
+          if (!skipApprove) delayRef.current = setTimeout(() => triggerAutoApprove(30, 1000), 800);
+          return true;
+        }
         try {
           await openOpenClawUrl(res.url);
         } catch (error) {
@@ -308,13 +365,13 @@ export function useAgentLaunch(agent: MarketplaceAgent | null | undefined) {
         }
         return true;
       }
+      if (rental) return await failAfterRental(res?.message || t(`${base}.urlFailed`));
       Alert.alert(t(`${base}.title`), res?.message || t(`${base}.urlFailed`));
       return false;
     } catch (error) {
-      Alert.alert(
-        t(`${base}.title`),
-        getErrorMessage(error as Error, language) || t(`${base}.urlError`),
-      );
+      const message = getErrorMessage(error as Error, language) || t(`${base}.urlError`);
+      if (rental) return await failAfterRental(message);
+      Alert.alert(t(`${base}.title`), message);
       return false;
     } finally {
       setOpening(false);
@@ -326,13 +383,18 @@ export function useAgentLaunch(agent: MarketplaceAgent | null | undefined) {
     isAuthenticated,
     language,
     opening,
+    refundRental,
     rentPlan,
     router,
+    showNotice,
     skipApprove,
     syncHired,
     t,
     triggerAutoApprove,
   ]);
+  useEffect(() => {
+    launchRef.current = launch;
+  }, [launch]);
 
   const retryApprove = useCallback(() => {
     if (!isAuthenticated) {

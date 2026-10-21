@@ -15,9 +15,11 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { IapTopup } from '@/components/wallet/IapTopup';
+import { BankTransferInfo } from '@/components/wallet/BankTransferInfo';
 import { displayFont } from '@/constants/fonts';
 import { formatMoney, formatDate } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
+import { GPAY_ENABLED } from '@/lib/features';
 
 export default function WalletScreen() {
   const qc = useQueryClient();
@@ -64,15 +66,20 @@ export default function WalletScreen() {
         <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 21, fontSize: 14 }}>{t('wallet.legalHint')}</Text>
 
         <LinearGradient colors={['#111111', '#2a2520']} style={{ borderRadius: 18, padding: 20, marginTop: 18 }}>
-          <Text style={{ color: 'rgba(245,240,232,0.7)', fontSize: 11, fontWeight: '700' }}>{t('wallet.balance')}</Text>
-          <Text style={{ color: '#c9a961', fontSize: 34, fontWeight: '800', marginTop: 6 }}>{formatMoney(s?.balance ?? 0, cur)}</Text>
-          <Text style={{ color: 'rgba(245,240,232,0.72)', marginTop: 8, fontSize: 13 }}>
-            {t('wallet.available')}: {formatMoney(s?.available ?? 0, cur)}
-          </Text>
+          {/* Same headline number as the web (/wallet/summary.available): what you can spend now. */}
+          <Text style={{ color: 'rgba(245,240,232,0.7)', fontSize: 11, fontWeight: '700' }}>{t('wallet.availableBalance')}</Text>
+          <Text style={{ color: '#c9a961', fontSize: 34, fontWeight: '800', marginTop: 6 }}>{formatMoney(s?.available ?? 0, cur)}</Text>
+          {s && s.held > 0 ? (
+            <Text style={{ color: 'rgba(245,240,232,0.72)', marginTop: 8, fontSize: 13 }}>
+              {t('wallet.balance')}: {formatMoney(s.balance, cur)} · {t('wallet.held')}: {formatMoney(s.held, cur)}
+            </Text>
+          ) : null}
         </LinearGradient>
 
         {/* Store rules: digital wallet credit in the app goes through App Store / Google Play only. */}
         <IapTopup />
+
+        <BankTransferInfo />
 
         {isCreator ? (
           <View style={{ marginTop: 28 }}>
@@ -161,7 +168,7 @@ export default function WalletScreen() {
                   ? t('wallet.method.iapIos')
                   : t('wallet.method.iapAndroid')
                 : item.paymentMethod === 'gpay'
-                  ? t('wallet.method.gpayVn')
+                  ? t(GPAY_ENABLED ? 'wallet.method.gpayVn' : 'wallet.method.bankTransfer')
                   : debit
                     ? t('wallet.type.debit')
                     : t('wallet.type.deposit');

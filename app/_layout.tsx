@@ -1,3 +1,4 @@
+import { LaunchNoticeModal } from '@/components/agents/LaunchNoticeModal';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -68,6 +69,7 @@ function ThemedStack() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="studio" options={{ headerShown: false }} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
@@ -95,6 +97,7 @@ function ThemedStack() {
         <Stack.Screen name="category/[id]" options={{ title: '' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
+      <LaunchNoticeModal />
     </>
   );
 }

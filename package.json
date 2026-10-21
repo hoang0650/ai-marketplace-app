@@ -1,7 +1,7 @@
 {
   "name": "ai-marketplace-app",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "scripts": {
     "start": "npx.cmd expo start",
     "start:dev-client": "npx.cmd expo start --dev-client",
@@ -29,6 +29,7 @@
     "expo": "~57.0.24",
     "expo-audio": "~57.0.5",
     "expo-auth-session": "~57.0.12",
+    "expo-camera": "~57.0.6",
     "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.17",
     "expo-crypto": "~57.0.3",

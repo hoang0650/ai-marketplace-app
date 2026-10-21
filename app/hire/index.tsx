@@ -1,7 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { WORK_BOARD_ENABLED } from '@/constants/features';
 import { useQuery } from '@tanstack/react-query';
 import { hireApi } from '@/api';
 import type { HireProject } from '@/api/types';
@@ -23,7 +22,6 @@ const TAB_LABEL: Record<Tab, string> = { all: 'hire.list.all', buyer: 'hire.list
 
 /** Legacy Hire projects are shut down with Work: the screen redirects home. */
 export default function HireProjectsScreenRoute() {
-  if (!WORK_BOARD_ENABLED) return <Redirect href="/" />;
   return <HireProjectsScreen />;
 }
 

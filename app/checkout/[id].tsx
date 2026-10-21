@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ActivityIndicator, Platform, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CouponPreview, IssuedLicense, LicenseTerm } from '@/api/types';
-import { billingApi, couponsApi, licensesApi, ordersApi, productsApi } from '@/api';
+import { billingApi, couponsApi, licensesApi, newIdempotencyKey, ordersApi, productsApi } from '@/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useTheme } from '@/hooks/useT';
@@ -89,16 +89,24 @@ export default function CheckoutScreen() {
     },
   });
 
+  // One key per purchase intent, reused if the user taps again after a timeout / network error.
+  const payKey = useRef<{ intent: string; key: string } | null>(null);
   const pay = useMutation({
-    mutationFn: () =>
-      billingApi.checkout(
+    mutationFn: () => {
+      const intent = `${id}|${qty}|${licensed ? selected : ''}|${couponCode.trim()}`;
+      if (!payKey.current || payKey.current.intent !== intent) payKey.current = { intent, key: newIdempotencyKey('chk') };
+      return billingApi.checkout(
         String(id),
         qty,
         licensed ? selected : undefined,
         Platform.OS === 'ios' ? 'APP_STORE' : Platform.OS === 'android' ? 'GOOGLE_PLAY' : 'WEB',
         couponCode.trim() || undefined,
-      ),
+        payKey.current.key,
+      );
+    },
     onSuccess: (res) => {
+      payKey.current = null;
+      qc.invalidateQueries({ queryKey: ['notifications'] });
       const skipCharge = !!(res.alreadyLicensed || res.alreadyPurchased);
       if (!skipCharge) {
         AnalyticsService.track('payment_completed', { orderId: res.orderId || '' });
@@ -231,7 +239,9 @@ export default function CheckoutScreen() {
                 : t('checkout.pay')
         }
         loading={pay.isPending}
+        disabled={pay.isPending}
         onPress={() => {
+          if (pay.isPending) return;
           AnalyticsService.track('payment_started');
           pay.mutate();
         }}

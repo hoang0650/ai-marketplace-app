@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { gpuRentalApi } from '@/api';
+import { gpuRentalApi, trainingApi, walletApi } from '@/api';
 import type { GpuOffer, GpuRental } from '@/api/types';
 import { ApiError, getErrorMessage } from '@/lib/errors';
 import { href } from '@/lib/href';
@@ -33,6 +33,18 @@ export default function GpuRentScreen() {
   const { offer: presetOffer } = useLocalSearchParams<{ offer?: string }>();
 
   const offers = useQuery({ queryKey: ['gpu-offers'], queryFn: gpuRentalApi.offers, enabled: isAuthenticated });
+  // Same number as the Wallet screen; the offers call fails while GPU rental is disabled, which used to show $0.
+  const licensed = useQuery({ queryKey: ['training-licensed'], queryFn: trainingApi.licensed, enabled: isAuthenticated });
+  const importLicensed = useMutation({
+    mutationFn: (productId: string) => trainingApi.importLicensed(productId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['training-licensed'] });
+      Alert.alert(t('train.owned.title'), t('train.owned.imported'));
+    },
+    onError: (e) => setError(getErrorMessage(e)),
+  });
+  const owned = [...(licensed.data?.datasets ?? []), ...(licensed.data?.voices ?? [])];
+  const wallet = useQuery({ queryKey: ['wallet-summary'], queryFn: () => walletApi.summary(), enabled: isAuthenticated });
 
   useEffect(() => {
     if (!presetOffer || selected) return;
@@ -66,6 +78,7 @@ export default function GpuRentScreen() {
   const refreshAll = () => {
     void qc.invalidateQueries({ queryKey: ['gpu-rentals'] });
     void qc.invalidateQueries({ queryKey: ['gpu-offers'] });
+    void qc.invalidateQueries({ queryKey: ['wallet-summary'] });
   };
 
   const create = useMutation({
@@ -92,7 +105,7 @@ export default function GpuRentScreen() {
   if (!isAuthenticated) return <LoginPrompt />;
 
   const limits = offers.data?.limits;
-  const available = offers.data?.wallet.available ?? 0;
+  const available = wallet.data?.available ?? offers.data?.wallet?.available ?? 0;
   const prepayHours = limits?.minPrepayHours ?? 1;
   const canAfford = selected ? available + 1e-9 >= selected.pricePerHour * prepayHours : false;
 
@@ -149,6 +162,38 @@ export default function GpuRentScreen() {
         </View>
 
         {error ? <Text style={{ color: colors.danger, marginTop: 12, lineHeight: 20 }}>{error}</Text> : null}
+
+        {owned.length ? (
+          <View style={{ marginTop: 20 }}>
+            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>{t('train.owned.title')}</Text>
+            {owned.map((it) => {
+              const ds = 'fileCount' in it ? it : null;
+              return (
+                <View key={it.productId} style={{ marginTop: 10, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }}>
+                  <Text style={{ color: colors.text, fontWeight: '700' }}>{ds ? '🗂️' : '🎙️'} {it.name}</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+                    {t(`train.owned.cat.${it.category}`)}
+                    {it.expiresAt ? ` · ${t('train.owned.expires', { d: formatDate(it.expiresAt, language) })}` : ''}
+                    {ds ? ` · ${ds.fileCount} file` : ''}
+                  </Text>
+                  {ds && !ds.fileCount ? (
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 6 }}>{t('train.owned.noFiles')}</Text>
+                  ) : (
+                    <Pressable
+                      style={{ marginTop: 8 }}
+                      disabled={importLicensed.isPending}
+                      onPress={() => (ds ? (ds.importedDatasetId ? Alert.alert(it.name, t('train.owned.imported')) : importLicensed.mutate(it.productId)) : router.push(href(`/product/${it.slug}`)))}
+                    >
+                      <Text style={{ color: GOLD, fontWeight: '700' }}>
+                        {ds ? (ds.importedDatasetId ? t('train.owned.ready') : t('train.owned.use')) : t('train.owned.useVoice')} →
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
 
         <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 24 }}>{t('gpu.rent.chooseGpu')}</Text>
         {offers.isLoading ? (
