@@ -450,13 +450,11 @@ function agentGatewayApi(base: AgentGatewayId): AgentGatewayApi {
         {
           request_id: requestId || null,
           requestId: requestId || null,
-          ...(base === 'openclaw'
-            ? {
-                role: 'operator',
-                scopes: ['operator.read', 'operator.write', 'operator.admin', 'operator.pairing'],
-              }
-            : {}),
         },
+      ),
+    pendingPairings: () =>
+      apiClient.get<{ success: boolean; pending: { requestId: string; approvable: boolean; role?: string }[]; message?: string }>(
+        `/${base}/device-pairings/pending`,
       ),
     generateSsh: (body) => apiClient.post<AgentSshAccess>(`/${base}/ssh/generate`, body),
     activeSsh: (agentId: string) =>

@@ -339,7 +339,7 @@ export function useAgentLaunch(agent: MarketplaceAgent | null | undefined) {
           void syncHired('running');
           showNotice({ kind: 'success', agentId: agent.id, brand, url: res.url, rental });
           if (res.username && res.password) setCreds({ username: res.username, password: res.password });
-          if (!skipApprove) delayRef.current = setTimeout(() => triggerAutoApprove(30, 1000), 800);
+          if (!skipApprove) delayRef.current = setTimeout(() => triggerAutoApprove(10, 4000), 1500);
           return true;
         }
         try {
@@ -361,7 +361,7 @@ export function useAgentLaunch(agent: MarketplaceAgent | null | undefined) {
         void syncHired('running');
         Alert.alert(t(`${base}.title`), t(`${base}.opening`));
         if (!skipApprove) {
-          delayRef.current = setTimeout(() => triggerAutoApprove(30, 1000), 800);
+          delayRef.current = setTimeout(() => triggerAutoApprove(10, 4000), 1500);
         }
         return true;
       }

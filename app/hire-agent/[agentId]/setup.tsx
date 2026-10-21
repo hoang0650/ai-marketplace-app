@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -35,6 +35,8 @@ export default function AgentSetupScreen() {
   const [channel, setChannel] = useState<ChannelGuide | null>(null);
   const [pairingCode, setPairingCode] = useState('');
   const [pairingBusy, setPairingBusy] = useState(false);
+  const [pending, setPending] = useState<{ requestId: string; approvable: boolean }[]>([]);
+  const [showPaste, setShowPaste] = useState(false);
   const [status, setStatus] = useState('');
   const [copied, setCopied] = useState('');
 
@@ -58,7 +60,10 @@ export default function AgentSetupScreen() {
       try {
         const res = await gatewayApiFor(agent).approvePairing(code?.trim() || null);
         setStatus(res?.success ? res.message || t('agents.pairingApproved') : res?.message || t('agents.pairingFailed'));
-        if (res?.success) setPairingCode('');
+        if (res?.success) {
+          setPairingCode('');
+          setPending((list) => list.filter((p) => p.requestId !== code));
+        }
       } catch {
         setStatus(t('agents.pairingFailed'));
       } finally {
@@ -67,6 +72,23 @@ export default function AgentSetupScreen() {
     },
     [agent, pairingBusy, t],
   );
+
+  const refreshPairings = useCallback(async () => {
+    if (!agent || !profile.pairing) return;
+    try {
+      const res = await gatewayApiFor(agent).pendingPairings();
+      setPending(res?.pending || []);
+    } catch {
+      setPending([]);
+    }
+  }, [agent, profile.pairing]);
+
+  useEffect(() => {
+    if (!profile.pairing) return undefined;
+    void refreshPairings();
+    const timer = setInterval(() => void refreshPairings(), 5000);
+    return () => clearInterval(timer);
+  }, [profile.pairing, refreshPairings]);
 
   if (!agent) {
     return (
@@ -240,27 +262,49 @@ export default function AgentSetupScreen() {
                   {t('agents.pairingTitle')}
                 </Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19 }}>{t('agents.pairingLede')}</Text>
-                <TextInput
-                  value={pairingCode}
-                  onChangeText={setPairingCode}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  placeholder={t('agents.pairingPh')}
-                  placeholderTextColor={colors.textSecondary}
-                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBackground }]}
-                />
+                {pending.filter((p) => p.approvable).map((p) => (
+                  <View key={p.requestId} style={[styles.pending, { borderColor: colors.border }]}>
+                    <Text selectable numberOfLines={1} style={[styles.code, { color: colors.text, flex: 1 }]}>{p.requestId}</Text>
+                    <Button title={t('agents.approve')} loading={pairingBusy} onPress={() => void approvePairing(p.requestId)} />
+                  </View>
+                ))}
+                {!pending.some((p) => p.approvable) ? (
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{t('agents.pairingNone')}</Text>
+                ) : null}
                 <View style={styles.btnRow}>
                   <Button
-                    title={t('agents.approve')}
+                    title={pairingBusy ? t('agents.pairingApproving') : t('agents.approveBrowser')}
                     loading={pairingBusy}
-                    onPress={() => void approvePairing(pairingCode)}
+                    onPress={() => {
+                      const own = pending.filter((p) => p.approvable);
+                      void approvePairing(own.length ? own[own.length - 1].requestId : undefined);
+                    }}
                   />
-                  <Button
-                    title={t('agents.checkPending')}
-                    variant="outline"
-                    onPress={() => void approvePairing()}
-                  />
+                  <Button title={t('agents.checkPending')} variant="outline" onPress={() => void refreshPairings()} />
                 </View>
+                <Pressable onPress={() => setShowPaste((v) => !v)} style={{ minHeight: 32, justifyContent: 'center' }}>
+                  <Text style={{ color: colors.tint, fontWeight: '700', fontSize: 13 }}>{t('agents.pairingPaste')}</Text>
+                </Pressable>
+                {showPaste ? (
+                  <>
+                    <TextInput
+                      value={pairingCode}
+                      onChangeText={setPairingCode}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholder={t('agents.pairingPh')}
+                      placeholderTextColor={colors.textSecondary}
+                      style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBackground }]}
+                    />
+                    <Button
+                      title={t('agents.approve')}
+                      variant="outline"
+                      loading={pairingBusy}
+                      disabled={!pairingCode.trim()}
+                      onPress={() => void approvePairing(pairingCode)}
+                    />
+                  </>
+                ) : null}
               </View>
             ) : null}
 
@@ -330,5 +374,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     minHeight: 44,
     justifyContent: 'center',
+  },
+  pending: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 8,
   },
 });

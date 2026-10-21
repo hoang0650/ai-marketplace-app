@@ -957,6 +957,11 @@ export interface AgentGatewayApi {
   approvePairing: (
     requestId?: string | null,
   ) => Promise<{ success: boolean; message?: string; skipped?: boolean }>;
+  pendingPairings: () => Promise<{
+    success: boolean;
+    pending: { requestId: string; approvable: boolean; role?: string }[];
+    message?: string;
+  }>;
   generateSsh: (body: {
     agentId: string;
     host?: string;
