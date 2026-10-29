@@ -87,6 +87,7 @@ export default function ProfileScreen() {
           <MenuRow icon={Clapperboard} label="AI Studio · Làm phim AI" onPress={() => router.push(href('/studio'))} />
           <MenuRow icon={Cpu} label={t('gpu.rent.title')} onPress={() => router.push(href('/gpu'))} />
           <MenuRow icon={Sparkles} label={t('builder.title')} onPress={() => router.push(href('/builder'))} />
+          <MenuRow icon={FileText} label="Tài liệu API & cấu hình node" onPress={() => router.push(href('/docs'))} />
           <MenuRow icon={CreditCard} label={t('profile.billing')} onPress={() => router.push('/wallet')} />
           <MenuRow icon={Receipt} label={t('bhub.complaints')} onPress={() => router.push(href('/complaint'))} />
           <MenuRow icon={Wallet} label={t('bhub.refunds')} onPress={() => router.push(href('/refunds'))} />
