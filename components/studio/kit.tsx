@@ -13,7 +13,7 @@ import { displayFont } from '@/constants/fonts';
 
 export const KIND_LABEL: Record<StudioKind, string> = { fast: 'Video nhanh', talking: 'Avatar nói', tts: 'Giọng nói', film: 'Phim AI' };
 
-export function StudioScreen({ title, subtitle, kind, children, testID }: { title: string; subtitle?: string; kind?: StudioKind; children: React.ReactNode; testID?: string }) {
+export function StudioScreen({ title, subtitle, kind, children, testID, hideQuota = false }: { title: string; subtitle?: string; kind?: StudioKind; children: React.ReactNode; testID?: string; hideQuota?: boolean }) {
   const { colors } = useTheme();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
@@ -25,7 +25,7 @@ export function StudioScreen({ title, subtitle, kind, children, testID }: { titl
         </Pressable>
         <Text style={{ fontFamily: displayFont, fontSize: 26, color: colors.text }}>{title}</Text>
         {subtitle ? <Text style={{ color: colors.textSecondary, marginTop: 4, lineHeight: 20 }}>{subtitle}</Text> : null}
-        {isAuthenticated ? <><QuotaBar kind={kind} />{children}</> : <View style={{ marginTop: 24 }}><LoginPrompt /></View>}
+        {isAuthenticated ? <>{!hideQuota ? <QuotaBar kind={kind} /> : null}{children}</> : <View style={{ marginTop: 24 }}><LoginPrompt /></View>}
       </ScrollView>
     </Screen>
   );

@@ -35,11 +35,12 @@ export const sharedTrainingApi = {
   options: () => apiClient.get<TrainingGpuOptions>('/training-jobs/gpu-options'),
   datasets: () => apiClient.get<{ datasets: TrainingDatasetLite[] }>('/training-datasets'),
   jobs: () => apiClient.get<TrainingJobLite[]>('/training-jobs'),
-  create: (b: { source: string; task: string; datasetId: string; offerId: string; autoStop: boolean }) => apiClient.post<TrainingJobLite>('/training-jobs', b, 60000),
+  create: (b: { source: string; task: string; datasetId: string; offerId?: string; rentalId?: string; volumeId?: string; autoStop: boolean }) => apiClient.post<TrainingJobLite>('/training-jobs', b, 60000),
 };
 
 /** Media URLs need the bearer token; native players take headers, the web build needs a blob URL. */
 export async function mediaSource(path: string): Promise<{ uri: string; headers?: Record<string, string> }> {
+  if (/^https:\/\//i.test(path)) return { uri: path };
   const token = (await tokenStorage.getAccessToken()) || '';
   const uri = `${API_CONFIG.BASE_URL}${path.replace(/^\/v1/, '')}`;
   const headers = { Authorization: `Bearer ${token}` };

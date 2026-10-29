@@ -33,6 +33,7 @@ export default function BuilderHomeScreen() {
   const [keyProvider, setKeyProvider] = useState<ByokProvider | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [showKeys, setShowKeys] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [selected, setSelected] = useState<BuilderTemplateListing | null>(null);
 
   const providers = useQuery({ queryKey: ['builder-providers'], queryFn: builderApi.providers, enabled: isAuthenticated });
@@ -174,14 +175,6 @@ export default function BuilderHomeScreen() {
 
         {error ? <Text style={{ color: colors.danger, marginTop: 12, lineHeight: 20 }}>{error}</Text> : null}
 
-        {providers.isSuccess && !hasKey ? (
-          <View style={{ marginTop: 16, borderWidth: 1, borderColor: '#fbbf24', borderRadius: 14, padding: 14 }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{t('builder.needKey.title')}</Text>
-            <Text style={{ color: colors.textSecondary, marginTop: 6, lineHeight: 20 }}>{t('builder.needKey.body')}</Text>
-            {keyForm}
-          </View>
-        ) : null}
-
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
           {(['app', 'web'] as BuilderKind[]).map((k) => (
             <Pressable
@@ -198,6 +191,26 @@ export default function BuilderHomeScreen() {
           ))}
         </View>
 
+        <TextInput
+          value={prompt}
+          onChangeText={setPrompt}
+          multiline
+          maxLength={8000}
+          placeholder={selected ? t('builder.tpl.promptPh') : t(`builder.promptPh.${kind}`)}
+          placeholderTextColor={colors.textSecondary}
+          style={[input, { minHeight: 160, marginTop: 12, textAlignVertical: 'top' }]}
+        />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+          {IDEAS[kind].map((key) => (
+            <Pressable key={key} onPress={() => setPrompt(t(key))} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>
+                {t(key)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable onPress={() => setShowTemplates(v => !v)} style={{ paddingVertical: 12 }}><Text style={{ color: GOLD }}>{t('builder.tpl.startFrom')} {showTemplates ? '−' : '+'}</Text></Pressable>
+        {showTemplates ? <>
         <Text style={{ color: colors.text, fontWeight: '700', marginTop: 18 }}>{t('builder.tpl.startFrom')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 10 }}>
           <Pressable
@@ -239,24 +252,7 @@ export default function BuilderHomeScreen() {
           ) : null}
         </ScrollView>
 
-        <TextInput
-          value={prompt}
-          onChangeText={setPrompt}
-          multiline
-          maxLength={8000}
-          placeholder={selected ? t('builder.tpl.promptPh') : t(`builder.promptPh.${kind}`)}
-          placeholderTextColor={colors.textSecondary}
-          style={[input, { minHeight: 110, marginTop: 12, textAlignVertical: 'top' }]}
-        />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-          {IDEAS[kind].map((key) => (
-            <Pressable key={key} onPress={() => setPrompt(t(key))} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
-              <Text style={{ color: colors.textSecondary, fontSize: 12 }} numberOfLines={1}>
-                {t(key)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        </> : null}
         <Button
           title={selected ? t('builder.tpl.useStart') : t('builder.startBuild')}
           loading={create.isPending || startTemplate.isPending}
@@ -267,13 +263,11 @@ export default function BuilderHomeScreen() {
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 28 }}>
           <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>{t('builder.projects')}</Text>
-          {hasKey ? (
-            <Pressable onPress={() => setShowKeys((v) => !v)} hitSlop={10}>
-              <Text style={{ color: GOLD, fontWeight: '700' }}>{t('builder.keys.manage')}</Text>
-            </Pressable>
-          ) : null}
+          <Pressable onPress={() => setShowKeys((v) => !v)} hitSlop={10}>
+            <Text style={{ color: GOLD, fontWeight: '700' }}>{t('builder.keys.manage')}</Text>
+          </Pressable>
         </View>
-        {showKeys && hasKey ? keyForm : null}
+        {showKeys ? keyForm : null}
 
         {(projects.data?.projects || []).length === 0 ? (
           <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('builder.noProjects')}</Text>
