@@ -84,6 +84,17 @@ class ApiClient {
       const rawBody = await response.text();
       const parsed = rawBody ? safeJson(rawBody) : null;
       if (response.status === 401) {
+        const code = typeof parsed?.code === 'string' ? parsed.code : '';
+        // Wrong password on account deletion is a 401, but the session is still valid.
+        if (code === 'INVALID_PASSWORD') {
+          const message = typeof parsed?.message === 'string' ? parsed.message : code;
+          throw new ApiError(
+            401,
+            code,
+            toUserMessage(message, lang()),
+            parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : undefined,
+          );
+        }
         const isAuthPath =
           endpoint.startsWith('/auth/login') ||
           endpoint.startsWith('/auth/register') ||

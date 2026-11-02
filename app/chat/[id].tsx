@@ -29,6 +29,8 @@ import { containsBlockedLink } from '@/lib/chat-security';
 import { formatDate } from '@/utils/format';
 import { playSound } from '@/services/sound';
 import type { Lang } from '@/i18n/messages';
+import { SafetyActions } from '@/components/safety/SafetyActions';
+import { isBlockedUser, useBlockStore } from '@/stores/blockStore';
 
 export default function ChatThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,6 +38,7 @@ export default function ChatThreadScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
+  const blockedEntries = useBlockStore((s) => s.entries);
   const { colors } = useTheme();
   const { t, language } = useT();
   const qc = useQueryClient();
@@ -100,6 +103,8 @@ export default function ChatThreadScreen() {
     if (incoming.length) playSound('notification', { say: t('sound.newMessage') });
   }, [msgs.data, items, me, t]);
 
+  const otherBlocked = !!convo.data && isBlockedUser(convo.data.otherId, blockedEntries);
+
   const onSend = () => {
     const text = draft.trim();
     if (!text || busy) return;
@@ -143,6 +148,23 @@ export default function ChatThreadScreen() {
             </View>
           </Pressable>
         ) : null}
+        {convo.data?.otherId ? (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+            <SafetyActions
+              compact
+              target={{
+                kind: 'message',
+                id: conversationId,
+                title: convo.data.otherName || convo.data.productName || t('nav.messages'),
+                userId: convo.data.otherId,
+                name: convo.data.otherName,
+              }}
+            />
+            {isBlockedUser(convo.data.otherId, blockedEntries) ? (
+              <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>{t('safety.blockedSeller')}</Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {error ? <Text style={{ color: colors.danger, paddingHorizontal: 16, paddingTop: 8 }}>{error}</Text> : null}
 
@@ -150,7 +172,7 @@ export default function ChatThreadScreen() {
           <ActivityIndicator color={colors.tint} style={{ marginTop: 24 }} />
         ) : (
           <FlatList
-            data={items}
+            data={otherBlocked ? [] : items}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ padding: 16, paddingBottom: 8, gap: 8 }}
             renderItem={({ item }) => <Bubble item={item} mine={String(item.senderId) === me} />}

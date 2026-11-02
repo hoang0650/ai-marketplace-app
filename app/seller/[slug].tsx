@@ -16,6 +16,8 @@ import { MessageSquare, Share2 } from 'lucide-react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { chatApi, creatorsApi, productsApi, reviewsApi } from '@/api';
+import { SafetyActions } from '@/components/safety/SafetyActions';
+import { isBlockedSlug, isBlockedUser, useBlockStore } from '@/stores/blockStore';
 import type { Product, Review } from '@/api/types';
 import { href } from '@/lib/href';
 import { useAuth } from '@/hooks/useAuth';
@@ -53,6 +55,7 @@ export default function SellerScreen() {
   const { colors, isDark } = useTheme();
   const { t, language } = useT();
   const { isAuthenticated, user } = useAuth();
+  const blockedEntries = useBlockStore((s) => s.entries);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const [sort, setSort] = useState<SortId>('newest');
@@ -106,6 +109,7 @@ export default function SellerScreen() {
 
   const s = seller.data;
   const isOwner = !!user?.id && (String(user.id) === String(s.id) || user.creatorSlug === s.slug);
+  const shopBlocked = !isOwner && (isBlockedSlug(s.slug, blockedEntries) || isBlockedUser(s.id, blockedEntries));
   const cover = s.coverUrl || mine[0]?.coverUrl || '';
   const joined = s.joinedAt ? new Date(s.joinedAt).getFullYear() : '';
 
@@ -141,7 +145,7 @@ export default function SellerScreen() {
     <Screen padded={false}>
       <Stack.Screen options={{ title: s.name }} />
       <FlatList
-        data={filtered}
+        data={shopBlocked ? [] : filtered}
         numColumns={2}
         keyExtractor={(item) => item.id}
         columnWrapperStyle={styles.cols}
@@ -238,6 +242,14 @@ export default function SellerScreen() {
                   <Text style={[styles.actionTxt, { color: colors.text }]}>{t('shop.share')}</Text>
                 </Pressable>
               </View>
+              {!isOwner ? (
+                <SafetyActions
+                  target={{ kind: 'seller', id: s.id, title: s.name, userId: s.id, slug: s.slug, name: s.name }}
+                />
+              ) : null}
+              {shopBlocked ? (
+                <Text style={{ color: colors.textSecondary, marginTop: 16, lineHeight: 22 }}>{t('safety.blockedSeller')}</Text>
+              ) : null}
 
               <Text style={[styles.section, { color: colors.text }]}>{t('shop.products')}</Text>
               <SearchBar placeholder={t('shop.search')} value={query} onChangeText={setQuery} />
@@ -267,7 +279,7 @@ export default function SellerScreen() {
           </View>
         )}
         ListEmptyComponent={
-          products.isLoading ? (
+          shopBlocked ? null : products.isLoading ? (
             <ActivityIndicator color={colors.tint} style={{ marginTop: 24 }} />
           ) : (
             <EmptyState title={t('shop.empty')} />
@@ -275,7 +287,7 @@ export default function SellerScreen() {
         }
         ListFooterComponent={
           <ShopReviews
-            reviews={reviewRows}
+            reviews={shopBlocked ? [] : reviewRows.filter((review) => !isBlockedUser(review.userId, blockedEntries))}
             rating={s.rating}
             loading={shopReviews.isLoading}
             t={t}
@@ -382,6 +394,7 @@ function ShopReviews({
           ) : null}
           {r.title ? <Text style={{ color: colors.text, fontWeight: '700', marginTop: 6 }}>{r.title}</Text> : null}
           {r.body ? <Text style={{ color: colors.textSecondary, marginTop: 4, lineHeight: 20 }}>{r.body}</Text> : null}
+          <SafetyActions compact target={{ kind: 'review', id: r.id, title: r.title || r.body || r.userName, userId: r.userId, name: r.userName }} />
         </View>
       ))}
     </View>

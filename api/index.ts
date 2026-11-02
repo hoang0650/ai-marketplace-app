@@ -79,6 +79,7 @@ import type {
 } from './types';
 import type { RunpodModelSchema } from '@/lib/runpod-schema';
 import { isHiddenCategory, withoutHiddenProducts } from '@/constants/categories';
+import { filterBlockedProducts, filterBlockedShops } from '@/stores/blockStore';
 
 function qs(params: Record<string, string | number | boolean | undefined>) {
   const q = new URLSearchParams();
@@ -125,22 +126,24 @@ export const productsApi = {
     includeHidden?: boolean;
   } = {}) => {
     const rows = await apiClient.get<Product[]>(`/products${qs(params)}`);
-    return includeHidden ? rows : withoutHiddenProducts(rows);
+    const visible = includeHidden ? rows : withoutHiddenProducts(rows);
+    return filterBlockedProducts(visible);
   },
   home: async () => {
     const feed = await apiClient.get<HomeFeed>('/home');
     return {
       ...feed,
-      newArrivals: withoutHiddenProducts(feed?.newArrivals),
-      promoted: withoutHiddenProducts(feed?.promoted),
-      bestsellers: withoutHiddenProducts(feed?.bestsellers),
+      shops: filterBlockedShops(feed?.shops),
+      newArrivals: filterBlockedProducts(withoutHiddenProducts(feed?.newArrivals)),
+      promoted: filterBlockedProducts(withoutHiddenProducts(feed?.promoted)),
+      bestsellers: filterBlockedProducts(withoutHiddenProducts(feed?.bestsellers)),
     };
   },
   listMany: async (categories: string[], limit = 40) => {
     const visible = categories.filter((c) => !isHiddenCategory(c));
     const lists = await Promise.all(visible.map((category) => apiClient.get<Product[]>(`/products${qs({ category, limit })}`)));
     const seen = new Set<string>();
-    return withoutHiddenProducts(lists.flat()).filter((p) => {
+    return filterBlockedProducts(withoutHiddenProducts(lists.flat())).filter((p) => {
       if (!p?.id || seen.has(p.id)) return false;
       seen.add(p.id);
       return true;

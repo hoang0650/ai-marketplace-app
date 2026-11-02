@@ -15,6 +15,8 @@ type Props = {
   busy?: boolean;
   disabled?: boolean;
   storePrice?: string;
+  notice?: string;
+  noticeTone?: 'danger' | 'warning' | 'muted';
 };
 
 export function WalletTopupForm({
@@ -26,6 +28,8 @@ export function WalletTopupForm({
   busy,
   disabled,
   storePrice,
+  notice,
+  noticeTone = 'muted',
 }: Props) {
   const { colors } = useTheme();
   const { t } = useT();
@@ -76,6 +80,18 @@ export function WalletTopupForm({
       {resolved && !resolved.exact ? (
         <Text style={[styles.snap, { color: colors.warning }]}>
           {t('wallet.topup.snap', { pack: formatMoney(resolved.pack.usd, 'USD') })}
+        </Text>
+      ) : null}
+
+      {notice ? (
+        <Text
+          style={{
+            marginTop: 12,
+            lineHeight: 20,
+            color: noticeTone === 'danger' ? colors.danger : noticeTone === 'warning' ? colors.warning : colors.textSecondary,
+          }}
+        >
+          {notice}
         </Text>
       ) : null}
 

@@ -8,18 +8,21 @@ import { Screen } from '@/components/ui/Screen';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { ProductCard } from '@/components/ProductCard';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { isBlockedProduct, useBlockStore } from '@/stores/blockStore';
 
 export default function FavoritesScreen() {
   const { isAuthenticated } = useAuth();
   const { colors } = useTheme();
   const { t } = useT();
   const q = useWishlist();
+  const blockedEntries = useBlockStore((s) => s.entries);
+  const items = q.items.filter((product) => !isBlockedProduct(product, blockedEntries));
   if (!isAuthenticated) return <LoginPrompt />;
   return (
     <Screen>
       <Text style={{ color: colors.text, fontSize: 24, fontWeight: '700', marginBottom: 12 }}>{t('favorites.title')}</Text>
       <FlatList
-        data={q.items}
+        data={items}
         numColumns={2}
         keyExtractor={(item) => item.id}
         columnWrapperStyle={{ gap: 10, marginBottom: 10 }}

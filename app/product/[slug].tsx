@@ -50,6 +50,8 @@ import { Chip } from '@/components/ui/Chip';
 import type { ContentUnlock, LicenseTerm, StreamDevice } from '@/api/types';
 import { ApiError, getErrorMessage } from '@/lib/errors';
 import { affiliateApi, ratePct } from '@/api/affiliate';
+import { SafetyActions } from '@/components/safety/SafetyActions';
+import { isBlockedProduct, useBlockStore } from '@/stores/blockStore';
 
 function playSrc(res: { playToken?: string; playUrl?: string }, page?: number): string {
   const token = String(res.playToken || '').trim();
@@ -81,6 +83,7 @@ export default function ProductScreen() {
   }, [slug, refCode]);
   const router = useRouter();
   const { isAuthenticated, user, isAdmin, isInitialized } = useAuth();
+  const blockedEntries = useBlockStore((s) => s.entries);
   const { colors } = useTheme();
   const { t, language } = useT();
   /** Resolve the hired agent from the product slug so NanoClaw/SpaceBot launch their own gateway. */
@@ -214,6 +217,25 @@ export default function ProductScreen() {
     isAdmin ||
     (!!user?.id &&
       ((!!p.creatorId && String(p.creatorId) === String(user.id)) || (!!p.creatorSlug && p.creatorSlug === user.creatorSlug)));
+  if (isBlockedProduct(p, blockedEntries) && !isOwner) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, padding: 24, paddingTop: insets.top + 24 }}>
+        <Stack.Screen options={{ title: p.name }} />
+        <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800' }}>{p.name}</Text>
+        <Text style={{ color: colors.textSecondary, marginTop: 12, lineHeight: 22 }}>{t('safety.blockedSeller')}</Text>
+        <SafetyActions
+          target={{
+            kind: 'product',
+            id: p.id,
+            title: p.name,
+            userId: p.creatorId || p.sellerId,
+            slug: p.creatorSlug || p.sellerSlug,
+            name: p.creatorName || p.sellerName,
+          }}
+        />
+      </View>
+    );
+  }
   if (isHiddenCategory(p.category) && !isOwner) {
     if (!isInitialized) {
       return (
@@ -494,6 +516,18 @@ export default function ProductScreen() {
             <Pressable onPress={() => p.creatorSlug && router.push(href(`/seller/${p.creatorSlug}`))}>
               <Text style={{ color: colors.textSecondary, marginTop: 6 }}>{seller}</Text>
             </Pressable>
+          ) : null}
+          {!isOwner ? (
+            <SafetyActions
+              target={{
+                kind: 'product',
+                id: p.id,
+                title: p.name,
+                userId: p.creatorId || p.sellerId,
+                slug: p.creatorSlug || p.sellerSlug,
+                name: seller,
+              }}
+            />
           ) : null}
           {p.ownershipType === 'PLATFORM_DIRECT' ? <Badge label={t('common.verified')} /> : null}
           {hasAccess ? <Badge label={t('product.owned')} /> : null}
@@ -810,10 +844,17 @@ export default function ProductScreen() {
           ) : null}
 
           <Text style={section(colors.text)}>{t('product.reviews')}</Text>
-          {(reviews.data || []).slice(0, 5).map((r) => (
+          {(reviews.data || [])
+            .filter((r) => !blockedEntries.some((entry) => entry.userId && entry.userId === r.userId))
+            .slice(0, 5)
+            .map((r) => (
             <View key={r.id} style={{ marginBottom: 10 }}>
               <Text style={{ color: colors.text, fontWeight: '700' }}>{r.userName} · ★ {r.rating}</Text>
               <Text style={{ color: colors.textSecondary }}>{r.body || r.title}</Text>
+              <SafetyActions
+                compact
+                target={{ kind: 'review', id: r.id, title: r.title || r.body || r.userName, userId: r.userId, name: r.userName }}
+              />
             </View>
           ))}
           {isAuthenticated ? (

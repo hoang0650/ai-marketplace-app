@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { getErrorMessage } from '@/lib/errors';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { PRODUCT_LIST_PERF } from '@/constants/list';
+import { isBlockedProduct, useBlockStore } from '@/stores/blockStore';
 import { HubBackButton } from '@/components/catalog/HubBackButton';
 
 export function ProductHub({
@@ -27,6 +28,7 @@ export function ProductHub({
 }) {
   const { colors } = useTheme();
   const { t, language } = useT();
+  const blockedEntries = useBlockStore((s) => s.entries);
   const q = useQuery({
     queryKey: ['products', 'hub', ...categories],
     queryFn: () => productsApi.listMany(categories, 24),
@@ -45,7 +47,7 @@ export function ProductHub({
         <ErrorState message={getErrorMessage(q.error, language)} onRetry={() => q.refetch()} />
       ) : (
         <FlatList
-          data={q.data || []}
+          data={(q.data || []).filter((product) => !isBlockedProduct(product, blockedEntries))}
           keyExtractor={(item) => item.id}
           {...PRODUCT_LIST_PERF}
           numColumns={2}
