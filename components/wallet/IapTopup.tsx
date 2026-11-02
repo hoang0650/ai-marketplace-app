@@ -1,35 +1,36 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { ErrorCode, isUserCancelledError, useIAP, type Purchase } from 'expo-iap';
+import { ErrorCode, getTransactionJwsIOS, isUserCancelledError, useIAP, type Purchase } from 'expo-iap';
 import { walletApi } from '@/api';
 import { WalletTopupForm } from '@/components/wallet/WalletTopupForm';
 import { useT } from '@/hooks/useT';
 import { getErrorMessage } from '@/lib/errors';
+import { iapFailureKind, looksLikeJws } from '@/lib/iapErrors';
 import { isExpoIapNativeAvailable } from '@/lib/iap-native';
 import { WALLET_IAP_SKUS, parseTopupAmount, resolveIapPack } from '@/lib/iap-packs';
 import { playSound } from '@/services/sound';
 import { formatMoney } from '@/utils/format';
 
 export function IapTopup() {
-  if (!isExpoIapNativeAvailable()) {
-    return <IapNeedBuild />;
-  }
+  if (!isExpoIapNativeAvailable()) return <IapUnavailable />;
   return <IapTopupLive />;
 }
 
-function IapNeedBuild() {
+function IapUnavailable() {
   const { t } = useT();
   const [amount, setAmount] = useState('10');
   const storeLabel = Platform.OS === 'ios' ? t('wallet.method.iapIos') : t('wallet.method.iapAndroid');
-
+  const notice = t('wallet.iapNoModule', { store: storeLabel });
   return (
     <WalletTopupForm
       amount={amount}
       onAmountChange={setAmount}
       hint={t('wallet.hint.iap', { store: storeLabel })}
+      notice={notice}
+      noticeTone="danger"
       submitLabel={t('wallet.topup.submit')}
-      onSubmit={() => Alert.alert('AI Markets', t('wallet.iapNeedBuild'))}
+      onSubmit={() => Alert.alert('AI Markets', notice)}
     />
   );
 }
@@ -39,6 +40,8 @@ function IapTopupLive() {
   const { t, language } = useT();
   const [amount, setAmount] = useState('10');
   const [busySku, setBusySku] = useState('');
+  const [connectError, setConnectError] = useState('');
+  const [productsFetched, setProductsFetched] = useState(false);
   const verifying = useRef(new Set<string>());
   const storeLabel = Platform.OS === 'ios' ? t('wallet.method.iapIos') : t('wallet.method.iapAndroid');
 
@@ -50,7 +53,15 @@ function IapTopupLive() {
       if (!key || verifying.current.has(key)) return;
       verifying.current.add(key);
       try {
-        const token = String(purchase.purchaseToken || '');
+        let token = String(purchase.purchaseToken || '');
+        if (Platform.OS === 'ios' && !looksLikeJws(token)) {
+          try {
+            const jws = await getTransactionJwsIOS(purchase.productId);
+            if (jws) token = jws;
+          } catch {
+            /* The API can still verify with the App Store Server API and transactionId. */
+          }
+        }
         const res = await walletApi.iapVerify({
           platform: Platform.OS === 'ios' ? 'ios' : 'android',
           productId: purchase.productId,
@@ -87,6 +98,7 @@ function IapTopupLive() {
     products,
     availablePurchases,
     getAvailablePurchases,
+    reconnect,
   } = useIAP({
     onPurchaseSuccess: (purchase) => {
       void creditPurchase(purchase, (p) => finishRef.current(p));
@@ -94,7 +106,22 @@ function IapTopupLive() {
     onPurchaseError: (err) => {
       setBusySku('');
       if (isUserCancelledError(err) || err.code === ErrorCode.UserCancelled) return;
+      const kind = iapFailureKind(err);
+      if (kind === 'products') {
+        Alert.alert('AI Markets', t('wallet.iapProductsPending', { store: storeLabel }));
+        return;
+      }
+      if (kind === 'connect') {
+        setConnectError(err.message || '');
+        Alert.alert('AI Markets', t('wallet.iapConnectFail', { store: storeLabel }));
+        return;
+      }
       Alert.alert('AI Markets', err.message || t('wallet.iapFail'));
+    },
+    onError: (err) => {
+      const kind = iapFailureKind(err);
+      if (kind === 'products') return;
+      setConnectError(err.message || '');
     },
   });
 
@@ -106,8 +133,22 @@ function IapTopupLive() {
 
   useEffect(() => {
     if (!connected) return;
-    void fetchProducts({ skus: [...WALLET_IAP_SKUS], type: 'in-app' });
-    void getAvailablePurchases();
+    let cancelled = false;
+    void fetchProducts({ skus: [...WALLET_IAP_SKUS], type: 'in-app' })
+      .then(() => {
+        if (cancelled) return;
+        setConnectError('');
+        setProductsFetched(true);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setProductsFetched(true);
+        if (iapFailureKind(err) === 'connect') setConnectError(err instanceof Error ? err.message : '');
+      });
+    void getAvailablePurchases().catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [connected, fetchProducts, getAvailablePurchases]);
 
   useEffect(() => {
@@ -117,12 +158,20 @@ function IapTopupLive() {
   }, [availablePurchases, creditPurchase]);
 
   async function buy(sku: string) {
-    if (!connected) {
-      Alert.alert('AI Markets', t('wallet.iapNeedBuild'));
-      return;
-    }
     setBusySku(sku);
     try {
+      let ready = connected;
+      if (!ready) ready = await reconnect();
+      if (!ready) {
+        setBusySku('');
+        Alert.alert(
+          'AI Markets',
+          connectError
+            ? `${t('wallet.iapConnectFail', { store: storeLabel })}\n${connectError}`
+            : t('wallet.iapConnectFail', { store: storeLabel }),
+        );
+        return;
+      }
       await requestPurchase({
         type: 'in-app',
         request: {
@@ -132,6 +181,17 @@ function IapTopupLive() {
       });
     } catch (e) {
       setBusySku('');
+      const kind = iapFailureKind(e);
+      if (kind === 'cancel') return;
+      if (kind === 'products') {
+        Alert.alert('AI Markets', t('wallet.iapProductsPending', { store: storeLabel }));
+        return;
+      }
+      if (kind === 'connect') {
+        setConnectError(e instanceof Error ? e.message : '');
+        Alert.alert('AI Markets', t('wallet.iapConnectFail', { store: storeLabel }));
+        return;
+      }
       Alert.alert('AI Markets', getErrorMessage(e as Error, language) || t('wallet.iapFail'));
     }
   }
@@ -159,17 +219,33 @@ function IapTopupLive() {
 
   const parsed = parseTopupAmount(amount);
   const sku = parsed.ok ? resolveIapPack(parsed.usd).pack.sku : '';
-  const storePrice = products.find((p) => p.id === sku)?.displayPrice;
+  const storePrice = products.find((product) => product.id === sku)?.displayPrice;
+  const catalogMissing =
+    connected &&
+    productsFetched &&
+    !connectError &&
+    (products.length === 0 || (!!sku && !products.some((product) => product.id === sku)));
+  const notice = !connected
+    ? connectError
+      ? t('wallet.iapConnectFail', { store: storeLabel })
+      : t('wallet.iapConnecting', { store: storeLabel })
+    : connectError
+      ? t('wallet.iapConnectFail', { store: storeLabel })
+      : catalogMissing
+        ? t('wallet.iapProductsPending', { store: storeLabel })
+        : '';
+  const noticeTone = connectError ? 'danger' : catalogMissing ? 'warning' : 'muted';
 
   return (
     <WalletTopupForm
       amount={amount}
       onAmountChange={setAmount}
       hint={t('wallet.hint.iap', { store: storeLabel })}
-      submitLabel={t('wallet.topup.submit')}
+      notice={notice}
+      noticeTone={noticeTone}
+      submitLabel={connected ? t('wallet.topup.submit') : t('wallet.iapRetry')}
       onSubmit={submit}
       busy={!!busySku}
-      disabled={!connected}
       storePrice={storePrice}
     />
   );

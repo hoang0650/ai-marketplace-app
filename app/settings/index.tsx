@@ -1,5 +1,7 @@
 import React from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { href } from '@/lib/href';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useT, useTheme } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
@@ -90,6 +92,7 @@ export default function SettingsScreen() {
   const setSoundEnabled = useSettingsStore((s) => s.setSoundEnabled);
   const voiceEnabled = useSettingsStore((s) => s.voiceEnabled);
   const setVoiceEnabled = useSettingsStore((s) => s.setVoiceEnabled);
+  const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [loginMail, setLoginMail] = React.useState<boolean>(
     (user as { preferences?: { emailLoginAlerts?: boolean } } | null)?.preferences?.emailLoginAlerts !== false,
@@ -101,7 +104,18 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
+      <ScrollView contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <Text style={{ color: colors.text, fontSize: 24, fontWeight: '700', marginTop: 8 }}>{t('settings.title')}</Text>
+      <Text style={{ color: colors.textSecondary, marginTop: 16, fontWeight: '800' }}>{t('settings.account')}</Text>
+      <Pressable
+        onPress={() => router.push(href('/account/delete'))}
+        accessibilityRole="button"
+        accessibilityLabel={t('del.title')}
+        style={{ paddingVertical: 14, minHeight: 48, borderBottomWidth: 1, borderColor: colors.border }}
+      >
+        <Text style={{ color: colors.danger, fontWeight: '800' }}>{t('del.title')}</Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>{t('del.menuHint')}</Text>
+      </Pressable>
       <Text style={{ color: colors.textSecondary, marginTop: 16, fontWeight: '800' }}>{t('settings.appearance')}</Text>
       {(['light', 'dark', 'system'] as ThemeMode[]).map((m) => (
         <Option key={m} colors={colors} label={t(`settings.theme.${m}`)} active={themeMode === m} onPress={() => setThemeMode(m)} />
@@ -138,6 +152,7 @@ export default function SettingsScreen() {
         <PreviewButton colors={colors} label={t('settings.soundTestChime')} enabled={soundEnabled} onPress={() => previewSound()} />
         <PreviewButton colors={colors} label={t('settings.soundTestVoice')} enabled={voiceEnabled} onPress={() => previewVoice()} />
       </View>
+      </ScrollView>
     </Screen>
   );
 }

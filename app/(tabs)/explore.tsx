@@ -16,6 +16,7 @@ import { PRODUCT_LIST_PERF } from '@/constants/list';
 import { AnalyticsService } from '@/lib/analytics';
 import { NAV_GROUP_ORDER, NAV_GROUP_TITLE, categoriesByNavGroup, categoryLabel, type NavGroup } from '@/constants/categories';
 import type { Product } from '@/api/types';
+import { isBlockedProduct, useBlockStore } from '@/stores/blockStore';
 
 type Sort = 'recommended' | 'popular' | 'rating' | 'newest' | 'priceAsc' | 'priceDesc';
 type GroupTab = 'all' | NavGroup;
@@ -42,6 +43,7 @@ export default function ExploreScreen() {
   const debounced = useDebouncedValue(q, 400);
   const addSearch = useRecentStore((s) => s.addSearch);
   const recent = useRecentStore((s) => s.searches);
+  const blockedEntries = useBlockStore((s) => s.entries);
 
   const results = useQuery({
     queryKey: ['search', debounced, category],
@@ -57,7 +59,7 @@ export default function ExploreScreen() {
     return categoriesByNavGroup(group).map((c) => ({ id: c.id, label: categoryLabel(c.id, t, c.id, 'short') }));
   }, [group, t]);
 
-  const data = sortProducts(results.data || [], sort);
+  const data = sortProducts(results.data || [], sort).filter((product) => !isBlockedProduct(product, blockedEntries));
   const renderItem = useCallback(({ item }: { item: Product }) => <ProductCard product={item} />, []);
 
   const onGroup = (next: GroupTab) => {

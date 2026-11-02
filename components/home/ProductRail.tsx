@@ -7,12 +7,15 @@ import type { Product } from '@/api/types';
 import { useTheme } from '@/hooks/useT';
 import { productPrice, productSale } from '@/utils/format';
 import { AnalyticsService } from '@/lib/analytics';
+import { isBlockedProduct, useBlockStore } from '@/stores/blockStore';
 
 export function ProductRail({ items }: { items: Product[] }) {
   const router = useRouter();
   const { colors } = useTheme();
+  const blockedEntries = useBlockStore((s) => s.entries);
+  const visible = items.filter((product) => !isBlockedProduct(product, blockedEntries));
 
-  if (!items.length) return null;
+  if (!visible.length) return null;
 
   return (
     <ScrollView
@@ -21,7 +24,7 @@ export function ProductRail({ items }: { items: Product[] }) {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.rail}
     >
-      {items.map((product) => {
+      {visible.map((product) => {
         const sale = productSale(product);
         return (
           <Pressable

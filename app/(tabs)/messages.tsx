@@ -14,10 +14,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { getErrorMessage } from '@/lib/errors';
 import { formatDate } from '@/utils/format';
+import { isBlockedUser, useBlockStore } from '@/stores/blockStore';
 
 export default function MessagesScreen() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+  const blockedEntries = useBlockStore((s) => s.entries);
   const { colors } = useTheme();
   const { t, language } = useT();
   const chats = useQuery({
@@ -35,7 +37,7 @@ export default function MessagesScreen() {
 
   if (!isAuthenticated) return <LoginPrompt />;
 
-  const conversations = chats.data || [];
+  const conversations = (chats.data || []).filter((item) => !isBlockedUser(item.otherId, blockedEntries));
 
   return (
     <Screen>

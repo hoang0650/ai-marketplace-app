@@ -27,6 +27,7 @@ import { isHiddenCategory } from '@/constants/categories';
 import { WORK_BOARD_ENABLED } from '@/constants/features';
 import { formatMoney, greetingHour } from '@/utils/format';
 import { useCart } from '@/hooks/useCart';
+import { filterBlockedShops, useBlockStore } from '@/stores/blockStore';
 
 function homeFromCatalog(items: Product[]): HomeFeed {
   const byNew = [...items].sort(
@@ -65,9 +66,12 @@ function homeFromCatalog(items: Product[]): HomeFeed {
 function ShopRail({ shops, t }: { shops: Creator[]; t: (k: string, vars?: Record<string, string | number>) => string }) {
   const router = useRouter();
   const { colors } = useTheme();
+  const blockedEntries = useBlockStore((s) => s.entries);
+  const visible = filterBlockedShops(shops, blockedEntries);
+  if (!visible.length) return null;
   return (
     <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shopRail}>
-      {shops.map((shop) => (
+      {visible.map((shop) => (
         <Pressable
           key={shop.id}
           onPress={() => router.push(href(`/seller/${shop.slug}`))}

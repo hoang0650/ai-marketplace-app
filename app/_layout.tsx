@@ -16,6 +16,8 @@ import { NotificationSoundWatcher } from '@/hooks/useNotificationSound';
 import { preloadSounds } from '@/services/sound';
 import { AnalyticsService } from '@/lib/analytics';
 import { tokenUnexpired } from '@/lib/jwt';
+import { ToastHost } from '@/components/ui/ToastHost';
+import { useBlockStore } from '@/stores/blockStore';
 
 SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient({
@@ -106,18 +108,19 @@ export default function RootLayout() {
   const hydrateAuth = useAuthStore((s) => s.hydrate);
   const hydrateSettings = useSettingsStore((s) => s.hydrate);
   const hydrateRecent = useRecentStore((s) => s.hydrate);
+  const hydrateBlocks = useBlockStore((s) => s.hydrate);
   const authHydrated = useAuthStore((s) => s.hydrated);
   const settingsHydrated = useSettingsStore((s) => s.hydrated);
   const ready = authHydrated && settingsHydrated;
 
   useEffect(() => {
-    void Promise.all([hydrateAuth(), hydrateSettings(), hydrateRecent()]);
+    void Promise.all([hydrateAuth(), hydrateSettings(), hydrateRecent(), hydrateBlocks()]);
     AnalyticsService.track('app_open');
     preloadSounds();
     void import('expo-screen-orientation')
       .then((SO) => SO.lockAsync(SO.OrientationLock.PORTRAIT_UP))
       .catch(() => {});
-  }, [hydrateAuth, hydrateSettings, hydrateRecent]);
+  }, [hydrateAuth, hydrateSettings, hydrateRecent, hydrateBlocks]);
 
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
@@ -130,6 +133,7 @@ export default function RootLayout() {
           <AuthSessionSync />
           <NotificationSoundWatcher />
           <ThemedStack />
+          <ToastHost />
         </AuthGate>
       </GestureHandlerRootView>
     </QueryClientProvider>
