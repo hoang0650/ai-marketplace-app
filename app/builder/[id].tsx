@@ -82,7 +82,7 @@ export default function BuilderStudioScreen() {
       setError(getErrorMessage(e, language));
     }
   };
-  const chatRef = useRef<ScrollView>(null);
+  const chatRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
   const providers = useQuery({ queryKey: ['builder-providers'], queryFn: builderApi.providers, enabled: isAuthenticated });
   const detail = useQuery({ queryKey: ['builder-project', id], queryFn: () => builderApi.one(String(id || '')), enabled: isAuthenticated && !!id });

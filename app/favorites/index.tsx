@@ -30,7 +30,7 @@ export default function FavoritesScreen() {
         refreshControl={
           <RefreshControl refreshing={q.isFetching && !q.isLoading} onRefresh={() => void q.refetch()} tintColor={colors.tint} />
         }
-        ListEmptyComponent={q.isLoading ? null : <EmptyState title={t('favorites.empty')} />}
+        ListEmptyComponent={q.isLoading ? undefined : <EmptyState title={t('favorites.empty')} />}
       />
     </Screen>
   );

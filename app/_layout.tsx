@@ -118,7 +118,7 @@ export default function RootLayout() {
     AnalyticsService.track('app_open');
     preloadSounds();
     void import('expo-screen-orientation')
-      .then((SO) => SO.lockAsync(SO.OrientationLock.PORTRAIT_UP))
+      .then((SO) => SO.unlockAsync())
       .catch(() => {});
   }, [hydrateAuth, hydrateSettings, hydrateRecent, hydrateBlocks]);
 

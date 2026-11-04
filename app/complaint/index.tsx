@@ -30,7 +30,7 @@ export default function ComplaintListScreen() {
         <FlatList
           data={q.data || []}
           keyExtractor={(c) => c.id}
-          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} />}
+          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} />}
           ListEmptyComponent={<EmptyState title={t('bhub.complaints.empty')} />}
           renderItem={({ item: c }) => (
             <Pressable onPress={() => router.push(href(`/complaint/${c.id}`))} style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.border }}>

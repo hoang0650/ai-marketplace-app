@@ -92,7 +92,7 @@ export default function ProductScreen() {
   const addViewed = useRecentStore((s) => s.addViewed);
   const cart = useCart();
   const [licenseTerm, setLicenseTerm] = useState<LicenseTerm>('month');
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const playOffset = useRef(0);
   const downloadOffset = useRef(0);
   const q = useQuery({

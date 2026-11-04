@@ -1,3 +1,4 @@
+import { useProductGrid } from '@/hooks/useProductGrid';
 import React, { useEffect, useMemo, useState } from 'react';
 import { affiliateApi } from '@/api/affiliate';
 import {
@@ -52,6 +53,7 @@ export default function SellerScreen() {
     if (slug && refCode) void affiliateApi.track({ code: String(refCode), storeSlug: String(slug) });
   }, [slug, refCode]);
   const router = useRouter();
+  const { columns } = useProductGrid();
   const { colors, isDark } = useTheme();
   const { t, language } = useT();
   const { isAuthenticated, user } = useAuth();
@@ -145,10 +147,11 @@ export default function SellerScreen() {
     <Screen padded={false}>
       <Stack.Screen options={{ title: s.name }} />
       <FlatList
+        key={`products-${columns}`}
         data={shopBlocked ? [] : filtered}
-        numColumns={2}
+        numColumns={columns}
         keyExtractor={(item) => item.id}
-        columnWrapperStyle={styles.cols}
+        columnWrapperStyle={columns > 1 ? styles.cols : undefined}
         contentContainerStyle={{ paddingBottom: 32 }}
         ListHeaderComponent={
           <View>

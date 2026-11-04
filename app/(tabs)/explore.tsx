@@ -1,3 +1,4 @@
+import { useProductGrid } from '@/hooks/useProductGrid';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, FlatList, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -34,6 +35,7 @@ function sortProducts(list: Product[], sort: Sort) {
 }
 
 export default function ExploreScreen() {
+  const { columns } = useProductGrid();
   const { colors } = useTheme();
   const { t } = useT();
   const [q, setQ] = useState('');
@@ -116,12 +118,13 @@ export default function ExploreScreen() {
       <Text style={[styles.title, { color: colors.text }]}>{t('explore.title')}</Text>
       <SearchBar placeholder={t('home.searchPh')} value={q} onChangeText={setQ} />
       <FlatList
+        key={`products-${columns}`}
         style={{ flex: 1 }}
         data={results.isLoading ? [] : data}
         keyExtractor={(item) => item.id}
         {...PRODUCT_LIST_PERF}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
+        numColumns={columns}
+        columnWrapperStyle={columns > 1 ? styles.row : undefined}
         contentContainerStyle={styles.list}
         renderItem={renderItem}
         ListHeaderComponent={listHeader}

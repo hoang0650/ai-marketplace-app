@@ -54,7 +54,7 @@ export default function WorkJobsScreen() {
           data={(jobs.data as WorkJob[]) || []}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 32 }}
-          refreshControl={<RefreshControl refreshing={jobs.isRefetching} onRefresh={() => jobs.refetch()} tintColor={colors.tint} />}
+          refreshControl={<RefreshControl refreshing={jobs.isRefetching} onRefresh={() => void jobs.refetch()} tintColor={colors.tint} />}
           ListEmptyComponent={<EmptyState title={t('work.noJobs')} />}
           renderItem={({ item }) => <WorkJobCard item={item} />}
         />

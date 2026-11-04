@@ -17,7 +17,7 @@ type Props = { build: TemplateBuild | null; building?: boolean };
 /** Deployment-style log of a template build: status, repo@commit, duration, timestamped lines. */
 export function BuildLog({ build, building = false }: Props) {
   const { t } = useT();
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   if (!building && !build) return null;
 
   const status = building ? 'running' : build!.status;

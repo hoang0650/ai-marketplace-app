@@ -85,7 +85,7 @@ type Props = {
 
 export function GpuStreamPlayer({ uri, terminal, onLoad, onError }: Props) {
   const source = useMemo(() => ({ uri }), [uri]);
-  const webRef = useRef<WebView>(null);
+  const webRef = useRef<WebView<{}>>(null);
   const [line, setLine] = useState('');
   const insets = useSafeAreaInsets();
   const { t } = useT();
@@ -105,7 +105,7 @@ export function GpuStreamPlayer({ uri, terminal, onLoad, onError }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
-      <WebView
+      <WebView<{}>
         ref={webRef}
         source={source}
         style={styles.fill}

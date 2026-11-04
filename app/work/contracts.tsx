@@ -188,7 +188,7 @@ export default function WorkContractsScreen() {
           data={q.data || []}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 40 }}
-          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} tintColor={colors.tint} />}
+          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.tint} />}
           ListEmptyComponent={<EmptyState title={t('work.noContracts')} hint={t('work.noContractsHint')} />}
           renderItem={renderItem}
         />

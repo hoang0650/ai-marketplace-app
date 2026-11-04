@@ -71,7 +71,7 @@ export function StoryReader(props: Props) {
   const [audioOn, setAudioOn] = useState(false);
   const [audioUri, setAudioUri] = useState('');
   const [speed, setSpeed] = useState(1);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const contentH = useRef(1);
   const resumed = useRef(false);
   const ep = chapters[idx];

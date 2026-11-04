@@ -41,7 +41,7 @@ export default function LicensesScreen() {
           data={q.data || []}
           keyExtractor={(item) => item.id || item.licenseKey}
           contentContainerStyle={{ paddingBottom: 32 }}
-          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} tintColor={colors.tint} />}
+          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.tint} />}
           ListEmptyComponent={<EmptyState title={t('license.empty')} hint={t('license.emptyHint')} />}
           renderItem={({ item }: { item: IssuedLicense }) => (
             <View style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>

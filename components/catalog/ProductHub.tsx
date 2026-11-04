@@ -1,3 +1,4 @@
+import { useProductGrid } from '@/hooks/useProductGrid';
 import React, { useCallback } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
@@ -26,6 +27,7 @@ export function ProductHub({
   categories: string[];
   headerExtra?: React.ReactNode;
 }) {
+  const { columns } = useProductGrid();
   const { colors } = useTheme();
   const { t, language } = useT();
   const blockedEntries = useBlockStore((s) => s.entries);
@@ -47,14 +49,15 @@ export function ProductHub({
         <ErrorState message={getErrorMessage(q.error, language)} onRetry={() => q.refetch()} />
       ) : (
         <FlatList
+          key={`products-${columns}`}
           data={(q.data || []).filter((product) => !isBlockedProduct(product, blockedEntries))}
           keyExtractor={(item) => item.id}
           {...PRODUCT_LIST_PERF}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
+          numColumns={columns}
+          columnWrapperStyle={columns > 1 ? styles.row : undefined}
           contentContainerStyle={styles.content}
           renderItem={renderItem}
-          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} tintColor={colors.tint} />}
+          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.tint} />}
           ListHeaderComponent={
             <View style={{ marginBottom: 16 }}>
               <Text style={[styles.title, { color: colors.text }]}>{title}</Text>

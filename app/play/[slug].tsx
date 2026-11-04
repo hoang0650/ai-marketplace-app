@@ -28,10 +28,10 @@ async function lockLandscape() {
   }
 }
 
-async function lockPortrait() {
+async function restoreOrientation() {
   try {
     const SO = await import('expo-screen-orientation');
-    await SO.lockAsync(SO.OrientationLock.PORTRAIT_UP);
+    await SO.unlockAsync();
   } catch {
     /* web / missing native module */
   }
@@ -97,10 +97,10 @@ export default function GpuPlayScreen() {
 
   useEffect(() => {
     if (!uri) return;
-    if (terminal) void lockPortrait();
+    if (terminal) void restoreOrientation();
     else void lockLandscape();
     return () => {
-      void lockPortrait();
+      void restoreOrientation();
     };
   }, [uri, terminal]);
 

@@ -270,7 +270,7 @@ function HireProjectScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: 48 }}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} tintColor={colors.tint} />}
+        refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.tint} />}
       >
         {started === '1' ? (
           <View style={[card, { backgroundColor: 'rgba(47,143,91,0.12)', borderColor: 'rgba(47,143,91,0.4)' }]}>

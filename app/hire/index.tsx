@@ -102,7 +102,7 @@ function HireProjectsScreen() {
           data={q.data || []}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 40 }}
-          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} tintColor={colors.tint} />}
+          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.tint} />}
           ListEmptyComponent={
             <View>
               <EmptyState title={t('hire.list.empty')} />

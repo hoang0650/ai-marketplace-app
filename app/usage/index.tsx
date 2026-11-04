@@ -50,7 +50,7 @@ export default function UsageScreen() {
     <Screen padded={false}>
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={feed.isFetching} onRefresh={() => feed.refetch()} />}
+        refreshControl={<RefreshControl refreshing={feed.isFetching} onRefresh={() => void feed.refetch()} />}
       >
         <Text style={{ color: colors.text, fontSize: 28, fontFamily: displayFont, fontWeight: '600', marginTop: 8 }}>
           {t('usage.title')}

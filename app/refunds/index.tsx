@@ -30,7 +30,7 @@ export default function RefundsScreen() {
         <FlatList
           data={rows}
           keyExtractor={(r) => r.id}
-          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => q.refetch()} />}
+          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} />}
           ListEmptyComponent={<EmptyState title={t('bhub.refunds.empty')} />}
           renderItem={({ item: r }) => (
             <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.border }}>

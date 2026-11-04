@@ -50,7 +50,7 @@ export default function WorkTalentsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 32 }}
           refreshControl={
-            <RefreshControl refreshing={talents.isRefetching} onRefresh={() => talents.refetch()} tintColor={colors.tint} />
+            <RefreshControl refreshing={talents.isRefetching} onRefresh={() => void talents.refetch()} tintColor={colors.tint} />
           }
           ListEmptyComponent={<EmptyState title={t('work.noTalents')} />}
           renderItem={({ item }) => <WorkTalentCard item={item} />}

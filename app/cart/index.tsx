@@ -39,7 +39,7 @@ export default function CartScreen() {
           <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => void refetch()} tintColor={colors.tint} />
         }
         ListEmptyComponent={
-          isLoading ? null : (
+          isLoading ? undefined : (
             <EmptyState
               title={t('cart.empty')}
               cta={t('cart.explore')}

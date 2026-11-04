@@ -23,7 +23,7 @@ interface Props {
  * a WebView on iOS/Android, an iframe on Expo web.
  */
 export const CodeEditorView = forwardRef<CodeEditorHandle, Props>(function CodeEditorView(props, ref) {
-  const web = useRef<WebView>(null);
+  const web = useRef<WebView<{}>>(null);
   const frame = useRef<HTMLIFrameElement | null>(null);
   const ready = useRef(false);
   const latest = useRef(props);
@@ -83,7 +83,8 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, Props>(function CodeE
     );
   }
   return (
-    <WebView
+    <WebView<{}>
+
       ref={web}
       style={styles.fill}
       originWhitelist={['*']}

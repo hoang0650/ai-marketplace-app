@@ -15,7 +15,11 @@
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "321108577244-p1tp873s03sc3rmhc18b6tl0g8f0h1r4.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "321108577244-idcomf6ckdigm8num2k7tnttntuj6dge.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_REDIRECT_URI": "https://aimarkets.vn/assets/oauth/google-mobile.html"
-      }
+      },
+      "ios": {
+        "image": "sdk-58"
+      },
+      "node": "22.16.0"
     },
     "preview": {
       "distribution": "internal",
@@ -27,7 +31,11 @@
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "321108577244-p1tp873s03sc3rmhc18b6tl0g8f0h1r4.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "321108577244-idcomf6ckdigm8num2k7tnttntuj6dge.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_REDIRECT_URI": "https://aimarkets.vn/assets/oauth/google-mobile.html"
-      }
+      },
+      "ios": {
+        "image": "sdk-58"
+      },
+      "node": "22.16.0"
     },
     "production": {
       "autoIncrement": true,
@@ -39,7 +47,11 @@
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "321108577244-p1tp873s03sc3rmhc18b6tl0g8f0h1r4.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "321108577244-idcomf6ckdigm8num2k7tnttntuj6dge.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_REDIRECT_URI": "https://aimarkets.vn/assets/oauth/google-mobile.html"
-      }
+      },
+      "ios": {
+        "image": "sdk-58"
+      },
+      "node": "22.16.0"
     }
   },
   "submit": {
