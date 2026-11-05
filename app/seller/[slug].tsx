@@ -282,7 +282,7 @@ export default function SellerScreen() {
           </View>
         )}
         ListEmptyComponent={
-          shopBlocked ? null : products.isLoading ? (
+          shopBlocked ? undefined : products.isLoading ? (
             <ActivityIndicator color={colors.tint} style={{ marginTop: 24 }} />
           ) : (
             <EmptyState title={t('shop.empty')} />
