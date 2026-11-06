@@ -1,7 +1,7 @@
 {
   "name": "ai-marketplace-app",
   "main": "expo-router/entry",
-  "version": "1.2.0",
+  "version": "1.0.0",
   "scripts": {
     "start": "npx.cmd expo start",
     "start:dev-client": "npx.cmd expo start --dev-client",
