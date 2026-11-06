@@ -168,7 +168,7 @@ function HireProjectScreen() {
   };
 
   const ask = (key: string, params?: Record<string, string | number>, destructive = false) =>
-    confirmAsync(t(key, params), 'OK', t('common.cancel'), destructive);
+    confirmAsync(t(key, params), t('common.ok'), t('common.cancel'), destructive);
 
   const sendQuote = () => {
     const amount = Number(quoteAmount);

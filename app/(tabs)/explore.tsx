@@ -3,8 +3,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, FlatList, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi } from '@/api';
-import { useTheme } from '@/hooks/useT';
-import { useT } from '@/hooks/useT';
+import { useT, useTheme } from '@/hooks/useT';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useRecentStore } from '@/stores/recentStore';
 import { Screen } from '@/components/ui/Screen';
@@ -103,6 +102,12 @@ export default function ExploreScreen() {
         ))}
       </ScrollView>
 
+      {!results.isLoading ? (
+        <Text style={[styles.resultCount, { color: colors.textSecondary }]}>
+          {t('explore.results', { n: data.length })}
+        </Text>
+      ) : null}
+
       {q.length === 0 && recent.length > 0 ? (
         <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.rail, { marginTop: 4 }]}>
           {recent.slice(0, 6).map((term) => (
@@ -115,7 +120,10 @@ export default function ExploreScreen() {
 
   return (
     <Screen>
-      <Text style={[styles.title, { color: colors.text }]}>{t('explore.title')}</Text>
+      <View style={styles.heading}>
+        <Text style={[styles.title, { color: colors.text }]}>{t('explore.title')}</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('explore.subtitle')}</Text>
+      </View>
       <SearchBar placeholder={t('home.searchPh')} value={q} onChangeText={setQ} />
       <FlatList
         key={`products-${columns}`}
@@ -166,7 +174,9 @@ function GroupTabChip({ label, active, onPress }: { label: string; active: boole
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 24, fontWeight: '700', marginTop: 8, marginBottom: 10 },
+  heading: { marginTop: 8, marginBottom: 12, gap: 3 },
+  title: { fontSize: 25, lineHeight: 31, fontWeight: '800', letterSpacing: -0.5 },
+  subtitle: { fontSize: 12, lineHeight: 17 },
   tabs: { gap: 8, paddingBottom: 10 },
   rail: { gap: 8, paddingBottom: 10 },
   groupTab: {
@@ -184,6 +194,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 2,
   },
+  resultCount: { fontSize: 12, lineHeight: 17, fontWeight: '700', marginBottom: 10 },
   row: { gap: 10, marginBottom: 12, alignItems: 'stretch' },
   list: { paddingBottom: 24 },
 });

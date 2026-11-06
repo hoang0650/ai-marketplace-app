@@ -1,12 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import type { Product } from '@/api/types';
-import { useTheme } from '@/hooks/useT';
-import { useT } from '@/hooks/useT';
-import { productPrice, productSale } from '@/utils/format';
+import { useT, useTheme } from '@/hooks/useT';
+import { formatMoney, productPrice, productSale } from '@/utils/format';
 import { Rating } from '@/components/ui/Rating';
 import { Badge } from '@/components/ui/Badge';
 import { AnalyticsService } from '@/lib/analytics';
@@ -17,12 +16,25 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
   const router = useRouter();
   const { colors } = useTheme();
   const { t } = useT();
+  const [failedCoverUrl, setFailedCoverUrl] = useState('');
   const content = isContentCategory(product.category);
   const episodes = Number(product.contentMeta?.episodeCount) || 0;
-  const priceLabel = content ? t('license.from', { price: productPrice(product) }) : productPrice(product);
+  const usageUnit = String(product.pricing?.usageUnit || product.pricing?.unit || 'usage').trim().toLowerCase();
+  const usageUnitKey: Record<string, string> = {
+    minute: 'card.unit.minute', minutes: 'card.unit.minute', month: 'card.unit.month',
+    token: 'card.unit.tokens', tokens: 'card.unit.tokens', '1m tokens': 'card.unit.mtokens',
+    second: 'card.unit.second', seconds: 'card.unit.second', image: 'card.unit.image',
+    video: 'card.unit.video', megapixel: 'card.unit.megapixel', hour: 'card.unit.hour',
+    hours: 'card.unit.hour', '1k characters': 'card.unit.kchars', '1k chars': 'card.unit.kchars',
+    year: 'card.unit.year', day: 'card.unit.day', request: 'card.unit.request', usage: 'card.unit.usage',
+  };
+  const basePrice = product.pricing?.model === 'usage'
+    ? `${formatMoney(Number(product.pricing.usageRate) || 0, product.pricing.currency || 'USD')}${t(usageUnitKey[usageUnit] || 'card.unit.usage')}`
+    : productPrice(product);
+  const priceLabel = content ? t('license.from', { price: basePrice }) : basePrice;
   const sale = productSale(product);
   const seller = product.sellerName || product.creatorName || product.category;
-  const verified = product.ownershipType === 'PLATFORM_DIRECT';
+  const platformDirect = product.soldByPlatform || product.ownershipType === 'PLATFORM_DIRECT';
 
   return (
     <Pressable
@@ -37,7 +49,7 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
         { backgroundColor: colors.cardBackground, borderColor: colors.border, opacity: pressed ? 0.9 : 1 },
       ]}
     >
-      {product.coverUrl ? (
+      {product.coverUrl && failedCoverUrl !== product.coverUrl ? (
         <Image
           source={{ uri: product.coverUrl }}
           style={[styles.cover, content ? styles.coverPoster : null]}
@@ -45,6 +57,7 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
           cachePolicy="memory-disk"
           recyclingKey={product.id}
           transition={0}
+          onError={() => setFailedCoverUrl(product.coverUrl || '')}
         />
       ) : (
         <View style={[styles.cover, content ? styles.coverPoster : null, styles.fallback, { backgroundColor: colors.luxDark }]}>
@@ -63,8 +76,13 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
           {seller}
           {episodes ? ` · ${t(isFilmCategory(product.category) ? 'license.episodes' : 'license.chapters', { n: episodes })}` : ''}
         </Text>
-        {verified ? <Badge label={t('common.verified')} /> : null}
-        <Rating value={product.rating} count={product.reviewCount} />
+        <Badge label={t(platformDirect ? 'card.soldByPlatform' : 'card.soldBySeller')} tone={platformDirect ? 'gold' : 'muted'} />
+        <View style={styles.stats}>
+          <Rating value={product.rating} count={product.reviewCount} />
+          {Number(product.salesCount) > 0 ? (
+            <Text style={[styles.sales, { color: colors.textSecondary }]}>{t('card.sold', { n: product.salesCount || 0 })}</Text>
+          ) : null}
+        </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
           {sale.onSale ? (
             <Text style={[styles.price, { color: colors.textSecondary, textDecorationLine: 'line-through', fontWeight: '600' }]}>{sale.was}</Text>
@@ -77,12 +95,12 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
 });
 
 const styles = StyleSheet.create({
-  card: { flex: 1, alignSelf: 'stretch', borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
-  cover: { width: '100%', height: 112 },
+  card: { flex: 1, alignSelf: 'stretch', borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  cover: { width: '100%', height: 120 },
   coverPoster: { height: 168 },
   fallback: { alignItems: 'center', justifyContent: 'center' },
   fallbackMark: { width: 48, height: 48, borderRadius: 10 },
-  body: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 14, gap: 5 },
+  body: { paddingHorizontal: 12, paddingTop: 11, paddingBottom: 14, gap: 6 },
   cat: {
     fontSize: 10,
     fontWeight: '700',
@@ -93,5 +111,7 @@ const styles = StyleSheet.create({
   },
   name: { fontWeight: '700', fontSize: 13, lineHeight: 18, minHeight: 36, includeFontPadding: false },
   meta: { fontSize: 12, lineHeight: 16, includeFontPadding: false },
+  stats: { minHeight: 16, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5 },
+  sales: { fontSize: 11, lineHeight: 16, fontWeight: '600', includeFontPadding: false },
   price: { fontWeight: '800', fontSize: 14, lineHeight: 20, marginTop: 2, includeFontPadding: false },
 });

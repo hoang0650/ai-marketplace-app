@@ -1,6 +1,7 @@
 import { API_CONFIG } from './config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -66,7 +67,8 @@ class ApiClient {
         if (now - ApiClient.lastNetworkWarning > 3000) {
           ApiClient.lastNetworkWarning = now;
           try {
-            Alert.alert('Mất kết nối', 'Không tới được api.aimarkets.vn');
+            const t = useSettingsStore.getState().t;
+            Alert.alert(t('popup.network.title'), t('popup.network.apiUnavailable'));
           } catch {}
         }
         throw new Error('NETWORK_ERROR');

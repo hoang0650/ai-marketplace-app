@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { gpuRentalApi } from '@/api';
 import { trainingWorkspaceApi } from '@/api/training-workspace';
 import { sharedTrainingApi } from '@/api/studio';
-import { useTheme } from '@/hooks/useT';
+import { useT, useTheme } from '@/hooks/useT';
 import { Button } from '@/components/ui/Button';
 import { Card, Chips, Field, PromoBadge, StudioScreen } from '@/components/studio/kit';
 
@@ -13,6 +13,7 @@ const TASK: Record<string, string> = { raw: 'llm-sft', audio: 'speech-recognitio
 
 export default function SharedTraining() {
   const { colors } = useTheme();
+  const { t } = useT();
   const router = useRouter();
   const qc = useQueryClient();
   const opts = useQuery({ queryKey: ['train-gpu-options'], queryFn: sharedTrainingApi.options });
@@ -33,20 +34,20 @@ export default function SharedTraining() {
   async function createVolume() {
     const sizeGb = Number(volumeSize), lim = storage.data?.limits;
     if (!lim || !dc || !Number.isInteger(sizeGb) || sizeGb < lim.sizeMin || sizeGb > lim.sizeMax) { setMsg('Chọn trung tâm dữ liệu và dung lượng hợp lệ.'); return; }
-    Alert.alert('Tạo ổ network', 'Chi phí $' + (sizeGb * lim.pricePerGbMonth).toFixed(2) + '/tháng, tiếp tục tính phí đến khi xóa ổ.', [
-      { text: 'Hủy', style: 'cancel' }, { text: 'Tạo ổ', onPress: () => { void (async () => { setBusy(true); try { const r = await trainingWorkspaceApi.createVolume({ name: volumeName, sizeGb, dataCenterId: dc }); setVolumeId(r.volume.id); setOfferId(''); await qc.invalidateQueries({ queryKey: ['train-volumes'] }); } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); } })(); } },
+    Alert.alert(t('popup.training.volumeTitle'), t('popup.training.volumeCost', { price: `$${(sizeGb * lim.pricePerGbMonth).toFixed(2)}` }), [
+      { text: t('common.cancel'), style: 'cancel' }, { text: t('popup.training.createVolume'), onPress: () => { void (async () => { setBusy(true); try { const r = await trainingWorkspaceApi.createVolume({ name: volumeName, sizeGb, dataCenterId: dc }); setVolumeId(r.volume.id); setOfferId(''); await qc.invalidateQueries({ queryKey: ['train-volumes'] }); } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); } })(); } },
     ]);
   }
   const [datasetId, setDatasetId] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const list = ds.data?.datasets || [];
-  useEffect(() => { if (!datasetId && list[0]) setDatasetId(list[0].id); }, [list, datasetId]);
+  const selectedDatasetId = datasetId || list[0]?.id || '';
   const sh = opts.data?.shared;
   const promo = opts.data?.promo?.active;
   const minutes = opts.data?.limits?.maxMinutes ?? sh?.maxMinutes ?? 30;
   async function start() {
-    const d = list.find((x) => x.id === datasetId);
+    const d = list.find((x) => x.id === selectedDatasetId);
     if (!d || !d.fileCount || (mode === 'shared' ? !sh : mode === 'new' ? !offerId : !rentalId)) return;
     setBusy(true); setMsg('');
     try {
@@ -87,9 +88,9 @@ export default function SharedTraining() {
       </Card>
       <Card>
         <Text style={{ color: colors.text, fontWeight: '700' }}>Bộ dữ liệu</Text>
-        {list.length ? <Chips value={datasetId} onChange={setDatasetId} options={list.map((d) => ({ value: d.id, label: `${d.name} (${d.fileCount})` }))} />
+        {list.length ? <Chips value={selectedDatasetId} onChange={setDatasetId} options={list.map((d) => ({ value: d.id, label: `${d.name} (${d.fileCount})` }))} />
           : <Text style={{ color: colors.textSecondary }}>Bạn chưa có bộ dữ liệu. Tạo trên web tại aimarkets.vn/training.</Text>}
-        <Button title={busy ? 'Đang gửi…' : 'Bắt đầu huấn luyện'} disabled={busy || !datasetId || (mode === 'shared' ? !sh : mode === 'new' ? !offerId : !rentalId)} onPress={start} />
+        <Button title={busy ? 'Đang gửi…' : 'Bắt đầu huấn luyện'} disabled={busy || !selectedDatasetId || (mode === 'shared' ? !sh : mode === 'new' ? !offerId : !rentalId)} onPress={start} />
         {msg ? <Text style={{ color: colors.text }}>{msg}</Text> : null}
       </Card>
       {(jobs.data || []).slice(0, 5).map((jb) => (

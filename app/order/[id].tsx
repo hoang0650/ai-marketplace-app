@@ -4,8 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ordersApi } from '@/api';
-import { useTheme } from '@/hooks/useT';
-import { useT } from '@/hooks/useT';
+import { useT, useTheme } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -33,7 +32,7 @@ export default function OrderDetailScreen() {
   const dispute = useMutation({
     mutationFn: () => ordersApi.openDispute(id, reason || 'Buyer dispute'),
     onSuccess: () => {
-      Alert.alert('AI Markets', 'OK');
+      Alert.alert('AI Markets', t('popup.order.disputeOpened'));
       list.refetch();
     },
     onError: (e: Error) => Alert.alert('AI Markets', getErrorMessage(e, language)),

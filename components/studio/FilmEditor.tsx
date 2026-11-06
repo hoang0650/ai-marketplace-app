@@ -4,13 +4,13 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { filmV2Api, type FilmProjectV2, type FilmSceneV2, type VoiceSource } from '@/api/film-v2';
-import { useTheme } from '@/hooks/useT';
+import { useT, useTheme } from '@/hooks/useT';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { Card, Chips, Field, ResultVideo, StudioScreen } from './kit';
 
 export default function FilmEditor() {
-  const { colors } = useTheme(); const { isAuthenticated } = useAuth(); const router = useRouter(); const qc = useQueryClient();
+  const { colors } = useTheme(); const { t } = useT(); const { isAuthenticated } = useAuth(); const router = useRouter(); const qc = useQueryClient();
   const [project, setProject] = useState<FilmProjectV2 | null>(null);
   const [dirty, setDirty] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const lastWriteAt = useRef(0);
@@ -35,9 +35,9 @@ export default function FilmEditor() {
       const q = await filmV2Api.estimate(p.id, render ? [] : [sid]);
       const price = render ? q.render.price : q.items.find(i => i.sid === sid)?.price;
       if (price == null) throw new Error('Không lấy được báo giá.'); if (price > q.available) throw new Error('Số dư ví không đủ.');
-      Alert.alert(render ? 'Xác nhận xuất phim' : 'Xác nhận tạo cảnh', `Chi phí: $${price.toFixed(6)}\nSố dư: $${q.available.toFixed(2)}`, [
-        { text: 'Hủy', style: 'cancel', onPress: () => setBusy(false) },
-        { text: 'Xác nhận', onPress: () => { void (async () => { try { const r = render ? await filmV2Api.render(p.id, price) : await filmV2Api.generate(p.id, sid, price); lastWriteAt.current = Date.now(); setProject(r.project); void qc.invalidateQueries({ queryKey: ['film-v2-project', p.id] }); } catch (e) { message(e); } finally { setBusy(false); } })(); } },
+      Alert.alert(t(render ? 'popup.film.confirmRender' : 'popup.film.confirmScene'), t('popup.film.quote', { price: `$${price.toFixed(6)}`, balance: `$${q.available.toFixed(2)}` }), [
+        { text: t('popup.film.cancel'), style: 'cancel', onPress: () => setBusy(false) },
+        { text: t('popup.film.confirm'), onPress: () => { void (async () => { try { const r = render ? await filmV2Api.render(p.id, price) : await filmV2Api.generate(p.id, sid, price); lastWriteAt.current = Date.now(); setProject(r.project); void qc.invalidateQueries({ queryKey: ['film-v2-project', p.id] }); } catch (e) { message(e); } finally { setBusy(false); } })(); } },
       ], { cancelable: false });
     } catch (e) { message(e); setBusy(false); }
   }

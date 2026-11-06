@@ -41,7 +41,8 @@ export default function WalletScreen() {
 
   const policy = policyQ.data?.policy;
   const quote = policyQ.data?.quote;
-  const personas = policyQ.data?.personas || [];
+  // Buyer credit is non-withdrawable. Only payout-bearing personas are selectable here.
+  const personas = (policyQ.data?.personas || []).filter((p) => p !== 'buyer');
 
   const withdraw = useMutation({
     mutationFn: () => walletApi.withdraw(Number(payout), persona),
