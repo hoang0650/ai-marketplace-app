@@ -97,7 +97,7 @@ export default function DeleteAccountScreen() {
   if (!isAuthenticated) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: t('del.title') }} />
+        <Stack.Screen options={{ title: t('del.title'), headerBackTitle: t('common.back') }} />
         <Text style={[styles.lede, { color: colors.text }]}>{t('del.signedOut')}</Text>
         <Button title={t('del.webRequest')} variant="outline" onPress={() => void openWeb(webUrl('/account/delete', language))} />
       </Screen>
@@ -107,7 +107,7 @@ export default function DeleteAccountScreen() {
   const p = preview.data;
   return (
     <Screen>
-      <Stack.Screen options={{ title: t('del.title') }} />
+      <Stack.Screen options={{ title: t('del.title'), headerBackTitle: t('common.back') }} />
       <ScrollView contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         <Text style={[styles.lede, { color: colors.text }]}>{t('del.lede')}</Text>
         {preview.isLoading ? <ActivityIndicator color={colors.tint} /> : null}

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, ScrollView, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
@@ -65,6 +65,7 @@ export default function CreateComplaintScreen() {
 
   return (
     <Screen>
+      <Stack.Screen options={{ title: t('complaint.create'), headerBackTitle: t('common.back') }} />
       <ScrollView>
         <Text style={{ color: colors.text, fontSize: 22, fontWeight: '700', marginBottom: 12 }}>{t('complaint.create')}</Text>
         <Text style={{ color: colors.textSecondary, marginBottom: 8 }}>

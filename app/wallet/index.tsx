@@ -2,7 +2,7 @@ import React from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { walletApi } from '@/api';
 import type { PayoutPersona } from '@/api/types';
 import { href } from '@/lib/href';
@@ -60,6 +60,7 @@ export default function WalletScreen() {
 
   return (
     <Screen padded={false}>
+      <Stack.Screen options={{ title: t('wallet.title'), headerBackTitle: t('common.back') }} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Text style={{ color: colors.text, fontSize: 28, fontFamily: displayFont, fontWeight: '600', marginTop: 8 }}>
           {t('wallet.title')}

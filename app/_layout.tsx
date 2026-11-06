@@ -10,7 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '@/stores/authStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRecentStore } from '@/stores/recentStore';
-import { useTheme } from '@/hooks/useT';
+import { useTheme, useT } from '@/hooks/useT';
 import { AuthSessionSync } from '@/hooks/useAuth';
 import { NotificationSoundWatcher } from '@/hooks/useNotificationSound';
 import { preloadSounds } from '@/services/sound';
@@ -57,12 +57,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 function ThemedStack() {
   const { colors, isDark } = useTheme();
+  const { t } = useT();
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          headerBackTitle: 'Back',
+          headerBackTitle: t('common.back'),
           headerStyle: { backgroundColor: colors.surface },
           headerTintColor: colors.text,
           headerShadowVisible: false,
@@ -96,6 +97,9 @@ function ThemedStack() {
         <Stack.Screen name="licenses/index" options={{ title: 'License' }} />
         <Stack.Screen name="usage/index" options={{ title: 'Usage' }} />
         <Stack.Screen name="reviews/create" options={{ title: 'Viết đánh giá' }} />
+        <Stack.Screen name="wallet/index" options={{ title: t('wallet.title') }} />
+        <Stack.Screen name="complaint/create" options={{ title: t('complaint.create') }} />
+        <Stack.Screen name="account/delete" options={{ title: t('del.title') }} />
         <Stack.Screen name="category/[id]" options={{ title: '' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
