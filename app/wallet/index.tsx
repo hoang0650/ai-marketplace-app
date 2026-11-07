@@ -7,8 +7,7 @@ import { walletApi } from '@/api';
 import type { PayoutPersona } from '@/api/types';
 import { href } from '@/lib/href';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useT';
-import { useT } from '@/hooks/useT';
+import { useTheme, useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { Input } from '@/components/ui/Input';
@@ -19,6 +18,7 @@ import { BankTransferInfo } from '@/components/wallet/BankTransferInfo';
 import { displayFont } from '@/constants/fonts';
 import { formatMoney, formatDate } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
+import { isAffiliatePayoutPersona } from '@/lib/affiliateWithdraw';
 import { GPAY_ENABLED } from '@/lib/features';
 
 export default function WalletScreen() {
@@ -41,8 +41,12 @@ export default function WalletScreen() {
 
   const policy = policyQ.data?.policy;
   const quote = policyQ.data?.quote;
-  // Buyer credit is non-withdrawable. Only payout-bearing personas are selectable here.
-  const personas = (policyQ.data?.personas || []).filter((p) => p !== 'buyer');
+  // Buyer credit is non-withdrawable. Affiliate commission is requested on the affiliate screen
+  // (whole VND, no commercial minimum) and is not mixed into this seller/employer form.
+  const listedPersonas = (policyQ.data?.personas || []) as string[];
+  const hasAffiliate = listedPersonas.some((p) => isAffiliatePayoutPersona(p));
+  const personas = listedPersonas.filter((p) => p !== 'buyer' && !isAffiliatePayoutPersona(p));
+  const generalPayout = !isAffiliatePayoutPersona(policy?.persona);
 
   const withdraw = useMutation({
     mutationFn: () => walletApi.withdraw(Number(payout), persona),
@@ -87,22 +91,35 @@ export default function WalletScreen() {
           <View style={{ marginTop: 28 }}>
             <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>{t('wallet.payout')}</Text>
 
+            {hasAffiliate ? (
+              <Pressable onPress={() => router.push(href('/affiliate'))} style={{ marginTop: 10, minHeight: 44, justifyContent: 'center' }}>
+                <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('aff.wd.walletLink')}</Text>
+              </Pressable>
+            ) : null}
+
             {personas.length > 1 ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
                 {personas.map((p) => (
-                  <Chip key={p} label={t(`payout.persona.${p}`)} active={(persona || policyQ.data?.persona) === p} onPress={() => setPersona(p)} />
+                  <Chip
+                    key={p}
+                    label={t(`payout.persona.${p}`)}
+                    active={(persona || policyQ.data?.persona) === p}
+                    onPress={() => setPersona(p as PayoutPersona)}
+                  />
                 ))}
               </View>
             ) : null}
 
-            {policy ? (
+            {policy && generalPayout ? (
               <View style={{ marginTop: 12, backgroundColor: colors.cardBackground, borderColor: colors.border, borderWidth: 1, borderRadius: 12, padding: 12 }}>
                 <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 6 }}>{t('payout.rulesTitle')}</Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19 }}>{t('payout.rulesBody')}</Text>
                 <Text style={{ color: colors.text, marginTop: 8, fontSize: 13 }}>
                   {t('payout.platformFee')}: {((policy.platformFeeRate || 0) * 100).toFixed(2)}%
                   {policy.taxRate > 0 ? ` · ${t('payout.tax')}: ${(policy.taxRate * 100).toFixed(2)}%` : ''}
-                  {policy.minAmountVnd > 0 ? ` · ${t('payout.minBalance')}: ${policy.minAmountVnd.toLocaleString()} VND` : ''}
+                  {policy.minAmountVnd > 0 && !isAffiliatePayoutPersona(policy.persona)
+                    ? ` · ${t('payout.minBalance')}: ${policy.minAmountVnd.toLocaleString()} VND`
+                    : ''}
                 </Text>
                 {!policy.chargeAtWithdraw ? (
                   <Text style={{ color: colors.textSecondary, marginTop: 6, fontSize: 12, lineHeight: 18 }}>{t('payout.netAtSource')}</Text>
@@ -110,47 +127,52 @@ export default function WalletScreen() {
               </View>
             ) : null}
 
-            <Pressable onPress={() => router.push(href('/kyc'))} style={{ marginVertical: 8 }}>
-              <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('kyc.goVerify')}</Text>
-            </Pressable>
-            <Input
-              label={`${t('wallet.payout')} (USD)`}
-              keyboardType="numeric"
-              value={payout}
-              onChangeText={setPayout}
-              style={{ marginTop: 8 }}
-            />
+            {generalPayout ? (
+              <>
+                <Pressable onPress={() => router.push(href('/kyc'))} style={{ marginVertical: 8 }}>
+                  <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('kyc.goVerify')}</Text>
+                </Pressable>
+                <Input
+                  label={`${t('wallet.payout')} (USD)`}
+                  keyboardType="numeric"
+                  value={payout}
+                  onChangeText={setPayout}
+                  style={{ marginTop: 8 }}
+                />
 
-            {quote ? (
-              <View style={{ marginTop: 10, gap: 4 }}>
-                <Row label={t('payout.gross')} value={formatMoney(quote.gross, 'USD')} colors={colors} />
-                {quote.platformFee > 0 ? (
-                  <Row label={t('payout.platformFee')} value={`−${formatMoney(quote.platformFee, 'USD')}`} colors={colors} />
+                {quote ? (
+                  <View style={{ marginTop: 10, gap: 4 }}>
+                    <Row label={t('payout.gross')} value={formatMoney(quote.gross, 'USD')} colors={colors} />
+                    {quote.platformFee > 0 ? (
+                      <Row label={t('payout.platformFee')} value={`−${formatMoney(quote.platformFee, 'USD')}`} colors={colors} />
+                    ) : null}
+                    {quote.tax > 0 ? <Row label={t('payout.tax')} value={`−${formatMoney(quote.tax, 'USD')}`} colors={colors} /> : null}
+                    <Row label={t('payout.net')} value={formatMoney(quote.net, 'USD')} colors={colors} strong />
+                  </View>
                 ) : null}
-                {quote.tax > 0 ? <Row label={t('payout.tax')} value={`−${formatMoney(quote.tax, 'USD')}`} colors={colors} /> : null}
-                <Row label={t('payout.net')} value={formatMoney(quote.net, 'USD')} colors={colors} strong />
-              </View>
-            ) : null}
 
-            <Button
-              title={t('wallet.payout')}
-              variant="outline"
-              onPress={() => {
-                if (policy && !policy.canWithdraw) {
-                  Alert.alert('AI Markets', t('payout.buyerBlocked'));
-                  return;
-                }
-                if (user?.role !== 'admin' && user?.kycStatus !== 'verified') {
-                  Alert.alert('AI Markets', t('kyc.withdrawBlocked'), [
-                    { text: t('kyc.goVerify'), onPress: () => router.push(href('/kyc')) },
-                    { text: 'OK', style: 'cancel' },
-                  ]);
-                  return;
-                }
-                withdraw.mutate();
-              }}
-              loading={withdraw.isPending}
-            />
+                <Button
+                  title={t('wallet.payout')}
+                  variant="outline"
+                  onPress={() => {
+                    if (isAffiliatePayoutPersona(policy?.persona)) return;
+                    if (policy && !policy.canWithdraw) {
+                      Alert.alert('AI Markets', t('payout.buyerBlocked'));
+                      return;
+                    }
+                    if (user?.role !== 'admin' && user?.kycStatus !== 'verified') {
+                      Alert.alert('AI Markets', t('kyc.withdrawBlocked'), [
+                        { text: t('kyc.goVerify'), onPress: () => router.push(href('/kyc')) },
+                        { text: 'OK', style: 'cancel' },
+                      ]);
+                      return;
+                    }
+                    withdraw.mutate();
+                  }}
+                  loading={withdraw.isPending}
+                />
+              </>
+            ) : null}
           </View>
         ) : null}
 

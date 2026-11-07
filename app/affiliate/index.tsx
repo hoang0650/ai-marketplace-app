@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
-import { affiliateApi, ratePct, type AffiliateLink } from '@/api/affiliate';
+import { affiliateApi, ratePct, type AffiliateLink, type AffiliateStats } from '@/api/affiliate';
+import { ApiError, getErrorMessage } from '@/lib/errors';
+import {
+  affiliateWithdrawBody,
+  impliedVndPerUsd,
+  isLegacyAffiliateMinimumRejection,
+  parseAffiliateVndInput,
+  quoteAffiliateWithdraw,
+} from '@/lib/affiliateWithdraw';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
@@ -11,7 +19,6 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { formatDate, formatMoney } from '@/utils/format';
-import { getErrorMessage } from '@/lib/errors';
 import { href } from '@/lib/href';
 import { openLegal, openWeb, webUrl } from '@/lib/legalLinks';
 
@@ -25,14 +32,28 @@ function parseTarget(raw: string): { productSlug?: string; storeSlug?: string } 
   return null;
 }
 
+function vndLabel(n: number) {
+  return Math.round(Number(n) || 0).toLocaleString('vi-VN');
+}
+
+function serverPitRate(w: NonNullable<AffiliateStats['withdrawal']>): number {
+  const rate = Number(w.pitRate);
+  return Number.isFinite(rate) && rate > 0 ? rate : 0;
+}
+
 export default function AffiliateScreen() {
   const router = useRouter();
+  const qc = useQueryClient();
   const { isAuthenticated } = useAuth();
   const { colors } = useTheme();
   const { t, language } = useT();
   const [target, setTarget] = useState('');
   const [link, setLink] = useState<AffiliateLink | null>(null);
   const [busy, setBusy] = useState(false);
+  const [vndText, setVndText] = useState('');
+  const [vndTouched, setVndTouched] = useState(false);
+  const [wdBusy, setWdBusy] = useState(false);
+  const [wdMsg, setWdMsg] = useState('');
   const q = useQuery({ queryKey: ['affiliate', 'me'], queryFn: affiliateApi.dashboard, enabled: isAuthenticated });
 
   if (!isAuthenticated) {
@@ -47,6 +68,47 @@ export default function AffiliateScreen() {
   const s = q.data;
   const cur = s?.currency || 'USD';
   const muted = { color: colors.textSecondary };
+  const w = s?.withdrawal;
+  const availableVnd = Math.round(Number(w?.availableVnd) || 0);
+  const amountSource = vndTouched ? vndText : availableVnd > 0 ? String(availableVnd) : vndText;
+  const pitRate = w ? serverPitRate(w) : 0;
+  const withdrawQuote = w
+    ? quoteAffiliateWithdraw({
+        amountVnd: parseAffiliateVndInput(amountSource),
+        availableUsd: Number(w.available),
+        availableVnd: Number(w.availableVnd),
+        vndPerUsd: impliedVndPerUsd(Number(w.available), Number(w.availableVnd)),
+      })
+    : null;
+
+  const requestWithdraw = async () => {
+    if (!w || !withdrawQuote) return;
+    const body = affiliateWithdrawBody(withdrawQuote);
+    if (!body) {
+      setWdMsg(t(`aff.wd.${withdrawQuote.code === 'ok' ? 'not_positive' : withdrawQuote.code}`));
+      return;
+    }
+    if (s?.payoutReady === false) {
+      setWdMsg(t('aff.kycNotice'));
+      return;
+    }
+    setWdMsg('');
+    setWdBusy(true);
+    try {
+      await affiliateApi.withdraw(body.amount);
+      setWdMsg(t('aff.wd.sent'));
+      setVndTouched(false);
+      await q.refetch();
+      await qc.invalidateQueries({ queryKey: ['wallet-summary'] });
+      await qc.invalidateQueries({ queryKey: ['wallet-txs'] });
+    } catch (err) {
+      const server = getErrorMessage(err, language);
+      const code = err instanceof ApiError ? err.code : '';
+      setWdMsg(isLegacyAffiliateMinimumRejection(code) ? `${t('aff.wd.serverMin')} ${server}` : server);
+    } finally {
+      setWdBusy(false);
+    }
+  };
 
   const createLink = async () => {
     const parsed = parseTarget(target);
@@ -135,18 +197,55 @@ export default function AffiliateScreen() {
           </View>
           )}
 
-          {s.withdrawal ? (
+          {w ? (
             <View style={[styles.card, { borderColor: colors.border }]}>
-              <Text style={muted}>
-                {t('aff.wd.info', {
-                  amount: s.withdrawal.availableVnd.toLocaleString('vi-VN'),
-                  min: s.withdrawal.minWithdrawVnd.toLocaleString('vi-VN'),
-                  rate: Math.round(s.withdrawal.pitRate * 1000) / 10,
-                })}
-              </Text>
-              <Pressable onPress={() => void openWeb(webUrl('/affiliate', language))} style={{ minHeight: 44, justifyContent: 'center' }}>
-                <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('aff.wd.open')}</Text>
-              </Pressable>
+              <Text style={[styles.h, { color: colors.text }]}>{t('aff.wd.title')}</Text>
+              <Text style={[muted, { lineHeight: 20 }]}>{t('aff.wd.rule')}</Text>
+              {w.pitCommitmentApplied ? (
+                <Text style={[muted, { marginTop: 6, lineHeight: 20 }]}>{t('aff.wd.exempt')}</Text>
+              ) : pitRate > 0 ? (
+                <Text style={[muted, { marginTop: 6, lineHeight: 20 }]}>
+                  {t('aff.wd.serverRate', { rate: Math.round(pitRate * 1000) / 10 })}
+                </Text>
+              ) : null}
+              <Text style={{ color: colors.text, marginTop: 8 }}>{t('aff.wd.available', { amount: vndLabel(w.availableVnd) })}</Text>
+              {!(Number(w.available) > 0) || !(Number(w.availableVnd) > 0) ? (
+                <Text style={[muted, { marginTop: 6 }]}>{t('aff.wd.none')}</Text>
+              ) : (
+                <>
+                  <Input
+                    label={t('aff.wd.amount')}
+                    value={amountSource}
+                    onChangeText={(value) => {
+                      setVndTouched(true);
+                      setVndText(value);
+                      setWdMsg('');
+                    }}
+                    keyboardType="number-pad"
+                    autoCapitalize="none"
+                  />
+                  <Button
+                    title={t('aff.wd.submit')}
+                    loading={wdBusy}
+                    disabled={wdBusy || !withdrawQuote?.ok || s.payoutReady === false}
+                    onPress={() => void requestWithdraw()}
+                  />
+                  {withdrawQuote && !withdrawQuote.ok ? (
+                    <Text style={{ color: colors.textSecondary, marginTop: 4 }}>{t(`aff.wd.${withdrawQuote.code}`)}</Text>
+                  ) : withdrawQuote && pitRate > 0 ? (
+                    <Text style={[muted, { marginTop: 4, lineHeight: 20 }]}>
+                      {t('aff.wd.preview', {
+                        gross: vndLabel(withdrawQuote.amountVnd),
+                        pit: vndLabel(withdrawQuote.amountVnd * pitRate),
+                        net: vndLabel(withdrawQuote.amountVnd - withdrawQuote.amountVnd * pitRate),
+                      })}
+                    </Text>
+                  ) : withdrawQuote ? (
+                    <Text style={[muted, { marginTop: 4 }]}>{t('aff.wd.previewPlain', { gross: vndLabel(withdrawQuote.amountVnd) })}</Text>
+                  ) : null}
+                </>
+              )}
+              {wdMsg ? <Text style={{ color: colors.text, marginTop: 8, lineHeight: 20 }}>{wdMsg}</Text> : null}
             </View>
           ) : null}
 

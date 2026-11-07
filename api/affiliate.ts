@@ -6,11 +6,17 @@ export type AffiliateConfig = {
   maxRate: number;
   attribution: 'last_click';
   holdHours: number;
-  /** 10% PIT when a single payment >= thresholdVnd (2,000,000 VND); 0% with an approved Mẫu 08/CK-TNCN. */
+  /**
+   * PIT is configured by the server (rate, Mẫu 08/CK-TNCN exemption).
+   * `thresholdVnd` and `minWithdrawVnd` are the former commercial payout floor.
+   * The app does not enforce them and does not substitute a PIT rate when the server omits one.
+   */
   pit: {
     enabled: boolean;
     rate: number;
+    /** Legacy alias of the old affiliate commercial minimum. Not a client-side floor. */
     thresholdVnd: number;
+    /** Legacy server field. Not a client-side floor. */
     minWithdrawVnd?: number;
     legalReview: boolean;
     rule?: string;
@@ -53,14 +59,27 @@ export type AffiliateStats = {
   recent: AffiliateCommissionRow[];
   config: AffiliateConfig;
   pitCommitment?: PitCommitment;
-  /** Affiliate wallet slice: withdraw only when availableVnd >= minWithdrawVnd; PIT per withdrawal. */
+  /**
+   * Affiliate wallet slice. `available` is USD and already excludes the hold.
+   * `minWithdrawVnd` is the legacy commercial floor and is not applied here.
+   * Updated servers set `canWithdraw` from identity plus a positive eligible balance.
+   * Older servers may still set it from the 2,000,000 VND floor; the form does not hide behind that.
+   */
   withdrawal?: {
+    earned?: number;
+    held?: number;
+    withdrawn?: number;
+    balance?: number;
+    /** Withdrawable commission in wallet currency (USD). */
     available: number;
     availableVnd: number;
-    minWithdrawVnd: number;
-    canWithdraw: boolean;
-    pitRate: number;
-    pitCommitmentApplied: boolean;
+    /** Legacy commercial minimum. Ignored by the app. */
+    minWithdrawVnd?: number;
+    canWithdraw?: boolean;
+    /** Server PIT rate for this affiliate. 0 when exempt or when the server withholds nothing. */
+    pitRate?: number;
+    pitCommitmentApplied?: boolean;
+    persona?: string;
   };
 };
 
@@ -147,6 +166,16 @@ export const affiliateApi = {
   },
   seller: () => apiClient.get<SellerAffiliateStats>('/affiliate/seller'),
   setDefaultRate: (rate: number) => apiClient.put<{ defaultRate: number }>('/affiliate/seller/default-rate', { rate }),
+  /**
+   * Affiliate withdrawal in wallet currency (USD, 2 decimals). No commercial minimum.
+   * POST /wallet/withdraw with persona affiliate. The API applies the 48h hold,
+   * the available-balance check, and whatever tax it has configured.
+   */
+  withdraw: (amountUsd: number) =>
+    apiClient.post<{ quote?: { gross: number; tax: number; net: number }; payoutId?: string }>('/wallet/withdraw', {
+      amount: amountUsd,
+      persona: 'affiliate',
+    }),
 };
 
 /** Seller input in percent (0–25) → API fraction; null = "use store default"; undefined = invalid. */
