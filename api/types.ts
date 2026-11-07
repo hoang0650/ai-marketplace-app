@@ -411,8 +411,12 @@ export interface BuyerUsageItem {
   productName?: string;
   productSlug?: string;
   inputTokens: number;
+  cachedTokens: number;
   outputTokens: number;
   tokens: number;
+  unit: string;
+  quantity: number;
+  usageLabel?: string;
   amount: number;
   currency: string;
   note: string;
@@ -425,6 +429,7 @@ export interface BuyerUsageFeed {
     requests: number;
     totalCharged: number;
     totalInputTokens: number;
+    totalCachedTokens: number;
     totalOutputTokens: number;
     totalTokens: number;
   };

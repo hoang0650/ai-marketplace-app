@@ -5,23 +5,24 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { mediaSource, studioApi, type StudioJob, type StudioKind, type StudioSubmit } from '@/api/studio';
-import { useTheme } from '@/hooks/useT';
+import { useT, useTheme } from '@/hooks/useT';
 import { useAuth } from '@/hooks/useAuth';
 import { Screen } from '@/components/ui/Screen';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { displayFont } from '@/constants/fonts';
 
-export const KIND_LABEL: Record<StudioKind, string> = { fast: 'Video nhanh', talking: 'Avatar nói', tts: 'Giọng nói', film: 'Phim AI' };
+const KIND_KEYS: Record<StudioKind, string> = { fast: 'studio.kind.fast', talking: 'studio.kind.talking', tts: 'studio.kind.tts', film: 'studio.kind.film' };
 
 export function StudioScreen({ title, subtitle, kind, children, testID, hideQuota = false }: { title: string; subtitle?: string; kind?: StudioKind; children: React.ReactNode; testID?: string; hideQuota?: boolean }) {
   const { colors } = useTheme();
+  const { t } = useT();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ paddingBottom: 48 }} keyboardShouldPersistTaps="handled" testID={testID}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/studio' as never))} accessibilityLabel="Quay lại" style={{ paddingVertical: 10 }}>
-          <Text style={{ color: colors.textSecondary }}>‹ Quay lại</Text>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/studio' as never))} accessibilityLabel={t('studio.back')} style={{ paddingVertical: 10 }}>
+          <Text style={{ color: colors.textSecondary }}>‹ {t('studio.back')}</Text>
         </Pressable>
         <Text style={{ fontFamily: displayFont, fontSize: 26, color: colors.text }}>{title}</Text>
         {subtitle ? <Text style={{ color: colors.textSecondary, marginTop: 4, lineHeight: 20 }}>{subtitle}</Text> : null}
@@ -32,10 +33,11 @@ export function StudioScreen({ title, subtitle, kind, children, testID, hideQuot
 }
 
 export function PromoBadge({ active }: { active?: boolean }) {
+  const { t } = useT();
   if (!active) return null;
   return (
     <View testID="studio-promo" style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(16,185,129,0.12)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
-      <Text style={{ color: '#059669', fontWeight: '700', fontSize: 12 }}>🎁 Miễn phí giai đoạn đầu</Text>
+      <Text style={{ color: '#059669', fontWeight: '700', fontSize: 12 }}>🎁 {t('studio.promo')}</Text>
     </View>
   );
 }
@@ -47,16 +49,17 @@ export function useQuota() {
 
 export function QuotaBar({ kind }: { kind?: StudioKind }) {
   const { colors } = useTheme();
+  const { t } = useT();
   const q = useQuota();
   if (!q.data) return null;
   const kinds: StudioKind[] = kind ? [kind] : ['fast', 'talking', 'tts', 'film'];
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 12 }}>
       <PromoBadge active={q.data.promo?.active} />
-      {!q.data.enabled ? <Text style={{ color: colors.warning }}>GPU tạm thời không khả dụng</Text> : null}
+      {!q.data.enabled ? <Text style={{ color: colors.warning }}>{t('studio.unavailable')}</Text> : null}
       {kinds.map((k) => (
         <Text key={k} testID={`quota-${k}`} style={{ color: colors.text, fontSize: 13 }}>
-          {kind ? 'Miễn phí hôm nay' : KIND_LABEL[k]}: {q.data[k].used}/{q.data[k].free}
+          {kind ? t('studio.freeToday') : t(KIND_KEYS[k])}: {q.data[k].used}/{q.data[k].free}
         </Text>
       ))}
     </View>
@@ -135,12 +138,13 @@ export function useStudioJob(estimateSec: number) {
 
 export function JobStatus({ job, busy, pct, error, elapsed }: { job: StudioJob | null; busy: boolean; pct: number; error: string; elapsed: number }) {
   const { colors } = useTheme();
+  const { t } = useT();
   if (error) return <Text testID="studio-error" style={{ color: colors.danger }}>{error}</Text>;
   if (!job) return null;
-  let label = 'Đang chờ…';
-  if (job.status === 'queued') label = job.position ? `Đang xếp hàng (vị trí ${job.position})` : 'Đang xếp hàng…';
-  else if (job.status === 'running') label = job.progress?.scenes ? `Đang dựng cảnh ${job.progress.scene || 1}/${job.progress.scenes}` : 'Đang tạo trên GPU RTX 5090…';
-  else if (job.status === 'succeeded') label = `Xong trong ${(job.timings?.total ?? elapsed).toFixed(1)}s`;
+  let label = t('studio.status.waiting');
+  if (job.status === 'queued') label = job.position ? t('studio.status.position').replace('{position}', String(job.position)) : t('studio.status.queued');
+  else if (job.status === 'running') label = job.progress?.scenes ? t('studio.status.scene').replace('{current}', String(job.progress.scene || 1)).replace('{total}', String(job.progress.scenes)) : t('studio.status.running');
+  else if (job.status === 'succeeded') label = t('studio.status.done').replace('{seconds}', (job.timings?.total ?? elapsed).toFixed(1));
   return (
     <View style={{ gap: 6 }} testID="studio-status">
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -178,13 +182,14 @@ export function ResultVideo({ path }: { path: string | null }) {
 
 function AudioInner({ source }: { source: { uri: string; headers?: Record<string, string> } }) {
   const { colors } = useTheme();
+  const { t } = useT();
   const player = useAudioPlayer(source);
   const st = useAudioPlayerStatus(player);
   return (
     <Pressable testID="studio-audio" onPress={() => { if (st.playing) player.pause(); else { if (st.didJustFinish || st.currentTime >= st.duration) void player.seekTo(0); player.play(); } }}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, backgroundColor: colors.mist }}>
       <Text style={{ fontSize: 18 }}>{st.playing ? '⏸' : '▶️'}</Text>
-      <Text style={{ color: colors.text }}>{st.playing ? 'Đang phát' : 'Nghe kết quả'} · {Math.round(st.currentTime || 0)}s / {Math.round(st.duration || 0)}s</Text>
+      <Text style={{ color: colors.text }}>{st.playing ? t('studio.audio.playing') : t('studio.audio.result')} · {Math.round(st.currentTime || 0)}s / {Math.round(st.duration || 0)}s</Text>
     </Pressable>
   );
 }

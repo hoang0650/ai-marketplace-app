@@ -78,6 +78,12 @@ export default function UsageScreen() {
               </Text>
             </View>
             <View>
+              <Text style={{ color: 'rgba(245,240,232,0.65)', fontSize: 11 }}>{t('usage.stat.cache')}</Text>
+              <Text style={{ color: '#f5f0e8', fontWeight: '700', marginTop: 2 }}>
+                {(summary?.totalCachedTokens ?? 0).toLocaleString()}
+              </Text>
+            </View>
+            <View>
               <Text style={{ color: 'rgba(245,240,232,0.65)', fontSize: 11 }}>{t('usage.stat.output')}</Text>
               <Text style={{ color: '#f5f0e8', fontWeight: '700', marginTop: 2 }}>
                 {(summary?.totalOutputTokens ?? 0).toLocaleString()}
@@ -119,8 +125,12 @@ export default function UsageScreen() {
                 <Text style={{ color: colors.danger, fontWeight: '800' }}>−{formatMoney(item.amount, item.currency || cur)}</Text>
               </View>
               <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                {t('usage.col.in')} {item.inputTokens.toLocaleString()} · {t('usage.col.out')}{' '}
+                {t('usage.col.in')} {item.inputTokens.toLocaleString()} · {t('usage.col.cache')}{' '}
+                {(item.cachedTokens ?? 0).toLocaleString()} · {t('usage.col.out')}{' '}
                 {item.outputTokens.toLocaleString()} · Σ {item.tokens.toLocaleString()}
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                {t('usage.col.usage')} {item.usageLabel || `${item.quantity.toLocaleString()} ${item.unit}`}
               </Text>
             </View>
           ))
