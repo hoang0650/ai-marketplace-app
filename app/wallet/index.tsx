@@ -19,6 +19,7 @@ import { displayFont } from '@/constants/fonts';
 import { formatMoney, formatDate } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
 import { isAffiliatePayoutPersona } from '@/lib/affiliateWithdraw';
+import { payoutPersonaNeedsEkyc, resolvePayoutWithdraw } from '@/lib/buyerIdentity';
 import { GPAY_ENABLED } from '@/lib/features';
 
 export default function WalletScreen() {
@@ -46,10 +47,21 @@ export default function WalletScreen() {
   const listedPersonas = (policyQ.data?.personas || []) as string[];
   const hasAffiliate = listedPersonas.some((p) => isAffiliatePayoutPersona(p));
   const personas = listedPersonas.filter((p) => p !== 'buyer' && !isAffiliatePayoutPersona(p));
-  const generalPayout = !isAffiliatePayoutPersona(policy?.persona);
+  const payoutDecision = resolvePayoutWithdraw({
+    requestedPersona: persona,
+    serverPersona: policy?.persona,
+    serverPersonas: listedPersonas,
+    canWithdraw: policy?.canWithdraw,
+    unavailableCode: policy?.unavailableCode,
+  });
+  const payoutPersona = payoutDecision.ok ? payoutDecision.persona : '';
+  const generalPayout = payoutDecision.ok;
 
   const withdraw = useMutation({
-    mutationFn: () => walletApi.withdraw(Number(payout), persona),
+    mutationFn: () => {
+      if (!payoutDecision.ok) throw new Error('WITHDRAW_UNAVAILABLE');
+      return walletApi.withdraw(Number(payout), payoutDecision.persona);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['wallet-summary'] });
       qc.invalidateQueries({ queryKey: ['wallet-txs'] });
@@ -129,9 +141,11 @@ export default function WalletScreen() {
 
             {generalPayout ? (
               <>
-                <Pressable onPress={() => router.push(href('/kyc'))} style={{ marginVertical: 8 }}>
-                  <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('kyc.goVerify')}</Text>
-                </Pressable>
+                {payoutPersonaNeedsEkyc(payoutPersona, user?.role) ? (
+                  <Pressable onPress={() => router.push(href('/kyc'))} style={{ marginVertical: 8 }}>
+                    <Text style={{ color: colors.tint, fontWeight: '700' }}>{t('kyc.goVerify')}</Text>
+                  </Pressable>
+                ) : null}
                 <Input
                   label={`${t('wallet.payout')} (USD)`}
                   keyboardType="numeric"
@@ -155,12 +169,11 @@ export default function WalletScreen() {
                   title={t('wallet.payout')}
                   variant="outline"
                   onPress={() => {
-                    if (isAffiliatePayoutPersona(policy?.persona)) return;
-                    if (policy && !policy.canWithdraw) {
+                    if (!payoutDecision.ok) {
                       Alert.alert('AI Markets', t('payout.buyerBlocked'));
                       return;
                     }
-                    if (user?.role !== 'admin' && user?.kycStatus !== 'verified') {
+                    if (payoutPersonaNeedsEkyc(payoutPersona, user?.role) && user?.kycStatus !== 'verified') {
                       Alert.alert('AI Markets', t('kyc.withdrawBlocked'), [
                         { text: t('kyc.goVerify'), onPress: () => router.push(href('/kyc')) },
                         { text: 'OK', style: 'cancel' },
@@ -172,6 +185,8 @@ export default function WalletScreen() {
                   loading={withdraw.isPending}
                 />
               </>
+            ) : payoutDecision.code === 'buyer_credit' ? (
+              <Text style={{ color: colors.textSecondary, marginTop: 10, lineHeight: 20 }}>{t('payout.buyerBlocked')}</Text>
             ) : null}
           </View>
         ) : null}

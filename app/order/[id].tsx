@@ -4,6 +4,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ordersApi } from '@/api';
+import { canRequestOwnRefund } from '@/lib/buyerIdentity';
+import { useAuth } from '@/hooks/useAuth';
 import { useT, useTheme } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
@@ -23,6 +25,7 @@ export default function OrderDetailScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = routeId(params.id);
   const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
   const { colors } = useTheme();
   const { t, language } = useT();
   const [reason, setReason] = useState('');
@@ -62,7 +65,9 @@ export default function OrderDetailScreen() {
         <Text style={{ color: colors.textSecondary, marginTop: 6 }}>{formatDate(order.createdAt)}</Text>
         {order.taxAmount ? <Text style={{ color: colors.textSecondary, marginTop: 10 }}>Tax: {formatMoney(order.taxAmount, order.currency)}</Text> : null}
         {order.status === 'paid' || order.status === 'refunded' ? <InvoiceChoice orderId={order.id} /> : null}
-        <Button title={t('order.complaint')} variant="outline" onPress={() => router.push(href(`/complaint/create?orderId=${order.id}`))} style={{ marginTop: 20 }} />
+        {canRequestOwnRefund({ authenticated: isAuthenticated, userId: user?.id, orderBuyerId: order.buyerId }) ? (
+          <Button title={t('order.complaint')} variant="outline" onPress={() => router.push(href(`/complaint/create?orderId=${order.id}`))} style={{ marginTop: 20 }} />
+        ) : null}
         <Button title={t('order.review')} variant="outline" onPress={() => router.push(href(`/reviews/create?productId=${order.productId}`))} style={{ marginTop: 10 }} />
         {order.canDispute ? (
           <>
@@ -70,7 +75,9 @@ export default function OrderDetailScreen() {
             <Button title={t('order.dispute')} variant="dark" loading={dispute.isPending} onPress={() => dispute.mutate()} />
           </>
         ) : null}
-        <Button title={t('order.refund')} variant="outline" onPress={() => router.push(href(`/complaint/create?orderId=${order.id}`))} style={{ marginTop: 10 }} />
+        {canRequestOwnRefund({ authenticated: isAuthenticated, userId: user?.id, orderBuyerId: order.buyerId }) ? (
+          <Button title={t('order.refund')} variant="outline" onPress={() => router.push(href(`/complaint/create?orderId=${order.id}`))} style={{ marginTop: 10 }} />
+        ) : null}
       </ScrollView>
     </Screen>
   );

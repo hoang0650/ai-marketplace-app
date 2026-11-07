@@ -610,7 +610,7 @@ export const zh: Record<string, string> = {
   'complaint.kind.buyer_platform': '买家 → 平台',
   'complaint.kind.seller_platform': '卖家 → 平台',
   'kyc.title': '身份验证 (eKYC)',
-  'kyc.lede': '提现前请完成 eKYC。请选择个人或组织（个体工商户 / 公司）申请。图片私密存储在 MinIO 上。',
+  'kyc.lede': 'eKYC 用于卖家收入和联盟佣金提现。购买、充值、使用商品、投诉和申请退款不需要 eKYC。已保存的证件资料会保留。请选择个人或组织（个体工商户 / 公司）申请。图片私密存储在 MinIO 上。',
   'kyc.adminBypass': '管理员提现时无需 eKYC。',
   'kyc.docs': '身份证件',
   'kyc.docsRep': '代表人身份证件',

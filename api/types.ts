@@ -462,6 +462,8 @@ export type PayoutPersona = 'buyer' | 'seller' | 'talent' | 'freelancer' | 'empl
 export interface PayoutPolicy {
   persona: PayoutPersona;
   canWithdraw: boolean;
+  /** Set by the server when this persona cannot withdraw, for example buyer prepaid credit. */
+  unavailableCode?: string | null;
   platformFeeRate: number;
   taxRate: number;
   totalFeeRate: number;

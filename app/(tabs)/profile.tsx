@@ -30,6 +30,7 @@ import {
   Wallet,
 } from 'lucide-react-native';
 import { href } from '@/lib/href';
+import { showEkycMenu } from '@/lib/buyerIdentity';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
@@ -81,7 +82,9 @@ export default function ProfileScreen() {
           <MenuRow icon={KeyRound} label={t('license.mine')} onPress={() => router.push(href('/licenses'))} />
           <MenuRow icon={Wallet} label={t('wallet.title')} onPress={() => router.push('/wallet')} />
           <MenuRow icon={Share2} label={t('aff.nav')} onPress={() => router.push(href('/affiliate'))} />
-          <MenuRow icon={IdCard} label={t('kyc.title')} onPress={() => router.push(href('/kyc'))} />
+          {showEkycMenu(user?.role) ? (
+            <MenuRow icon={IdCard} label={t('kyc.title')} onPress={() => router.push(href('/kyc'))} />
+          ) : null}
           <MenuRow icon={Smartphone} label={t('devices.title')} onPress={() => router.push(href('/account/devices'))} />
           <MenuRow icon={Activity} label={t('usage.title')} onPress={() => router.push('/usage')} />
           <MenuRow icon={Clapperboard} label="AI Studio · Làm phim AI" onPress={() => router.push(href('/studio'))} />
