@@ -1,10 +1,5 @@
 /**
- * Temporary feature flags.
- *
- * GPay (web top-up gateway) is hidden by default. Set EXPO_PUBLIC_GPAY_ENABLED=true
- * at build time (EAS env / .env) to show GPay copy again. Only the copy is gated;
- * no GPay code is removed.
+ * GPay is not a top-up channel. An environment flag cannot show it again.
+ * In-app top-up stays on Apple / Google billing. VietQR stays on the website.
  */
-const truthy = (v: unknown) => ['1', 'true', 'yes', 'on'].includes(String(v ?? '').trim().toLowerCase());
-
-export const GPAY_ENABLED: boolean = truthy(process.env.EXPO_PUBLIC_GPAY_ENABLED);
+export const GPAY_ENABLED = false;

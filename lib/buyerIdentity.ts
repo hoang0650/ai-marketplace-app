@@ -3,8 +3,9 @@
  * file a complaint, or request a refund. Seller, talent, freelancer, employer
  * and affiliate payouts still require eKYC. Stored identity documents are kept.
  *
- * Buyer prepaid credit is not cash and cannot be withdrawn by selecting another
- * persona. The server's persona, canWithdraw and unavailableCode decide.
+ * Buyer prepaid credit is not cashed out by selecting another persona.
+ * A separated VietQR company-bank amount uses buyerDepositWithdraw and is not
+ * this form. The server's persona, canWithdraw and unavailableCode decide.
  * A rejection is not retried under a different persona.
  */
 

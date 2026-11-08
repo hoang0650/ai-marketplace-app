@@ -436,6 +436,21 @@ export interface BuyerUsageFeed {
   items: BuyerUsageItem[];
 }
 
+export interface BuyerDepositWithdraw {
+  /** True only means this code path exists. It does not make the pooled balance withdrawable. */
+  enabled?: boolean;
+  fundingSeparated?: boolean;
+  settlement?: string;
+  refundsSeparate?: boolean;
+  /** user.kyc.status. A manual tax review is not this field. */
+  electronicIdentityStatus?: string;
+  /** Foreign-exchange reference. The withdrawal amount is `payableVnd`. */
+  payableUsd?: number | null;
+  payableVnd?: number | null;
+  blockedSources?: string[];
+  source?: string;
+}
+
 export interface WalletSummary {
   currency: string;
   balance: number;
@@ -444,6 +459,10 @@ export interface WalletSummary {
   holdHours?: number;
   persona?: PayoutPersona;
   personas?: PayoutPersona[];
+  /** Older clients. A buyer deposit withdrawal reads `buyerDepositWithdraw` instead. */
+  buyerCashoutAllowed?: boolean;
+  prepaidWithdrawable?: boolean;
+  buyerDepositWithdraw?: BuyerDepositWithdraw;
   policy?: PayoutPolicy;
   holds?: Array<{
     orderId: string;
@@ -572,14 +591,43 @@ export interface LegalDocument {
   publishedAt?: string | null;
 }
 
+export interface ManualTaxReview {
+  status?: 'none' | 'pending' | 'approved' | 'rejected' | string;
+  reason?: string;
+  reviewedAt?: string | null;
+  lookupAttested?: boolean;
+}
+
 export interface SellerProfile {
   id: string;
   verificationStatus: string;
   displayName?: string;
   legalName?: string;
+  sellerType?: string;
+  taxCode?: string;
+  /** Older profile flag. Not user.kyc and not a licensed electronic identity. */
+  identityVerificationStatus?: string;
+  manualTaxReview?: ManualTaxReview;
+  electronicIdentitySeparate?: boolean;
+  sellerAgreementAcceptedAt?: string | null;
   canPublish?: boolean;
   statusReason?: string;
   bankAccountMetadata?: { bankName?: string; accountHolderName?: string; accountNumberMasked?: string };
+}
+
+export interface PayoutAccountInfo {
+  bankName: string;
+  accountNumber: string;
+  accountNumberMasked: string;
+  accountName: string;
+  updatedAt?: string | null;
+}
+
+export interface PayoutAccountResponse {
+  account: PayoutAccountInfo | null;
+  kycStatus: string;
+  canEdit: boolean;
+  holderName: string;
 }
 
 export interface SellerEarnings {

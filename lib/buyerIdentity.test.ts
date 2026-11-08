@@ -128,7 +128,8 @@ describe('buyer identity copy and IAP', () => {
     assert.match(messageValue(en, 'kyc.lede'), /do not require it/i);
     assert.match(messageValue(zh, 'kyc.lede'), /不需要 eKYC/);
     assert.match(messageValue(en, 'kyc.lede'), /stay on file/);
-    assert.match(messageValue(en, 'payout.buyerBlocked'), /cannot be withdrawn/);
+    assert.match(messageValue(en, 'payout.buyerBlocked'), /not the VietQR top-up withdrawal/);
+    assert.match(messageValue(en, 'payout.buyerBlocked'), /separate request/);
     assert.match(messageValue(en, 'payout.rulesBody'), /Seller proceeds are held for 48 hours/);
     assert.match(messageValue(vi, 'payout.minBalance'), /tối thiểu/);
     assert.deepEqual([...WALLET_IAP_SKUS], [

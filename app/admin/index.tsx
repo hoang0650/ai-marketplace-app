@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/api';
 import type { AdminDailyPoint, AdminGranularity, AdminOverview, Order } from '@/api/types';
@@ -14,6 +14,7 @@ import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { BarChart, ChartLine, Donut, MetricKey, RevenueChart } from '@/components/admin/AdminCharts';
 import { formatDate, formatMoney } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
+import { href } from '@/lib/href';
 
 type Tab = 'overview' | 'shops' | 'people' | 'ops' | 'disputes';
 const TABS: Tab[] = ['overview', 'shops', 'people', 'ops', 'disputes'];
@@ -33,6 +34,7 @@ export default function AdminScreen() {
   const { colors } = useTheme();
   const { t, language } = useT();
   const { isAuthenticated, isAdmin } = useAuth();
+  const router = useRouter();
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>('overview');
   const [granularity, setGranularity] = useState<AdminGranularity>('day');
@@ -190,12 +192,18 @@ export default function AdminScreen() {
             ) : null}
 
             {tab === 'ops'
-              ? OPS.map((op) => (
+              ? (
+                <>
+                  <Card title={t('admin.supplier.title')} hint={t('admin.supplier.lede')}>
+                    <Button title={t('admin.supplier.open')} onPress={() => router.push(href('/admin/supplier-review'))} />
+                  </Card>
+                  {OPS.map((op) => (
                   <Card key={op.key} title={t(`admin.ops.${op.key}`)} hint={t(`admin.ops.${op.key}.desc`)}>
                     <Button title={t('admin.ops.openWeb')} variant="outline" onPress={() => void Linking.openURL(`${WEB}${op.path}`)} />
                   </Card>
-                ))
-              : null}
+                  ))}
+                </>
+              ) : null}
 
             {tab === 'disputes' ? (
               <Card title={t('admin.tab.disputes')} hint={t('admin.disputes.hint')}>
