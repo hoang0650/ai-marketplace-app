@@ -197,6 +197,9 @@ export default function AdminScreen() {
                   <Card title={t('admin.supplier.title')} hint={t('admin.supplier.lede')}>
                     <Button title={t('admin.supplier.open')} onPress={() => router.push(href('/admin/supplier-review'))} />
                   </Card>
+                  <Card title={t('admin.affclaw.title')} hint={t('admin.affclaw.lede')}>
+                    <Button title={t('admin.affclaw.open')} variant="outline" onPress={() => router.push(href('/admin/affiliate-clawback'))} />
+                  </Card>
                   {OPS.map((op) => (
                   <Card key={op.key} title={t(`admin.ops.${op.key}`)} hint={t(`admin.ops.${op.key}.desc`)}>
                     <Button title={t('admin.ops.openWeb')} variant="outline" onPress={() => void Linking.openURL(`${WEB}${op.path}`)} />

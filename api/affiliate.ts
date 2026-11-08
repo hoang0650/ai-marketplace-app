@@ -176,6 +176,20 @@ export const affiliateApi = {
       amount: amountUsd,
       persona: 'affiliate',
     }),
+  /** Own year summary. Not a tax ruling and not another person's record. */
+  pitCertificate: () =>
+    apiClient.get<{ year?: number; totalIncomeVnd?: number; totalPitWithheldVnd?: number; payments?: number }>(
+      '/affiliate/pit-certificate',
+    ),
+  /**
+   * Admin only. One order the admin already identified. The response is that order's
+   * clawback result, not a directory of referrers.
+   */
+  clawback: (orderId: string, reason: string) =>
+    apiClient.post<{ ok?: boolean; clawNet?: number; status?: string }>(
+      `/affiliate/admin/commissions/${encodeURIComponent(orderId)}/clawback`,
+      { reason },
+    ),
 };
 
 /** Seller input in percent (0–25) → API fraction; null = "use store default"; undefined = invalid. */

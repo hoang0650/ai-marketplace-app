@@ -12,6 +12,7 @@ import {
   parseAffiliateVndInput,
   quoteAffiliateWithdraw,
 } from '@/lib/affiliateWithdraw';
+import { affiliateIdentityReady, affiliateServerWindow, commissionViewState, ownPitSummary, payoutRequestIsTransfer } from '@/lib/affiliateProcess';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
@@ -55,6 +56,12 @@ export default function AffiliateScreen() {
   const [wdBusy, setWdBusy] = useState(false);
   const [wdMsg, setWdMsg] = useState('');
   const q = useQuery({ queryKey: ['affiliate', 'me'], queryFn: affiliateApi.dashboard, enabled: isAuthenticated });
+  const certQ = useQuery({
+    queryKey: ['affiliate', 'pit-certificate'],
+    queryFn: affiliateApi.pitCertificate,
+    enabled: isAuthenticated,
+    retry: false,
+  });
 
   if (!isAuthenticated) {
     return (
@@ -133,8 +140,21 @@ export default function AffiliateScreen() {
         contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} />}
       >
-      <Text style={[styles.hero, { color: colors.text }]}>{t('aff.hero')}</Text>
-      <Text style={[muted, { marginBottom: 12, lineHeight: 20 }]}>{t('aff.lead')}</Text>
+      <Text style={[styles.hero, { color: colors.text }]}>
+        {(() => {
+          const max = affiliateServerWindow(s?.config).maxRatePercent;
+          return max == null ? t('aff.heroPlain') : t('aff.heroRate', { rate: max });
+        })()}
+      </Text>
+      <Text style={[muted, { marginBottom: 8, lineHeight: 20 }]}>{t('aff.lead')}</Text>
+      <View style={[styles.card, { borderColor: colors.border }]}>
+        <Text style={[styles.h, { color: colors.text }]}>{t('aff.roles.title')}</Text>
+        <Text style={[muted, { lineHeight: 20 }]}>{t('aff.roles.body')}</Text>
+        <Text style={[muted, { marginTop: 6, lineHeight: 20 }]}>{t('aff.roles.notManual')}</Text>
+        <Text style={[muted, { marginTop: 6, lineHeight: 20 }]}>{t('aff.roles.provider')}</Text>
+        <Text style={[muted, { marginTop: 6, lineHeight: 20 }]}>{t('aff.roles.notTransfer')}</Text>
+        <Text style={[muted, { marginTop: 6, lineHeight: 20 }]}>{t('aff.policyVersion')}</Text>
+      </View>
 
       {q.isLoading || !s ? (
         <ActivityIndicator color={colors.tint} />
@@ -164,7 +184,13 @@ export default function AffiliateScreen() {
               </View>
             ))}
           </View>
-          <Text style={[muted, { fontSize: 12, marginBottom: 12 }]}>{t('aff.pendingHint', { hours: s.config.holdHours })}</Text>
+          {affiliateServerWindow(s.config).holdHours != null ? (
+            <Text style={[muted, { fontSize: 12, marginBottom: 12 }]}>
+              {t('aff.pendingHint', { hours: affiliateServerWindow(s.config).holdHours as number })}
+            </Text>
+          ) : (
+            <Text style={[muted, { fontSize: 12, marginBottom: 12 }]}>{t('aff.pendingUnknown')}</Text>
+          )}
           {s.commission.pitWithheld ? (
             <Text style={[muted, { fontSize: 12, marginBottom: 12 }]}>
               {t('aff.pitWithheld', { amount: formatMoney(s.commission.pitWithheld, cur) })}
@@ -246,8 +272,35 @@ export default function AffiliateScreen() {
                 </>
               )}
               {wdMsg ? <Text style={{ color: colors.text, marginTop: 8, lineHeight: 20 }}>{wdMsg}</Text> : null}
+              {payoutRequestIsTransfer() ? null : (
+                <Text style={[muted, { marginTop: 6, lineHeight: 20 }]}>{t('aff.roles.notTransfer')}</Text>
+              )}
             </View>
           ) : null}
+
+          <View style={[styles.card, { borderColor: colors.border }]}>
+            <Text style={[styles.h, { color: colors.text }]}>{t('aff.cert.title')}</Text>
+            {certQ.isError || !ownPitSummary(certQ.data).known ? (
+              <Text style={[muted, { lineHeight: 20 }]}>{t('aff.cert.missing')}</Text>
+            ) : (
+              <Text style={[muted, { lineHeight: 20 }]}>
+                {t('aff.cert.figures', {
+                  year: ownPitSummary(certQ.data).year ?? '—',
+                  income: ownPitSummary(certQ.data).totalIncomeVnd ?? '—',
+                  pit: ownPitSummary(certQ.data).totalPitWithheldVnd ?? '—',
+                  payments: ownPitSummary(certQ.data).payments ?? '—',
+                })}
+              </Text>
+            )}
+            <Text style={[muted, { marginTop: 6, lineHeight: 20 }]}>{t('aff.cert.disclaimer')}</Text>
+            <Text style={[muted, { marginTop: 6, lineHeight: 20 }]}>
+              {t('aff.roles.identity', {
+                status: affiliateIdentityReady({ kycStatus: s.kycStatus }).electronicIdentityVerified
+                  ? t('sell.review.ekyc.verified')
+                  : t(`kyc.status.${s.kycStatus || 'none'}`),
+              })}
+            </Text>
+          </View>
 
           {s.pitCommitment ? (
             <View style={[styles.card, { borderColor: colors.border }]}>
@@ -279,7 +332,7 @@ export default function AffiliateScreen() {
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={{ color: colors.text, fontWeight: '800' }}>{formatMoney(r.netAmount - r.reversedAmount, r.currency)}</Text>
-                <Text style={[muted, { fontSize: 12 }]}>{t(`aff.state.${r.state}`)}</Text>
+                <Text style={[muted, { fontSize: 12 }]}>{t(`aff.state.${commissionViewState(r.state)}`)}</Text>
               </View>
             </View>
           ))}
@@ -288,10 +341,15 @@ export default function AffiliateScreen() {
           {[
             t('aff.rule.kyc'),
             t('aff.rule.rate'),
-            t('aff.rule.window', { days: s.config.attributionDays }),
+            ...(affiliateServerWindow(s.config).attributionDays != null
+              ? [t('aff.rule.window', { days: affiliateServerWindow(s.config).attributionDays as number })]
+              : [t('aff.rule.windowUnknown')]),
             t('aff.rule.self'),
-            t('aff.rule.hold', { hours: s.config.holdHours }),
+            ...(affiliateServerWindow(s.config).holdHours != null
+              ? [t('aff.rule.hold', { hours: affiliateServerWindow(s.config).holdHours as number })]
+              : [t('aff.rule.holdUnknown')]),
             t('aff.rule.refund'),
+            t('aff.dispute.note'),
             t('aff.rule.pit'),
             t('aff.rule.pitCert'),
             t('aff.rule.banned'),

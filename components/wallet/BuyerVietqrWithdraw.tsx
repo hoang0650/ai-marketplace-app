@@ -14,6 +14,7 @@ import {
   type BuyerTopupBlocker,
   type PayoutAccountCode,
 } from '@/lib/buyerDepositWithdraw';
+import { buyerWithdrawMaySubmit } from '@/lib/gpayOffer';
 import { useTheme, useT } from '@/hooks/useT';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -46,10 +47,11 @@ export function BuyerVietqrWithdraw({
   const [accountNumber, setAccountNumber] = React.useState('');
   const [accountName, setAccountName] = React.useState('');
 
+  const cashoutOpen = buyerWithdrawMaySubmit();
   const accountQ = useQuery({
     queryKey: ['wallet-payout-account'],
     queryFn: () => walletApi.payoutAccount(),
-    enabled: summaryReady && !summaryError,
+    enabled: cashoutOpen && summaryReady && !summaryError,
     retry: false,
   });
 
@@ -76,7 +78,7 @@ export function BuyerVietqrWithdraw({
 
   const withdraw = useMutation({
     mutationFn: () => {
-      if (!request.ok) throw new Error(request.blocker);
+      if (!buyerWithdrawMaySubmit() || !request.ok) throw new Error('PARTNER_NOT_READY');
       return walletApi.withdrawVietqrDeposit(request.body);
     },
     onSuccess: () => {
@@ -95,7 +97,17 @@ export function BuyerVietqrWithdraw({
 
   const fx = fxReferenceUsd(gate);
   const blocker = !summaryReady ? 'SERVER_GATE_CLOSED' : request.ok ? null : request.blocker;
-  const showAccount = decision.ok;
+  const showAccount = cashoutOpen && decision.ok;
+
+  if (!cashoutOpen) {
+    return (
+      <View style={{ marginTop: 28 }}>
+        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>{t('wallet.topupWithdraw.title')}</Text>
+        <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20, fontSize: 13 }}>{t('wallet.gpay.direct')}</Text>
+        <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20, fontSize: 13 }}>{t('wallet.topupWithdraw.closed')}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={{ marginTop: 28 }}>
