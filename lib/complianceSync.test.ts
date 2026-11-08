@@ -9,6 +9,7 @@ import {
   type BuyerDepositWithdrawSnapshot,
 } from './buyerDepositWithdraw.ts';
 import { GPAY_ENABLED } from './features.ts';
+import { buyerWithdrawMaySubmit, gpayMayActivate } from './gpayOffer.ts';
 import { isSupplierTaxCode, supplierReviewDecision, supplierReviewView } from './supplierReview.ts';
 import { walletHistoryKind } from './walletHistory.ts';
 
@@ -204,14 +205,25 @@ describe('supplier review is not electronic identity', () => {
   });
 });
 
-describe('GPay removal and historical labels', () => {
-  it('cannot be turned back on from the environment', () => {
+describe('GPay direct work and closed checkout', () => {
+  it('does not activate from a status string or collect credentials', () => {
     assert.equal(GPAY_ENABLED, false);
+    assert.equal(buyerWithdrawMaySubmit(), false);
+    for (const input of [
+      null,
+      { status: 'pending_contract', enabled: true },
+      { status: 'GPAY_REMOVED', removed: true },
+      { code: 'GPAY_REMOVED', featureEnabled: true },
+      { status: 'ready', contractExecuted: true, enabled: true },
+    ]) {
+      assert.equal(gpayMayActivate(input), false);
+    }
     const source = readFileSync(new URL('./features.ts', import.meta.url), 'utf8');
     assert.equal(source.includes('EXPO_PUBLIC_GPAY_ENABLED'), false);
     const bank = readFileSync(new URL('../components/wallet/BankTransferInfo.tsx', import.meta.url), 'utf8');
     assert.equal(bank.includes('method=gpay'), false);
-    assert.equal(bank.includes('GPAY_ENABLED'), false);
+    const screen = readFileSync(new URL('../components/wallet/BuyerVietqrWithdraw.tsx', import.meta.url), 'utf8');
+    assert.match(screen, /buyerWithdrawMaySubmit/);
   });
 
   it('keeps a historical GPay row labeled as GPay', () => {
@@ -242,7 +254,10 @@ describe('published app copy', () => {
       assert.equal(/DPIA|ISO 27001|PCI DSS/.test(messageValue(source, 'wallet.legalHint')), false);
       assert.equal(/2[.\s,]?000[.\s,]?000|2000000/.test(messageValue(source, 'signup.role.buyerDesc')), false);
     }
+    assert.match(messageValue(vi, 'wallet.gpay.direct'), /đang làm việc trực tiếp với GPay để hoàn tất hợp đồng cung ứng dịch vụ cho dự án/);
+    assert.equal(/đối tác dự kiến|proposed partner|permanently removed/.test(messageValue(vi, 'wallet.gpay.direct') + messageValue(en, 'wallet.gpay.direct')), false);
     assert.match(messageValue(en, 'wallet.topupWithdraw.fx'), /not the withdrawal amount/);
+    assert.match(messageValue(en, 'wallet.topupWithdraw.fx'), /not a legal exception/);
     assert.match(messageValue(en, 'sell.review.manualUnknown'), /has not returned/);
     assert.match(messageValue(en, 'payout.rulesBody'), /held for 48 hours/);
     assert.match(messageValue(en, 'payout.rulesBody'), /later of/);

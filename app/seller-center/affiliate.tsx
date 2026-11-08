@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { formatMoney } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
+import { affiliateServerWindow } from '@/lib/affiliateProcess';
 
 const toPct = (rate: number | null | undefined) => (rate === null || rate === undefined ? '' : String(Math.round(rate * 1000) / 10));
 
@@ -74,7 +75,8 @@ export default function SellerAffiliateScreen() {
     <Screen>
       <Stack.Screen options={{ title: t('sellAff.title') }} />
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <Text style={[muted, { lineHeight: 20, marginBottom: 12 }]}>{t('sellAff.lead')}</Text>
+        <Text style={[muted, { lineHeight: 20, marginBottom: 8 }]}>{t('sellAff.lead')}</Text>
+        <Text style={[muted, { lineHeight: 20, marginBottom: 12 }]}>{t('sellAff.roles')}</Text>
         {q.isLoading || !d ? (
           <ActivityIndicator color={colors.tint} />
         ) : (
@@ -84,8 +86,14 @@ export default function SellerAffiliateScreen() {
               <Text style={[muted, { marginBottom: 8 }]}>{t('sellAff.defaultHint')}</Text>
               <Input label={t('sellAff.ratePct')} value={defaultPct} onChangeText={setDefaultEdit} keyboardType="decimal-pad" />
               <Button title={t('sellAff.save')} loading={saving === 'default'} onPress={saveDefault} />
-              <Text style={{ color: colors.text, marginTop: 10, fontWeight: '600' }}>{t('sellAff.formula')}</Text>
-              <Text style={[muted, { marginTop: 4 }]}>{t('sellAff.example')}</Text>
+              <Text style={{ color: colors.text, marginTop: 10, fontWeight: '600' }}>{t('sellAff.serverFigures')}</Text>
+              {affiliateServerWindow({ maxRate: d.maxRate }).maxRatePercent != null ? (
+                <Text style={[muted, { marginTop: 4 }]}>
+                  {t('sellAff.maxFromServer', { rate: affiliateServerWindow({ maxRate: d.maxRate }).maxRatePercent as number })}
+                </Text>
+              ) : (
+                <Text style={[muted, { marginTop: 4 }]}>{t('sellAff.maxUnknown')}</Text>
+              )}
             </View>
 
             <View style={[styles.card, { borderColor: colors.border }]}>
@@ -96,6 +104,7 @@ export default function SellerAffiliateScreen() {
               <Text style={{ color: colors.text }}>
                 {t('sellAff.sales')}: {formatMoney(d.sales, cur)} · {t('sellAff.paid')}: {formatMoney(d.commission, cur)}
               </Text>
+              <Text style={[muted, { marginTop: 6, lineHeight: 18 }]}>{t('sellAff.ownTotals')}</Text>
             </View>
 
             <Text style={[styles.h, { color: colors.text }]}>{t('sellAff.products')}</Text>
