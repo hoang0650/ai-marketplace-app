@@ -20,7 +20,8 @@ import { formatMoney, formatDate } from '@/utils/format';
 import { getErrorMessage } from '@/lib/errors';
 import { isAffiliatePayoutPersona } from '@/lib/affiliateWithdraw';
 import { payoutPersonaNeedsEkyc, resolvePayoutWithdraw } from '@/lib/buyerIdentity';
-import { GPAY_ENABLED } from '@/lib/features';
+import { walletHistoryKind } from '@/lib/walletHistory';
+import { BuyerVietqrWithdraw } from '@/components/wallet/BuyerVietqrWithdraw';
 
 export default function WalletScreen() {
   const qc = useQueryClient();
@@ -98,6 +99,12 @@ export default function WalletScreen() {
         <IapTopup />
 
         <BankTransferInfo />
+
+        <BuyerVietqrWithdraw
+          snapshot={s?.buyerDepositWithdraw}
+          summaryReady={summary.isSuccess}
+          summaryError={summary.isError}
+        />
 
         {isCreator ? (
           <View style={{ marginTop: 28 }}>
@@ -200,15 +207,15 @@ export default function WalletScreen() {
         ) : (
           (txs.data || []).map((item) => {
             const debit = item.type === 'debit' || item.type === 'withdraw';
-            const note = (item.note || '').toLowerCase();
+            const kind = walletHistoryKind(item);
             const methodLabel =
-              item.paymentMethod === 'iap' || note.includes('app store') || note.includes('google play') || note.includes(' iap')
+              kind === 'iap'
                 ? Platform.OS === 'ios'
                   ? t('wallet.method.iapIos')
                   : t('wallet.method.iapAndroid')
-                : item.paymentMethod === 'gpay'
-                  ? t(GPAY_ENABLED ? 'wallet.method.gpayVn' : 'wallet.method.bankTransfer')
-                  : debit
+                : kind === 'gpay_historical'
+                  ? t('wallet.method.gpayVn')
+                  : kind === 'debit'
                     ? t('wallet.type.debit')
                     : t('wallet.type.deposit');
             return (

@@ -23,6 +23,7 @@ import type {
   SellerPayout,
   SellerProfile,
   BuyerUsageFeed,
+  PayoutAccountResponse,
   WalletSummary,
   WalletTx,
   WorkJob,
@@ -222,6 +223,18 @@ export const walletApi = {
     apiClient.get<PayoutPolicyResponse>(`/wallet/payout-policy${qs({ persona, amount })}`),
   withdraw: (amount: number, persona?: string) =>
     apiClient.post<WalletTx>('/wallet/withdraw', { amount, persona }),
+  /**
+   * VietQR company-bank deposit only. The body has no USD `amount`.
+   * Caller must build it with `vietqrWithdrawRequest` after the server gate opens.
+   */
+  withdrawVietqrDeposit: (body: {
+    source: 'vietqr_company_bank';
+    amountVnd: number;
+    settlement: 'VND';
+    bankAccount?: { bankName: string; accountNumber: string; accountName: string };
+    saveAccount?: true;
+  }) => apiClient.post<WalletTx>('/wallet/withdraw', body),
+  payoutAccount: () => apiClient.get<PayoutAccountResponse>('/wallet/payout-account'),
   iapPacks: () => apiClient.get<{ packs: Array<{ sku: string; usd: number; currency: string }> }>('/iap/packs'),
   iapVerify: (body: {
     platform: 'ios' | 'android';
@@ -309,6 +322,13 @@ export const sellersApi = {
   earnings: () => apiClient.get<SellerEarnings>('/sellers/me/earnings'),
   payouts: () => apiClient.get<SellerPayout[]>('/sellers/me/payouts'),
   taxProfile: () => apiClient.get<Record<string, unknown>>('/sellers/me/tax-profile'),
+  adminList: () => apiClient.get<SellerProfile[]>('/sellers'),
+  /**
+   * Admin tax-code review. Does not set user.kyc and does not set verificationStatus.
+   * The server is expected to reject this until that route exists.
+   */
+  manualReview: (id: string, body: { status: 'approved' | 'rejected'; reason: string; lookupAttested: boolean }) =>
+    apiClient.patch<SellerProfile>(`/sellers/${encodeURIComponent(id)}/manual-review`, body),
   /** Withheld rate per product kind for this seller's type (Sản phẩm số 7% / Hàng hóa 1.5% for individuals). */
   productKindRates: () => apiClient.get<ProductKindRates>('/sellers/me/product-kind-rates'),
 };
