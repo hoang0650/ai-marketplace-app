@@ -7,6 +7,7 @@ import type { Product } from '@/api/types';
 import { useTheme, useT } from '@/hooks/useT';
 import { formatMoney, productSale } from '@/utils/format';
 import { listedVndQuote, serverVndInteger } from '@/lib/vndDisplay';
+import { usageUnitLabelText } from '@/lib/usageUnits';
 import { AnalyticsService } from '@/lib/analytics';
 import { isBlockedProduct, useBlockStore } from '@/stores/blockStore';
 
@@ -56,11 +57,17 @@ export function ProductRail({ items }: { items: Product[] }) {
                 {product.name}
               </Text>
               <Text style={[styles.price, { color: colors.text }]}>
-                {language === 'vi'
-                  ? (serverVndInteger(listedVndQuote(product)) == null
-                    ? t('price.vndUnavailable')
-                    : formatMoney(serverVndInteger(listedVndQuote(product)) as number, 'VND'))
-                  : formatMoney(Number(product.pricing?.price) || 0, product.pricing?.currency || 'USD')}
+                {(() => {
+                  const dong = serverVndInteger(listedVndQuote(product));
+                  const amount = language === 'vi'
+                    ? (dong == null ? t('price.vndUnavailable') : formatMoney(dong, 'VND'))
+                    : formatMoney(
+                        product.pricing?.model === 'usage' ? Number(product.pricing?.usageRate) || 0 : Number(product.pricing?.price) || 0,
+                        product.pricing?.currency || 'USD',
+                      );
+                  const unit = language === 'vi' && dong == null ? null : usageUnitLabelText(product.pricing?.usageUnitLabel, language);
+                  return unit ? `${amount} / ${unit}` : amount;
+                })()}
               </Text>
               {sale.onSale ? (
                 <Text style={{ color: colors.textSecondary, fontSize: 11, textDecorationLine: 'line-through' }}>{sale.was}</Text>

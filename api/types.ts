@@ -74,6 +74,19 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface ServicePackage {
+  code: string;
+  name: string;
+  scope: string;
+  deliverables: string[];
+  durationDays: number;
+  price: number;
+  currency: string;
+  phases?: { title: string; percent: number; days: number }[];
+  /** Server quote. The app does not convert `price`. */
+  priceVnd?: import('@/lib/vndDisplay').ServerVndQuote | null;
+}
+
 export interface ProductPricing {
   model?: string;
   price?: number;
@@ -82,6 +95,10 @@ export interface ProductPricing {
   interval?: string;
   unit?: string;
   usageUnit?: string;
+  /** Present when the stored code is a canonical catalog unit. */
+  usageUnitLabel?: { vi?: string; en?: string } | null;
+  usagePeriod?: string | null;
+  usageBilling?: string | null;
   compareAtPrice?: number;
   /** Hire-request listings: the seller accepts a counter offer. */
   negotiable?: boolean;
@@ -142,6 +159,7 @@ export interface Product {
   coverUrl?: string;
   gallery?: string[];
   pricing?: ProductPricing;
+  servicePackages?: ServicePackage[] | null;
   /** Server VND quote. `pricing` stays the ledger amount and currency. */
   pricingVnd?: {
     ledgerCurrency?: string;

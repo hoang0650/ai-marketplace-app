@@ -47,6 +47,7 @@ export const CATEGORY_META: CategoryMeta[] = [
   { id: 'hire-seo', navGroup: 'talent', hubHref: '/category/hire-seo' },
   { id: 'hire-creator', navGroup: 'talent', hubHref: '/category/hire-creator' },
   { id: 'hire-workflow', navGroup: 'talent', hubHref: '/category/hire-workflow' },
+  { id: 'hire-photographer', navGroup: 'talent', hubHref: '/category/hire-photographer' },
   { id: 'hire-build-web', navGroup: 'talent', hubHref: '/category/hire-build-web' },
   { id: 'hire-build-app', navGroup: 'talent', hubHref: '/category/hire-build-app' },
   { id: 'template-web', navGroup: 'platform', hubHref: '/category/template-web' },
@@ -105,6 +106,7 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'hire-seo': Briefcase,
   'hire-creator': Briefcase,
   'hire-workflow': Wrench,
+  'hire-photographer': Briefcase,
   'hire-build-web': Briefcase,
   'hire-build-app': Briefcase,
   'template-web': Sparkles,
@@ -193,6 +195,7 @@ export const HIRE_REQUEST_CATEGORIES = [
   'hire-seo',
   'hire-creator',
   'hire-workflow',
+  'hire-photographer',
 ] as const;
 
 export function isHireRequestCategory(id?: string) {

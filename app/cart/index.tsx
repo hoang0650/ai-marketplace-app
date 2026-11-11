@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
 import { formatMoney } from '@/utils/format';
 import { serverVndInteger, listedVndQuote } from '@/lib/vndDisplay';
+import { usageUnitLabelText } from '@/lib/usageUnits';
 import { isComputeStreamCategory } from '@/constants/categories';
 
 export default function CartScreen() {
@@ -70,11 +71,17 @@ export default function CartScreen() {
                 </Text>
               </Pressable>
               <Text style={{ color: colors.text, fontWeight: '800', marginTop: 6 }}>
-                {language === 'vi'
-                  ? (serverVndInteger(listedVndQuote(item.product)) == null
-                    ? t('price.vndUnavailable')
-                    : formatMoney(serverVndInteger(listedVndQuote(item.product)) as number, 'VND'))
-                  : formatMoney(Number(item.product.pricing?.price) || 0, item.product.pricing?.currency || 'USD')}
+                {(() => {
+                  const dong = serverVndInteger(listedVndQuote(item.product));
+                  const amount = language === 'vi'
+                    ? (dong == null ? t('price.vndUnavailable') : formatMoney(dong, 'VND'))
+                    : formatMoney(
+                        item.product.pricing?.model === 'usage' ? Number(item.product.pricing?.usageRate) || 0 : Number(item.product.pricing?.price) || 0,
+                        item.product.pricing?.currency || 'USD',
+                      );
+                  const unit = language === 'vi' && dong == null ? null : usageUnitLabelText(item.product.pricing?.usageUnitLabel, language);
+                  return unit ? `${amount} / ${unit}` : amount;
+                })()}
               </Text>
               {isComputeStreamCategory(item.product.category) ? (
                 <Pressable onPress={() => remove(item.product.id)} hitSlop={8} style={{ marginTop: 10 }}>

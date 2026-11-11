@@ -7,6 +7,7 @@ import type { Product } from '@/api/types';
 import { useT, useTheme } from '@/hooks/useT';
 import { formatMoney, productSale } from '@/utils/format';
 import { listedVndQuote, readServerVnd } from '@/lib/vndDisplay';
+import { usageUnitLabelText } from '@/lib/usageUnits';
 import { Rating } from '@/components/ui/Rating';
 import { Badge } from '@/components/ui/Badge';
 import { AnalyticsService } from '@/lib/analytics';
@@ -20,16 +21,8 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
   const [failedCoverUrl, setFailedCoverUrl] = useState('');
   const content = isContentCategory(product.category);
   const episodes = Number(product.contentMeta?.episodeCount) || 0;
-  const usageUnit = String(product.pricing?.usageUnit || product.pricing?.unit || 'usage').trim().toLowerCase();
-  const usageUnitKey: Record<string, string> = {
-    minute: 'card.unit.minute', minutes: 'card.unit.minute', month: 'card.unit.month',
-    token: 'card.unit.tokens', tokens: 'card.unit.tokens', '1m tokens': 'card.unit.mtokens',
-    second: 'card.unit.second', seconds: 'card.unit.second', image: 'card.unit.image',
-    video: 'card.unit.video', megapixel: 'card.unit.megapixel', hour: 'card.unit.hour',
-    hours: 'card.unit.hour', '1k characters': 'card.unit.kchars', '1k chars': 'card.unit.kchars',
-    year: 'card.unit.year', day: 'card.unit.day', request: 'card.unit.request', usage: 'card.unit.usage',
-  };
   const usage = product.pricing?.model === 'usage';
+  const unitLabel = usageUnitLabelText(product.pricing?.usageUnitLabel, language);
   const quoted = readServerVnd(listedVndQuote(product));
   const compareQuoted = readServerVnd(product.pricingVnd?.compareAtPrice);
   const rawAmount = usage ? Number(product.pricing?.usageRate) || 0 : Number(product.pricing?.price) || 0;
@@ -37,7 +30,7 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
   const baseCore = language === 'vi'
     ? (quoted.ok ? formatMoney(quoted.amountVnd, 'VND') : t(quoted.code === 'AMOUNT_BELOW_VND_PRECISION' ? 'price.belowDong' : 'price.vndUnavailable'))
     : formatMoney(rawAmount, rawCurrency);
-  const basePrice = usage ? `${baseCore}${t(usageUnitKey[usageUnit] || 'card.unit.usage')}` : baseCore;
+  const basePrice = usage && unitLabel ? `${baseCore} / ${unitLabel}` : baseCore;
   const priceLabel = content ? t('license.from', { price: basePrice }) : basePrice;
   const sale = productSale(product);
   const seller = product.sellerName || product.creatorName || product.category;
