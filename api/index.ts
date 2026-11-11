@@ -188,6 +188,8 @@ export const billingApi = {
     couponCode?: string,
     /** Same key on a retry = same order; the API never charges the wallet twice. */
     idempotencyKey?: string,
+    /** Integer from a server quote. Omitted only when this app has no verified quote. */
+    amountVnd?: number,
   ) =>
     apiClient.request<CheckoutResult>('/billing/checkout', {
       method: 'POST',
@@ -201,6 +203,7 @@ export const billingApi = {
         couponCode,
         // Last-click referral kept by affiliateClickStore; the API checks window and self-referral.
         affiliateClickId: await affiliateClickStore.current(),
+        ...(Number.isSafeInteger(amountVnd) ? { amountVnd } : {}),
       },
     }),
 };
@@ -244,6 +247,9 @@ export const walletApi = {
     signedTransaction?: string;
     packageName?: string;
   }) => apiClient.post<{ success: boolean; duplicate?: boolean; wallet?: WalletTx }>('/iap/verify', body),
+  /** Uses the Exchange Rate API source already configured on the server. */
+  exchangeQuote: (amount: number, currency: string) =>
+    apiClient.get<import('@/lib/vndDisplay').ServerVndQuote>(`/exchange-rates/quote${qs({ amount, currency })}`),
   bankTransferConfig: () => apiClient.get<{
     enabled: boolean;
     bankName: string;

@@ -12,7 +12,7 @@ import {
   parseAffiliateVndInput,
   quoteAffiliateWithdraw,
 } from '@/lib/affiliateWithdraw';
-import { affiliateIdentityReady, affiliateServerWindow, commissionViewState, ownPitSummary, payoutRequestIsTransfer } from '@/lib/affiliateProcess';
+import { affiliateIdentityReady, affiliateLinkGate, affiliateServerWindow, commissionViewState, ownPitSummary, payoutRequestIsTransfer } from '@/lib/affiliateProcess';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, useT } from '@/hooks/useT';
 import { Screen } from '@/components/ui/Screen';
@@ -124,10 +124,16 @@ export default function AffiliateScreen() {
       return;
     }
     setBusy(true);
+    const gate = affiliateLinkGate({ kycStatus: s?.kycStatus, code: s?.code, linkReady: s?.linkReady });
+    if (!gate.canCreateLink) {
+      Alert.alert('', t(gate.code === 'KYC_REQUIRED' ? 'aff.kycNotice' : 'aff.err.ELECTRONIC_IDENTITY_NOT_IMPLEMENTED'));
+      return;
+    }
     try {
       setLink(await affiliateApi.link(parsed));
     } catch (err) {
-      Alert.alert('', getErrorMessage(err, language));
+      const code = err instanceof ApiError ? err.code : '';
+      Alert.alert('', code === 'ELECTRONIC_IDENTITY_NOT_IMPLEMENTED' ? t('aff.err.ELECTRONIC_IDENTITY_NOT_IMPLEMENTED') : getErrorMessage(err, language));
     } finally {
       setBusy(false);
     }
@@ -197,7 +203,7 @@ export default function AffiliateScreen() {
             </Text>
           ) : null}
 
-          {s.kycRequired ? null : (
+          {affiliateLinkGate({ kycStatus: s.kycStatus, code: s.code, linkReady: s.linkReady }).canCreateLink ? (
           <View style={[styles.card, { borderColor: colors.border }]}>
             <Text style={[styles.h, { color: colors.text }]}>{t('aff.linkTitle')}</Text>
             <Text style={[muted, { marginBottom: 8 }]}>{t('aff.linkHint')}</Text>
@@ -221,7 +227,9 @@ export default function AffiliateScreen() {
               </View>
             ) : null}
           </View>
-          )}
+          ) : affiliateLinkGate({ kycStatus: s.kycStatus, code: s.code, linkReady: s.linkReady }).code === 'ELECTRONIC_IDENTITY_NOT_IMPLEMENTED' ? (
+            <Text style={[muted, { marginBottom: 12, lineHeight: 20 }]}>{t('aff.err.ELECTRONIC_IDENTITY_NOT_IMPLEMENTED')}</Text>
+          ) : null}
 
           {w ? (
             <View style={[styles.card, { borderColor: colors.border }]}>

@@ -142,6 +142,20 @@ export interface Product {
   coverUrl?: string;
   gallery?: string[];
   pricing?: ProductPricing;
+  /** Server VND quote. `pricing` stays the ledger amount and currency. */
+  pricingVnd?: {
+    ledgerCurrency?: string;
+    clientRateIgnored?: boolean;
+    price?: import('@/lib/vndDisplay').ServerVndQuote | null;
+    compareAtPrice?: import('@/lib/vndDisplay').ServerVndQuote | null;
+    usageRate?: import('@/lib/vndDisplay').ServerVndQuote | null;
+  } | null;
+  sectorQualification?: {
+    status?: string;
+    sector?: string | null;
+    qualified?: boolean;
+    evidenceRequired?: boolean;
+  } | null;
   rating?: number;
   reviewCount?: number;
   salesCount?: number;
@@ -306,6 +320,8 @@ export interface CheckoutResult {
   status: string;
   amount?: number;
   currency?: string;
+  /** Server quote of the amount actually debited. */
+  amountVnd?: import('@/lib/vndDisplay').ServerVndQuote | null;
   balance?: number;
   orderId?: string;
   taxAmount?: number;
@@ -463,6 +479,13 @@ export interface WalletSummary {
   buyerCashoutAllowed?: boolean;
   prepaidWithdrawable?: boolean;
   buyerDepositWithdraw?: BuyerDepositWithdraw;
+  /** Server VND of the USD ledger. `currency` stays the ledger currency. */
+  displayVnd?: {
+    ledgerCurrency?: string;
+    clientRateIgnored?: boolean;
+    balance?: import('@/lib/vndDisplay').ServerVndQuote | null;
+    available?: import('@/lib/vndDisplay').ServerVndQuote | null;
+  } | null;
   policy?: PayoutPolicy;
   holds?: Array<{
     orderId: string;

@@ -14,7 +14,8 @@ import { agentForHireSlug, agentGatewayKey } from '@/constants/agents';
 import { useAgentLaunch } from '@/hooks/useAgentGateway';
 import { useRecentStore } from '@/stores/recentStore';
 import { useCart } from '@/hooks/useCart';
-import { productPrice, availableLicenseTerms, licenseUnitPrice, formatMoney } from '@/utils/format';
+import { availableLicenseTerms, licenseUnitPrice, formatMoney } from '@/utils/format';
+import { serverVndInteger, listedVndQuote } from '@/lib/vndDisplay';
 import { Badge } from '@/components/ui/Badge';
 import { Rating } from '@/components/ui/Rating';
 import { Button } from '@/components/ui/Button';
@@ -192,6 +193,10 @@ export default function ProductScreen() {
       const link = await affiliateApi.link({ productSlug: p.slug });
       await Share.share({ message: `${p.name} — ${link.url}`, url: link.url });
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'ELECTRONIC_IDENTITY_NOT_IMPLEMENTED') {
+        Alert.alert('', t('aff.err.ELECTRONIC_IDENTITY_NOT_IMPLEMENTED'));
+        return;
+      }
       if (err instanceof ApiError && err.code === 'KYC_REQUIRED') {
         Alert.alert('', t('aff.kycNotice'), [
           { text: t('common.cancel'), style: 'cancel' },
@@ -207,9 +212,11 @@ export default function ProductScreen() {
   const terms = licensed ? availableLicenseTerms(p) : [];
   const selectedTerm = terms.includes(licenseTerm) ? licenseTerm : terms[0] || 'month';
   const episodeCount = Number(p.contentMeta?.episodeCount) || 0;
-  const priceLabel = licensed
-    ? `${formatMoney(licenseUnitPrice(p, selectedTerm), p.pricing?.currency || 'USD')} / ${t(`license.term.${selectedTerm}`)}`
-    : productPrice(p);
+  const listedDong = serverVndInteger(listedVndQuote(p));
+  const priceCore = language === 'vi'
+    ? (listedDong == null ? t('price.vndUnavailable') : formatMoney(listedDong, 'VND'))
+    : formatMoney(licensed ? licenseUnitPrice(p, selectedTerm) : (p.pricing?.model === 'usage' ? Number(p.pricing?.usageRate) || 0 : Number(p.pricing?.price) || 0), p.pricing?.currency || 'USD');
+  const priceLabel = licensed ? `${priceCore} / ${t(`license.term.${selectedTerm}`)}` : priceCore;
   const activeLicense = findActiveLicense(myLicenses.data, p.id);
   const expiredLicense = !activeLicense && !!findExpiredLicense(myLicenses.data, p.id);
   const paidOrder = findPaidOrder(myOrders.data, p.id);

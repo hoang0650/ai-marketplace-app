@@ -49,6 +49,10 @@ export type AffiliateStats = {
   kycStatus: string;
   kycRequired?: boolean;
   linkReady?: boolean;
+  /** Present on the newer affiliate payload. Older payloads omit it. */
+  codeIssuance?: string;
+  electronicIdentityStatus?: string;
+  electronicIdentitySatisfied?: boolean;
   payoutReady: boolean;
   clicks: number;
   orders: number;

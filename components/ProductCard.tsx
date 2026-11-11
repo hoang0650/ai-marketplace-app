@@ -5,7 +5,8 @@ import { useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import type { Product } from '@/api/types';
 import { useT, useTheme } from '@/hooks/useT';
-import { formatMoney, productPrice, productSale } from '@/utils/format';
+import { formatMoney, productSale } from '@/utils/format';
+import { listedVndQuote, readServerVnd } from '@/lib/vndDisplay';
 import { Rating } from '@/components/ui/Rating';
 import { Badge } from '@/components/ui/Badge';
 import { AnalyticsService } from '@/lib/analytics';
@@ -15,7 +16,7 @@ import { WishButton } from '@/components/content/WishButton';
 export const ProductCard = React.memo(function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
   const { colors } = useTheme();
-  const { t } = useT();
+  const { t, language } = useT();
   const [failedCoverUrl, setFailedCoverUrl] = useState('');
   const content = isContentCategory(product.category);
   const episodes = Number(product.contentMeta?.episodeCount) || 0;
@@ -28,9 +29,15 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
     hours: 'card.unit.hour', '1k characters': 'card.unit.kchars', '1k chars': 'card.unit.kchars',
     year: 'card.unit.year', day: 'card.unit.day', request: 'card.unit.request', usage: 'card.unit.usage',
   };
-  const basePrice = product.pricing?.model === 'usage'
-    ? `${formatMoney(Number(product.pricing.usageRate) || 0, product.pricing.currency || 'USD')}${t(usageUnitKey[usageUnit] || 'card.unit.usage')}`
-    : productPrice(product);
+  const usage = product.pricing?.model === 'usage';
+  const quoted = readServerVnd(listedVndQuote(product));
+  const compareQuoted = readServerVnd(product.pricingVnd?.compareAtPrice);
+  const rawAmount = usage ? Number(product.pricing?.usageRate) || 0 : Number(product.pricing?.price) || 0;
+  const rawCurrency = product.pricing?.currency || 'USD';
+  const baseCore = language === 'vi'
+    ? (quoted.ok ? formatMoney(quoted.amountVnd, 'VND') : t(quoted.code === 'AMOUNT_BELOW_VND_PRECISION' ? 'price.belowDong' : 'price.vndUnavailable'))
+    : formatMoney(rawAmount, rawCurrency);
+  const basePrice = usage ? `${baseCore}${t(usageUnitKey[usageUnit] || 'card.unit.usage')}` : baseCore;
   const priceLabel = content ? t('license.from', { price: basePrice }) : basePrice;
   const sale = productSale(product);
   const seller = product.sellerName || product.creatorName || product.category;
@@ -68,6 +75,9 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
       <View style={styles.body}>
         <Text style={[styles.cat, { color: colors.tint }]} numberOfLines={1}>
           {categoryLabel(product.category, t, product.category)}
+          {product.sectorQualification?.status === 'draft_unverified' && product.sectorQualification.qualified === false
+            ? ` · ${t('cat.draft.short')}`
+            : ''}
         </Text>
         <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>
           {product.name}
@@ -85,7 +95,11 @@ export const ProductCard = React.memo(function ProductCard({ product }: { produc
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
           {sale.onSale ? (
-            <Text style={[styles.price, { color: colors.textSecondary, textDecorationLine: 'line-through', fontWeight: '600' }]}>{sale.was}</Text>
+            <Text style={[styles.price, { color: colors.textSecondary, textDecorationLine: 'line-through', fontWeight: '600' }]}>
+              {language === 'vi'
+                ? (compareQuoted.ok ? formatMoney(compareQuoted.amountVnd, 'VND') : t('price.vndUnavailable'))
+                : sale.was}
+            </Text>
           ) : null}
           <Text style={[styles.price, { color: colors.text }]}>{priceLabel}</Text>
         </View>

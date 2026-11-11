@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import {
   affiliateClawbackDecision,
   affiliateIdentityReady,
+  affiliateLinkGate,
   affiliateServerWindow,
   commissionViewState,
   ownPitSummary,
@@ -18,6 +19,21 @@ function messageValue(source: string, key: string): string {
 }
 
 describe('affiliate process against the live contract', () => {
+  it('issues no new affiliate code and still allows an existing code', () => {
+    assert.deepEqual(affiliateLinkGate({ kycStatus: 'pending', code: null }), {
+      canCreateLink: false,
+      code: 'KYC_REQUIRED',
+    });
+    assert.deepEqual(affiliateLinkGate({ kycStatus: 'verified', code: null, linkReady: false }), {
+      canCreateLink: false,
+      code: 'ELECTRONIC_IDENTITY_NOT_IMPLEMENTED',
+    });
+    assert.deepEqual(affiliateLinkGate({ kycStatus: 'verified', code: 'AB12CD', linkReady: true }), {
+      canCreateLink: true,
+      code: 'ok',
+    });
+  });
+
   it('keeps affiliate identity separate from a supplier tax review', () => {
     const pending = affiliateIdentityReady({ kycStatus: 'pending', manualTaxReviewStatus: 'approved' });
     assert.equal(pending.electronicIdentityVerified, false);

@@ -54,6 +54,23 @@ export function payoutRequestIsTransfer(): false {
   return false;
 }
 
+/**
+ * New codes are not minted: the server answers 403 ELECTRONIC_IDENTITY_NOT_IMPLEMENTED.
+ * An existing code plus internal eKYC can still create a link. A missing code on an
+ * older payload is not treated as a completed electronic identity.
+ */
+export function affiliateLinkGate(input: {
+  kycStatus?: string | null;
+  code?: string | null;
+  linkReady?: boolean | null;
+}): { canCreateLink: boolean; code: 'ok' | 'KYC_REQUIRED' | 'ELECTRONIC_IDENTITY_NOT_IMPLEMENTED' } {
+  const kyc = String(input.kycStatus || 'none');
+  if (kyc !== 'verified') return { canCreateLink: false, code: 'KYC_REQUIRED' };
+  const hasCode = typeof input.code === 'string' && input.code.trim().length > 0;
+  if (input.linkReady === true || hasCode) return { canCreateLink: true, code: 'ok' };
+  return { canCreateLink: false, code: 'ELECTRONIC_IDENTITY_NOT_IMPLEMENTED' };
+}
+
 export function affiliateClawbackDecision(input: {
   actorRole?: string | null;
   orderId?: string | null;

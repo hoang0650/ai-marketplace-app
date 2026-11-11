@@ -215,6 +215,7 @@ describe('GPay direct work and closed checkout', () => {
       { status: 'GPAY_REMOVED', removed: true },
       { code: 'GPAY_REMOVED', featureEnabled: true },
       { status: 'ready', contractExecuted: true, enabled: true },
+      { code: 'GPAY_NOT_ACTIVATED', enabled: false, removed: false },
     ]) {
       assert.equal(gpayMayActivate(input), false);
     }
