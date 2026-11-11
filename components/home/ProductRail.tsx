@@ -4,14 +4,16 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { href } from '@/lib/href';
 import type { Product } from '@/api/types';
-import { useTheme } from '@/hooks/useT';
-import { productPrice, productSale } from '@/utils/format';
+import { useTheme, useT } from '@/hooks/useT';
+import { formatMoney, productSale } from '@/utils/format';
+import { listedVndQuote, serverVndInteger } from '@/lib/vndDisplay';
 import { AnalyticsService } from '@/lib/analytics';
 import { isBlockedProduct, useBlockStore } from '@/stores/blockStore';
 
 export function ProductRail({ items }: { items: Product[] }) {
   const router = useRouter();
   const { colors } = useTheme();
+  const { t, language } = useT();
   const blockedEntries = useBlockStore((s) => s.entries);
   const visible = items.filter((product) => !isBlockedProduct(product, blockedEntries));
 
@@ -53,7 +55,13 @@ export function ProductRail({ items }: { items: Product[] }) {
               <Text style={[styles.name, { color: colors.text }]} numberOfLines={2}>
                 {product.name}
               </Text>
-              <Text style={[styles.price, { color: colors.text }]}>{productPrice(product)}</Text>
+              <Text style={[styles.price, { color: colors.text }]}>
+                {language === 'vi'
+                  ? (serverVndInteger(listedVndQuote(product)) == null
+                    ? t('price.vndUnavailable')
+                    : formatMoney(serverVndInteger(listedVndQuote(product)) as number, 'VND'))
+                  : formatMoney(Number(product.pricing?.price) || 0, product.pricing?.currency || 'USD')}
+              </Text>
               {sale.onSale ? (
                 <Text style={{ color: colors.textSecondary, fontSize: 11, textDecorationLine: 'line-through' }}>{sale.was}</Text>
               ) : null}

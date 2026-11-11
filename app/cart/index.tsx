@@ -10,13 +10,14 @@ import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
-import { productPrice } from '@/utils/format';
+import { formatMoney } from '@/utils/format';
+import { serverVndInteger, listedVndQuote } from '@/lib/vndDisplay';
 import { isComputeStreamCategory } from '@/constants/categories';
 
 export default function CartScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { t } = useT();
+  const { t, language } = useT();
   const { lines, setQty, remove, isAuthenticated, isLoading, isFetching, refetch } = useCart();
 
   if (!isAuthenticated) {
@@ -68,7 +69,13 @@ export default function CartScreen() {
                   {item.product.name}
                 </Text>
               </Pressable>
-              <Text style={{ color: colors.text, fontWeight: '800', marginTop: 6 }}>{productPrice(item.product)}</Text>
+              <Text style={{ color: colors.text, fontWeight: '800', marginTop: 6 }}>
+                {language === 'vi'
+                  ? (serverVndInteger(listedVndQuote(item.product)) == null
+                    ? t('price.vndUnavailable')
+                    : formatMoney(serverVndInteger(listedVndQuote(item.product)) as number, 'VND'))
+                  : formatMoney(Number(item.product.pricing?.price) || 0, item.product.pricing?.currency || 'USD')}
+              </Text>
               {isComputeStreamCategory(item.product.category) ? (
                 <Pressable onPress={() => remove(item.product.id)} hitSlop={8} style={{ marginTop: 10 }}>
                   <Text style={{ color: colors.danger, fontWeight: '700' }}>{t('cart.remove')}</Text>

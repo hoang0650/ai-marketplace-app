@@ -63,6 +63,19 @@ export function isHiddenCategory(id?: string | null) {
   return HIDDEN_CATEGORIES.has(String(id || ''));
 }
 
+/** Categories the server keeps listed with sectorQualification draft_unverified, qualified false. */
+export const SECTOR_DRAFT_CATEGORY_IDS: ReadonlySet<string> = new Set([
+  'ai-film-series',
+  'story-book',
+  'voice-clone',
+  'voice-preset',
+  'gpu-compute',
+]);
+
+export function isSectorDraftCategory(id?: string | null) {
+  return SECTOR_DRAFT_CATEGORY_IDS.has(String(id || ''));
+}
+
 export function withoutHiddenProducts<T extends { category?: string }>(items: T[] | null | undefined): T[] {
   return (items || []).filter((p) => !isHiddenCategory(p.category));
 }

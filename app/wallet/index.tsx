@@ -17,6 +17,7 @@ import { IapTopup } from '@/components/wallet/IapTopup';
 import { BankTransferInfo } from '@/components/wallet/BankTransferInfo';
 import { displayFont } from '@/constants/fonts';
 import { formatMoney, formatDate } from '@/utils/format';
+import { readServerVnd } from '@/lib/vndDisplay';
 import { getErrorMessage } from '@/lib/errors';
 import { isAffiliatePayoutPersona } from '@/lib/affiliateWithdraw';
 import { payoutPersonaNeedsEkyc, resolvePayoutWithdraw } from '@/lib/buyerIdentity';
@@ -74,6 +75,10 @@ export default function WalletScreen() {
   if (!isAuthenticated) return <LoginPrompt />;
   const s = summary.data;
   const cur = s?.currency || 'USD';
+  const availableVnd = readServerVnd(s?.displayVnd?.available);
+  const headline = language === 'vi'
+    ? (availableVnd.ok ? formatMoney(availableVnd.amountVnd, 'VND') : t('price.vndUnavailable'))
+    : formatMoney(s?.available ?? 0, cur);
 
   return (
     <Screen padded={false}>
@@ -87,8 +92,11 @@ export default function WalletScreen() {
         <LinearGradient colors={['#111111', '#2a2520']} style={{ borderRadius: 18, padding: 20, marginTop: 18 }}>
           {/* Same headline number as the web (/wallet/summary.available): what you can spend now. */}
           <Text style={{ color: 'rgba(245,240,232,0.7)', fontSize: 11, fontWeight: '700' }}>{t('wallet.availableBalance')}</Text>
-          <Text style={{ color: '#c9a961', fontSize: 34, fontWeight: '800', marginTop: 6 }}>{formatMoney(s?.available ?? 0, cur)}</Text>
-          {s && s.held > 0 ? (
+          <Text style={{ color: '#c9a961', fontSize: 34, fontWeight: '800', marginTop: 6 }}>{headline}</Text>
+          {language === 'vi' ? (
+            <Text style={{ color: 'rgba(245,240,232,0.72)', marginTop: 8, fontSize: 12, lineHeight: 18 }}>{t('price.vndNote')}</Text>
+          ) : null}
+          {s && s.held > 0 && language !== 'vi' ? (
             <Text style={{ color: 'rgba(245,240,232,0.72)', marginTop: 8, fontSize: 13 }}>
               {t('wallet.balance')}: {formatMoney(s.balance, cur)} · {t('wallet.held')}: {formatMoney(s.held, cur)}
             </Text>

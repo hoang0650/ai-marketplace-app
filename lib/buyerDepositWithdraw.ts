@@ -3,7 +3,9 @@
  * The server must return `buyerDepositWithdraw`. A missing or stale summary
  * does not fall back to the pooled wallet balance, and `payableUsd` is only
  * a foreign-exchange reference. It is never submitted.
- * App Store, Google Play, removed GPay and unknown deposits are not cashed out.
+ * App Store, Google Play, GPay and unknown deposits are not cashed out.
+ * The project service contract with GPay is not executed, so a GPay status
+ * does not open this withdrawal.
  * A manual supplier-tax review is not an electronic-identity status.
  * The server compares the payout-account holder with eKYC. This module does not.
  */

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, ActivityIndicator, Platform, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { href } from '@/lib/href';
@@ -13,8 +13,10 @@ import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Input';
-import { availableLicenseTerms, formatDate, formatMoney, licenseUnitPrice, productPrice } from '@/utils/format';
-import { getErrorMessage } from '@/lib/errors';
+import { availableLicenseTerms, formatDate, formatMoney, licenseUnitPrice } from '@/utils/format';
+import { getErrorMessage, ApiError } from '@/lib/errors';
+import { useLedgerQuote } from '@/hooks/useLedgerQuote';
+import { ledgerPayableAmount, readServerVnd } from '@/lib/vndDisplay';
 import { AnalyticsService } from '@/lib/analytics';
 import { playSound } from '@/services/sound';
 import { LoginPrompt } from '@/components/ui/LoginPrompt';
@@ -34,6 +36,7 @@ export default function CheckoutScreen() {
   const [doneId, setDoneId] = useState('');
   const [issued, setIssued] = useState<IssuedLicense | null>(null);
   const [alreadyOwned, setAlreadyOwned] = useState(false);
+  const [receiptVnd, setReceiptVnd] = useState<number | null>(null);
   const product = useQuery({
     queryKey: ['product-by-id', id],
     queryFn: async () => {
@@ -57,15 +60,21 @@ export default function CheckoutScreen() {
   const activeLicense = p ? findActiveLicense(licenses.data, p.id) : undefined;
   const paidOrder = p ? findPaidOrder(orders.data, p.id) : undefined;
   const owned = licensed ? !!activeLicense : !!paidOrder;
-  const priceLabel = useMemo(() => {
-    if (!p) return '';
-    if (licensed) {
-      const amount = licenseUnitPrice(p, selected);
-      const label = `${formatMoney(amount, p.pricing?.currency || 'USD')} / ${t(`license.term.${selected}`)}`;
-      return qty > 1 ? `${label} × ${qty}` : label;
-    }
-    return qty > 1 ? `${productPrice(p)} × ${qty}` : productPrice(p);
-  }, [p, licensed, selected, t, qty]);
+  const chargeQty = licensed ? 1 : qty;
+  const unit = p ? (licensed ? licenseUnitPrice(p, selected) : Number(p.pricing?.price) || 0) : 0;
+  const ledgerCurrency = preview?.currency || p?.pricing?.currency || 'USD';
+  const ledgerPayable = preview ? Number(preview.total) : ledgerPayableAmount(unit, chargeQty);
+  const embed = !preview && chargeQty === 1 && Math.round(unit * 100) === Math.round((Number(p?.pricing?.price) || 0) * 100)
+    ? p?.pricingVnd?.price
+    : null;
+  const embedded = readServerVnd(embed);
+  const remote = useLedgerQuote(embedded.ok ? null : ledgerPayable, ledgerCurrency, !!p && !embedded.ok);
+  const verified = embedded.ok ? embedded : readServerVnd(remote.data);
+  const priceLabel = !p
+    ? ''
+    : language === 'vi'
+      ? (verified.ok ? `${formatMoney(verified.amountVnd, 'VND')}${licensed ? ` / ${t(`license.term.${selected}`)}` : ''}` : t(verified.code === 'AMOUNT_BELOW_VND_PRECISION' ? 'price.belowDong' : 'price.vndUnavailable'))
+      : `${formatMoney(ledgerPayable, ledgerCurrency)}${licensed ? ` / ${t(`license.term.${selected}`)}` : ''}`;
 
   useEffect(() => {
     setPreview(null);
@@ -95,6 +104,7 @@ export default function CheckoutScreen() {
     mutationFn: () => {
       const intent = `${id}|${qty}|${licensed ? selected : ''}|${couponCode.trim()}`;
       if (!payKey.current || payKey.current.intent !== intent) payKey.current = { intent, key: newIdempotencyKey('chk') };
+      if (language === 'vi' && !verified.ok) return Promise.reject(new Error(verified.code));
       return billingApi.checkout(
         String(id),
         qty,
@@ -102,6 +112,7 @@ export default function CheckoutScreen() {
         Platform.OS === 'ios' ? 'APP_STORE' : Platform.OS === 'android' ? 'GOOGLE_PLAY' : 'WEB',
         couponCode.trim() || undefined,
         payKey.current.key,
+        language === 'vi' && verified.ok ? verified.amountVnd : undefined,
       );
     },
     onSuccess: (res) => {
@@ -118,9 +129,16 @@ export default function CheckoutScreen() {
       if (cart.has(String(id))) cart.remove(String(id));
       setIssued(res.license || activeLicense || null);
       setAlreadyOwned(skipCharge);
+      const receipt = readServerVnd(res.amountVnd);
+      setReceiptVnd(receipt.ok ? receipt.amountVnd : null);
       setDoneId(res.orderId || paidOrder?.id || 'owned');
     },
-    onError: (e: Error) => Alert.alert('AI Markets', getErrorMessage(e, language)),
+    onError: (e: Error) => {
+      const code = e instanceof ApiError ? e.code : e.message;
+      const key = `price.err.${code}`;
+      const translated = t(key);
+      Alert.alert('AI Markets', translated !== key ? translated : getErrorMessage(e, language));
+    },
   });
 
   if (!isAuthenticated) return <LoginPrompt />;
@@ -138,8 +156,11 @@ export default function CheckoutScreen() {
         <Text style={{ color: colors.text, fontSize: 24, fontWeight: '700', marginTop: 24 }}>
           {alreadyOwned || owned ? t('checkout.alreadyOwned') : t('checkout.success')}
         </Text>
-        {doneId && doneId !== 'owned' ? (
+          {doneId && doneId !== 'owned' ? (
           <Text style={{ color: colors.textSecondary, marginTop: 8 }}>#{doneId}</Text>
+          ) : null}
+          {receiptVnd != null ? (
+          <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('price.receipt', { amount: formatMoney(receiptVnd, 'VND') })}</Text>
         ) : paidOrder?.id ? (
           <Text style={{ color: colors.textSecondary, marginTop: 8 }}>#{paidOrder.id}</Text>
         ) : null}
@@ -191,7 +212,7 @@ export default function CheckoutScreen() {
               {terms.map((item) => (
                 <Chip
                   key={item}
-                  label={`${t(`license.term.${item}`)} · ${formatMoney(licenseUnitPrice(p, item), p.pricing?.currency || 'USD')}`}
+                  label={language === 'vi' ? t(`license.term.${item}`) : `${t(`license.term.${item}`)} · ${formatMoney(licenseUnitPrice(p, item), p.pricing?.currency || 'USD')}`}
                   active={selected === item}
                   onPress={() => setTerm(item)}
                 />
@@ -199,6 +220,7 @@ export default function CheckoutScreen() {
             </View>
           ) : null}
           <Text style={{ color: colors.text, fontWeight: '800', marginTop: 12 }}>{priceLabel}</Text>
+          {language === 'vi' ? <Text style={{ color: colors.textSecondary, marginTop: 6, lineHeight: 18 }}>{t('price.vndNote')}</Text> : null}
           <Input
             label={t('checkout.coupon')}
             value={couponCode}
@@ -239,7 +261,7 @@ export default function CheckoutScreen() {
                 : t('checkout.pay')
         }
         loading={pay.isPending}
-        disabled={pay.isPending}
+        disabled={pay.isPending || (language === 'vi' && !verified.ok)}
         onPress={() => {
           if (pay.isPending) return;
           AnalyticsService.track('payment_started');
