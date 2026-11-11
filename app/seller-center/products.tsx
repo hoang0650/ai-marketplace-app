@@ -9,6 +9,8 @@ import { Screen } from '@/components/ui/Screen';
 import { Chip } from '@/components/ui/Chip';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { getErrorMessage } from '@/lib/errors';
+import { UsageUnitPicker } from '@/components/seller/UsageUnitPicker';
+import { ServicePackageEditor } from '@/components/seller/ServicePackageEditor';
 
 const TABS = ['all', 'active', 'pending', 'draft'] as const;
 const KINDS: ProductKind[] = ['DIGITAL', 'PHYSICAL'];
@@ -73,6 +75,8 @@ export default function SellerProductsScreen() {
                   <Text style={{ color: colors.textSecondary, fontSize: 11 }}>({t('productKind.defaulted')})</Text>
                 ) : null}
               </View>
+              <UsageUnitPicker product={item} />
+              <ServicePackageEditor product={item} />
             </View>
           );
         }}

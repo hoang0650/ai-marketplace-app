@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { playgroundApi, walletApi } from '@/api';
+import { ApiError } from '@/lib/errors';
 import type { PlaygroundRunResult, Product } from '@/api/types';
 import {
   buildRunpodInput,
@@ -230,7 +231,7 @@ export function usePlayground(product: Product, isAuthenticated = false) {
     },
     onError: (err) => {
       setRunStatus('error');
-      setErrorText(err instanceof Error ? err.message : String(err));
+      setErrorText(err instanceof ApiError && err.code === 'ENTITLEMENT_REQUIRED' ? 'ENTITLEMENT_REQUIRED' : err instanceof Error ? err.message : String(err));
       setLogs((prev) => [
         { id: `${Date.now()}`, at: new Date().toISOString(), status: 'FAILED', input: runpodInput() },
         ...prev,

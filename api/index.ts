@@ -346,6 +346,14 @@ export const dashboardApi = {
 export const usageApi = {
   list: () => apiClient.get<unknown[]>('/usage'),
   me: (limit = 100) => apiClient.get<BuyerUsageFeed>(`/usage/me?limit=${limit}`),
+  units: () => apiClient.get<import('@/lib/usageUnits').UsageUnitCatalog>('/usage/units'),
+  access: (productId: string) =>
+    apiClient.get<{ active: boolean; expiresAt: string | null; unit: string | null }>(`/usage/access${qs({ productId })}`),
+  buyAccess: (productId: string) =>
+    apiClient.post<{ orderId: string; amount: number; currency: string; unit: string; period: string; startsAt: string; expiresAt: string }>(
+      '/usage/access',
+      { productId },
+    ),
 };
 
 export const licensesApi = {
@@ -574,9 +582,20 @@ export const hireApi = {
   revision: (id: string, note: string) => apiClient.post<HireProject>(`/hire/projects/${id}/revision`, { note }),
   terminate: (id: string, reason: HireTerminateReason, note: string) =>
     apiClient.post<HireProject>(`/hire/projects/${id}/terminate`, { reason, note }),
-  /** Fixed-price service package split into phases; charged per phase only on approval. */
-  startPackage: (productId: string, brief?: string) =>
-    apiClient.post<HireProject & { existing?: boolean }>('/hire/packages', { productId, brief }),
+  /**
+   * Fixed-price service package. `staged` charges each phase when the buyer accepts it.
+   * `prepaid` debits the wallet into escrow now and credits the seller only on acceptance.
+   */
+  startPackage: (
+    productId: string,
+    body?: { packageCode?: string; paymentChoice?: 'staged' | 'prepaid'; brief?: string },
+  ) =>
+    apiClient.post<HireProject & { existing?: boolean }>('/hire/packages', {
+      productId,
+      ...(body?.packageCode ? { packageCode: body.packageCode } : {}),
+      ...(body?.paymentChoice ? { paymentChoice: body.paymentChoice } : {}),
+      ...(body?.brief ? { brief: body.brief } : {}),
+    }),
   message: (id: string, body: string, attachmentIds?: string[]) =>
     apiClient.post<HireProject>(`/hire/projects/${id}/messages`, { body, ...(attachmentIds?.length ? { attachmentIds } : {}) }),
   complain: (id: string, note: string) => apiClient.post<HireProject>(`/hire/projects/${id}/complaint`, { note }),

@@ -16,6 +16,7 @@ import { useRecentStore } from '@/stores/recentStore';
 import { useCart } from '@/hooks/useCart';
 import { availableLicenseTerms, licenseUnitPrice, formatMoney } from '@/utils/format';
 import { serverVndInteger, listedVndQuote } from '@/lib/vndDisplay';
+import { isAccessListing, usageUnitLabelText } from '@/lib/usageUnits';
 import { Badge } from '@/components/ui/Badge';
 import { Rating } from '@/components/ui/Rating';
 import { Button } from '@/components/ui/Button';
@@ -48,6 +49,8 @@ import {
 import { HIRE_QUOTE_FLOW_ENABLED } from '@/constants/features';
 import { displayFont } from '@/constants/fonts';
 import { Chip } from '@/components/ui/Chip';
+import { ServicePackagePicker } from '@/components/hire/ServicePackagePicker';
+import { UsageAccessCard } from '@/components/usage/UsageAccessCard';
 import type { ContentUnlock, LicenseTerm, StreamDevice } from '@/api/types';
 import { ApiError, getErrorMessage } from '@/lib/errors';
 import { affiliateApi, ratePct } from '@/api/affiliate';
@@ -216,7 +219,12 @@ export default function ProductScreen() {
   const priceCore = language === 'vi'
     ? (listedDong == null ? t('price.vndUnavailable') : formatMoney(listedDong, 'VND'))
     : formatMoney(licensed ? licenseUnitPrice(p, selectedTerm) : (p.pricing?.model === 'usage' ? Number(p.pricing?.usageRate) || 0 : Number(p.pricing?.price) || 0), p.pricing?.currency || 'USD');
-  const priceLabel = licensed ? `${priceCore} / ${t(`license.term.${selectedTerm}`)}` : priceCore;
+  const unitLabel = language === 'vi' && listedDong == null ? null : usageUnitLabelText(p.pricing?.usageUnitLabel, language);
+  const priceLabel = licensed
+    ? `${priceCore} / ${t(`license.term.${selectedTerm}`)}`
+    : unitLabel
+      ? `${priceCore} / ${unitLabel}`
+      : priceCore;
   const activeLicense = findActiveLicense(myLicenses.data, p.id);
   const expiredLicense = !activeLicense && !!findExpiredLicense(myLicenses.data, p.id);
   const paidOrder = findPaidOrder(myOrders.data, p.id);
@@ -453,6 +461,11 @@ export default function ProductScreen() {
     }
     // Professional services: open the phase workspace (Đề án / Quy chế) — paid per approved phase.
     if (isHireRequestCategory(p.category) && !isOwner) {
+      const packages = p.servicePackages || [];
+      if (p.category === 'hire-photographer' || packages.length > 0) {
+        scrollRef.current?.scrollTo({ y: Math.max(0, hireOffset.current - 12), animated: true });
+        return;
+      }
       void hireApi
         .startPackage(p.id)
         .then((proj) => router.push(href(`/hire/${proj.id}${proj.existing ? '' : '?started=1'}`)))
@@ -563,6 +576,14 @@ export default function ProductScreen() {
             </View>
           ) : null}
           <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', marginTop: 12 }}>{hasAccess ? t('product.owned') : priceLabel}</Text>
+          {isHireRequestCategory(p.category) && !isOwner ? (
+            <View onLayout={(e) => { hireOffset.current = styles.cover.height + e.nativeEvent.layout.y; }}>
+              <ServicePackagePicker product={p} />
+            </View>
+          ) : null}
+          {isAccessListing(p.pricing) && !isOwner ? (
+            <UsageAccessCard product={p} />
+          ) : null}
           {hasAccess ? (
             <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 20 }}>
               {t(isDownloadLicenseCategory(p.category) ? 'download.ownedHint' : 'product.ownedHint')}

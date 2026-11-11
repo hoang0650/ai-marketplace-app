@@ -10,8 +10,10 @@ import { isVoiceCategory } from '@/constants/categories';
 import { useTheme } from '@/hooks/useT';
 import { useT } from '@/hooks/useT';
 import type { PlaygroundState } from '@/hooks/usePlayground';
-import { getErrorMessage } from '@/lib/errors';
+import { ApiError, getErrorMessage } from '@/lib/errors';
 import { formatMoney } from '@/utils/format';
+import { listedVndQuote, readServerVnd } from '@/lib/vndDisplay';
+import { usageUnitLabelText } from '@/lib/usageUnits';
 import type { Product } from '@/api/types';
 
 type Props = {
@@ -25,7 +27,14 @@ type Props = {
 export function PlaygroundPanel({ product, pg, isAuthenticated, onNeedAuth, onNeedWallet }: Props) {
   const { colors } = useTheme();
   const { t, language } = useT();
-  const error = pg.run.isError ? getErrorMessage(pg.run.error, language) : pg.errorText;
+  const entitlement = pg.run.isError && pg.run.error instanceof ApiError && pg.run.error.code === 'ENTITLEMENT_REQUIRED';
+  const error = entitlement
+    ? t('usage.entitlementRequired')
+    : pg.run.isError
+      ? getErrorMessage(pg.run.error, language)
+      : pg.errorText === 'ENTITLEMENT_REQUIRED'
+        ? t('usage.entitlementRequired')
+        : pg.errorText;
   const needTopup = !!error && /402|Insufficient|ví|wallet|top up/i.test(error);
   const statusLabel =
     pg.runStatus === 'idle'
@@ -126,10 +135,26 @@ export function PlaygroundPanel({ product, pg, isAuthenticated, onNeedAuth, onNe
         ) : null}
 
         <Text style={{ color: colors.textSecondary, marginBottom: 12, lineHeight: 20 }}>
-          {pg.priceHint}
-          {isAuthenticated && pg.wallet.data
-            ? ` · ${t('playground.balance', { amount: formatMoney(pg.wallet.data.available ?? pg.wallet.data.balance, pg.wallet.data.currency || 'USD') })}`
-            : ''}
+          {(() => {
+            if (language !== 'vi') {
+              const ledger = isAuthenticated && pg.wallet.data
+                ? ` · ${t('playground.balance', { amount: formatMoney(pg.wallet.data.available ?? pg.wallet.data.balance, pg.wallet.data.currency || 'USD') })}`
+                : '';
+              return `${pg.priceHint}${ledger}`;
+            }
+            const quoted = readServerVnd(listedVndQuote(product));
+            const unit = usageUnitLabelText(product.pricing?.usageUnitLabel, language);
+            const price = !quoted.ok
+              ? t(quoted.code === 'AMOUNT_BELOW_VND_PRECISION' ? 'price.belowDong' : 'price.vndUnavailable')
+              : unit
+                ? `${formatMoney(quoted.amountVnd, 'VND')} / ${unit}`
+                : formatMoney(quoted.amountVnd, 'VND');
+            const available = readServerVnd(pg.wallet.data?.displayVnd?.available);
+            const ledger = isAuthenticated && available.ok
+              ? ` · ${t('playground.balance', { amount: formatMoney(available.amountVnd, 'VND') })}`
+              : '';
+            return `${price}${ledger}`;
+          })()}
         </Text>
 
         <View style={styles.actions}>
